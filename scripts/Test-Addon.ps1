@@ -56,6 +56,14 @@ if ($failures.Count -eq 0) {
     Assert-Condition ($lua -match 'handle:SetScript\("OnMouseUp", function\(self, button\)') 'Resize zones must also support right click.'
     Assert-Condition ($lua -match 'if addon[.]OpenOptions then addon[.]OpenOptions\(\) end') 'Right click should open existing settings.'
     Assert-Condition ($lua -match 'Right-click for options') 'Tooltip should advertise right-click settings.'
+
+    Assert-Condition ($lua -match 'local nextLevelXP = xpMax > 0 and math[.]max\(0, xp [+] questXP - xpMax\) or 0') 'Next-level carryover must be the positive excess XP beyond the current level cap.'
+    Assert-Condition ($lua -match 'local projectedXP = math[.]min\(xpMax, xp [+] questXP\)') 'Existing after-turn-ins progress remains capped at the current level.'
+    Assert-Condition ($lua -match 'GameTooltip:AddDoubleLine\("XP into next level", Commas\(nextLevelXP\) [.]([.]?)') 'Tooltip must show the calculated XP into next level.'
+    $afterTurnInsIndex = $lua.IndexOf('GameTooltip:AddDoubleLine("After turn-ins"')
+    $nextLevelIndex = $lua.IndexOf('GameTooltip:AddDoubleLine("XP into next level"')
+    Assert-Condition ($afterTurnInsIndex -ge 0 -and $nextLevelIndex -gt $afterTurnInsIndex -and ($nextLevelIndex - $afterTurnInsIndex) -lt 370) 'Next-level XP should appear immediately beneath After turn-ins.'
+    Assert-Condition ($lua -match '"XP into next level", Commas\(nextLevelXP\) [.]\\.\\ " XP"') 'Next-level carryover must display as an absolute XP value without an unknown next-level percentage.'
     Assert-Condition ($lua -notmatch '(?i)\b(TODO|FIXME)\b') 'Release source contains TODO or FIXME markers.'
 
     Assert-Condition ($lua -match 'enabled = true, locked = false') 'New installs should start unlocked.'
