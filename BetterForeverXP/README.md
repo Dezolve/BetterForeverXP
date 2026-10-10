@@ -28,12 +28,12 @@ The track has 20 subtle divisions (5% each), and the right-hand text shows how
 many Blizzard-style bars remain, rounded to the nearest half-bar, such as
 `8.5 bars left`.
 
-A small carved-stone chip marks the bar's exact 50% position on the top
-border. Its bronze-trimmed tip sits slightly into the border for a more
-integrated look without obscuring XP labels or capturing mouse input. It is
-visible by default, but can be hidden immediately with **Show 50% stone marker**
-in Settings. The choice persists across logins and /reload. The separate
-bottom hover strip still resizes height.
+A small WoW Classic-inspired silver-steel chevron marks the bar's exact
+50% position along the top border. Silver beveled edges and a dark recessed
+center resemble the original Blizzard UI arrow. It stays clear of the XP
+text and never captures mouse input. It is visible by default, but can be
+hidden immediately with **Show 50% marker** in Settings. The choice persists
+across logins and /reload; the bottom-center resize target is unaffected.
 
 ## Customization
 
@@ -56,7 +56,7 @@ Open **Settings → AddOns → Better Forever XP**, type `/bfxp`, or **right-cli
   Width/height change the layout; scale proportionally grows
   or shrinks the entire presentation. Larger scales can exceed your screen
   width; use `/bfxp reset` to restore the defaults if needed.
-- Toggle the custom bar, the decorative 50% stone marker, and Blizzard's XP
+- Toggle the custom bar, the decorative 50% metal marker, and Blizzard's XP
   bar; choose the XP number format or reset position and size. **Reset all
   defaults** also restores the marker to visible.
 - The bar changes text density as width shrinks to avoid overlapping labels.
