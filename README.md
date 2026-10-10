@@ -92,6 +92,8 @@ live AddOns directory.
 
 Installation copies the updater into `%LOCALAPPDATA%\BetterForeverXP-AutoDeploy`
 and creates a **user-level Windows Scheduled Task** that runs every minute.
+The task runs through a hidden Windows Script Host launcher so it does not
+flash a console window while you're playing.
 The initial sync runs immediately. The updater downloads the GitHub Actions
 artifact, extracts the versioned release ZIP inside it, validates all files
 listed in the TOC (including `Options.lua`), and copies the addon into the
@@ -102,6 +104,11 @@ After successfully installing a new build, it posts the
 both CI and that status pass, the installed addon is ready for `/reload`
 in the WoW client. This status only indicates file deployment, **not**
 that the in-game UI has been verified.
+
+To upgrade an older updater that flashed a command window, download the latest
+AutoDeploy-Windows.ps1 from this branch and repeat the `-Install` command with
+your existing target path. That replaces the scheduled task with the silent
+launcher.
 
 Troubleshooting:
 
