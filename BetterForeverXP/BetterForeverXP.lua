@@ -18,6 +18,7 @@ local textLayer
 local tickLayer, tickMarks = nil, {}
 local tubeRim, tubeBackground, endCapCuts, capPaints = nil, nil, {}, {}
 local leftText, centerText, rightText
+local textScrims = {}
 local eventFrame = CreateFrame("Frame")
 local sessionStart, sessionXP = GetTime(), 0
 local lastXP, lastXPMax
@@ -344,6 +345,38 @@ local function MakeLabel(parent, justify)
     return text
 end
 
+-- Keep exact XP figures available in the tooltip, but never allow the
+-- bar's three text regions to overflow into one another at large font sizes.
+local function SetFittingLabel(label, candidates)
+    local available = math.max(1, (label:GetWidth() or 0) - 8)
+    for _, value in ipairs(candidates) do
+        label:SetText(value)
+        if not label.GetStringWidth or label:GetStringWidth() <= available then
+            return
+        end
+    end
+    -- Last candidate is deliberately very short. If even that cannot fit,
+    -- leave a blank label rather than drawing into an adjacent region.
+    label:SetText("")
+end
+
+local function UpdateTextScrims()
+    for label, scrim in pairs(textScrims) do
+        if not label:IsShown() or not label:GetText() or label:GetText() == "" or db.height < 26 then
+            scrim:Hide()
+        else
+            local width = math.max(0, math.min(label:GetWidth(), label:GetStringWidth() + 14))
+            if width < 4 then
+                scrim:Hide()
+            else
+                scrim:SetWidth(width)
+                scrim:SetHeight(math.min(db.height - 4, math.max(16, label:GetStringHeight() + 8)))
+                scrim:Show()
+            end
+        end
+    end
+end
+
 local function UpdateResizeHandles()
     for _, handle in pairs(resizeHandles) do
         handle:SetShown(db and not db.locked)
@@ -548,6 +581,21 @@ local function CreateBar()
     textLayer = CreateFrame("Frame", nil, bar)
     textLayer:SetAllPoints(); textLayer:SetFrameLevel(bar:GetFrameLevel() + 10); textLayer:EnableMouse(false)
     leftText, centerText, rightText = MakeLabel(textLayer, "LEFT"), MakeLabel(textLayer, "CENTER"), MakeLabel(textLayer, "RIGHT")
+    -- Small, soft scrims sit behind the actual rendered words, not across
+    -- the bar. They tone down white divider glints under tall XP labels.
+    for _, label in ipairs({leftText, centerText, rightText}) do
+        local scrim = MakeTexture(textLayer, "ARTWORK", 0, 0, 0, 0.30)
+        ApplyVerticalGradient(scrim, {0, 0, 0, 0.30}, {0, 0, 0, 0.18})
+        if label == leftText then
+            scrim:SetPoint("LEFT", label, "LEFT")
+        elseif label == rightText then
+            scrim:SetPoint("RIGHT", label, "RIGHT")
+        else
+            scrim:SetPoint("CENTER", label, "CENTER")
+        end
+        textScrims[label] = scrim
+        scrim:Hide()
+    end
 
     -- Invisible edge hit zones, with subtle affordances shown only while the
     -- pointer is hovering or dragging. No permanent floating W/H/+ buttons.
@@ -769,24 +817,30 @@ local function ApplyLayout()
         end
         label:ClearAllPoints()
     end
+    -- Disjoint layout regions: never center a wide label over the right
+    -- label's region. Every region gets its own padding and hard width.
+    local inset = math.max(6, math.floor(db.width * 0.009 + 0.5))
     if db.width < 530 then
         leftText:Hide(); rightText:Hide(); centerText:Show()
         centerText:SetPoint("CENTER", textLayer, "CENTER")
-        centerText:SetSize(db.width - 12, db.height)
+        centerText:SetSize(db.width - inset * 2, db.height)
     elseif db.width < 830 then
         leftText:Show(); centerText:Show(); rightText:Hide()
-        leftText:SetPoint("LEFT", textLayer, "LEFT", 6, 0)
-        leftText:SetSize(db.width * 0.23 - 12, db.height)
-        centerText:SetPoint("RIGHT", textLayer, "RIGHT", -6, 0)
-        centerText:SetSize(db.width * 0.77 - 12, db.height)
+        local leftZone = db.width * 0.25
+        leftText:SetPoint("LEFT", textLayer, "LEFT", inset, 0)
+        leftText:SetSize(leftZone - inset * 2, db.height)
+        centerText:SetPoint("LEFT", textLayer, "LEFT", leftZone + inset, 0)
+        centerText:SetSize(db.width - leftZone - inset * 2, db.height)
     else
         leftText:Show(); centerText:Show(); rightText:Show()
-        leftText:SetPoint("LEFT", textLayer, "LEFT", 6, 0)
-        leftText:SetSize(db.width * 0.15 - 12, db.height)
-        centerText:SetPoint("CENTER", textLayer, "CENTER")
-        centerText:SetSize(db.width * 0.43 - 12, db.height)
-        rightText:SetPoint("RIGHT", textLayer, "RIGHT", -6, 0)
-        rightText:SetSize(db.width * 0.42 - 12, db.height)
+        local leftZone = db.width * 0.17
+        local centerZone = db.width * 0.45
+        leftText:SetPoint("LEFT", textLayer, "LEFT", inset, 0)
+        leftText:SetSize(leftZone - inset * 2, db.height)
+        centerText:SetPoint("LEFT", textLayer, "LEFT", leftZone + inset, 0)
+        centerText:SetSize(centerZone - inset * 2, db.height)
+        rightText:SetPoint("RIGHT", textLayer, "RIGHT", -inset, 0)
+        rightText:SetSize(db.width - leftZone - centerZone - inset * 2, db.height)
     end
     resizeHandles.width:SetHeight(math.max(28, db.height + 12))
     -- Height handle stays centered at a fixed, compact width on every resize.
@@ -1087,16 +1141,42 @@ local function UpdateBar()
     end
     spark:ClearAllPoints(); spark:SetPoint("CENTER", fill, "LEFT", earnedWidth, 0)
     spark:SetShown(xp > 0 and xp < xpMax)
-    leftText:SetText("Level " .. (UnitLevel("player") or 0))
+    local level = UnitLevel("player") or 0
+    if leftText:IsShown() then
+        SetFittingLabel(leftText, {"Level " .. level, "Lv " .. level, tostring(level)})
+    end
+    local pct = string.format("%.1f%%", percent)
     if db.width < 530 then
-        centerText:SetText(string.format("%.1f%%  •  %s XP left", percent, Short(remaining)))
+        SetFittingLabel(centerText, {
+            pct .. "  •  " .. Short(remaining) .. " left",
+            pct .. "  •  " .. Short(remaining),
+            pct,
+        })
     elseif db.width < 830 then
-        centerText:SetText(Short(xp) .. " / " .. Short(xpMax) .. string.format("  •  %.1f%%", percent))
+        SetFittingLabel(centerText, {
+            Short(xp) .. " / " .. Short(xpMax) .. "  •  " .. pct,
+            Short(xp) .. "/" .. Short(xpMax) .. " " .. pct,
+            pct,
+        })
     else
         local display = db.numberFormat == "short" and ExactAndShort or FormatNumber
-        centerText:SetText(display(xp) .. " / " .. display(xpMax) .. string.format("  •  %.1f%%", percent))
-        rightText:SetText(display(remaining) .. " XP left  •  " .. FormatBars(barsLeft) .. " bars left")
+        SetFittingLabel(centerText, {
+            display(xp) .. " / " .. display(xpMax) .. "  •  " .. pct,
+            Commas(xp) .. " / " .. Commas(xpMax) .. "  •  " .. pct,
+            Short(xp) .. " / " .. Short(xpMax) .. "  •  " .. pct,
+            Short(xp) .. "/" .. Short(xpMax),
+            pct,
+        })
+        SetFittingLabel(rightText, {
+            display(remaining) .. " XP left  •  " .. FormatBars(barsLeft) .. " bars left",
+            Commas(remaining) .. " left  •  " .. FormatBars(barsLeft) .. " bars",
+            Short(remaining) .. " left  •  " .. FormatBars(barsLeft) .. " bars",
+            Short(remaining) .. " XP left",
+            Short(remaining) .. " left",
+            FormatBars(barsLeft) .. " bars",
+        })
     end
+    UpdateTextScrims()
     bar:Show()
     if tooltipVisible then ShowDetails() end
 end
