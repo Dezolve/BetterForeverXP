@@ -218,6 +218,8 @@ local function SetCapPaint(cap, region)
     cap.region = region
     if not region then
         cap.paint:Hide()
+        cap.topSheen:Hide()
+        cap.bottomShade:Hide()
         return
     end
     local colors = capColors[region]
@@ -228,7 +230,17 @@ local function SetCapPaint(cap, region)
     if not ApplyVerticalGradient(cap.paint, bottom, top) then
         cap.paint:SetColorTexture(colors.flat[1], colors.flat[2], colors.flat[3], 1)
     end
+    -- Match the moving earned/status-bar bevels throughout the rounded end.
+    if region == "blue" then
+        cap.topSheen:SetColorTexture(0.55, 0.72, 1.00, 0.18)
+    elseif region == "purple" then
+        cap.topSheen:SetColorTexture(0.88, 0.74, 0.96, 0.22)
+    else
+        cap.topSheen:SetColorTexture(0.40, 0.58, 0.84, 0.16)
+    end
     cap.paint:Show()
+    cap.topSheen:Show()
+    cap.bottomShade:Show()
 end
 
 local function UpdateTubeCaps(height, width)
@@ -245,7 +257,9 @@ local function UpdateTubeCaps(height, width)
         end
         cuts[i] = trimHeight
         if i < radius and trimHeight == 0 and railInset == radius then
-            railInset = i
+            -- The last curved pixel occupies this column, so the straight
+            -- steel rail must start at the following column without a gap.
+            railInset = i + 1
         end
     end
 
@@ -283,18 +297,26 @@ local function UpdateTubeCaps(height, width)
                 end
                 texture:SetSize(1, math.max(1, height - 2 * trim))
             end
+            -- Clip the earned/rested top sheen and lower shadow to the same
+            -- visible 1px cap strip, so the tube bevel reaches both ends.
+            cap.topSheen:SetHeight(math.min(2, math.max(1, height - 2 * trim)))
+            cap.bottomShade:SetHeight(math.min(3, math.max(1, height - 2 * trim)))
             cap.background:Show()
             cap.paint:SetShown(cap.region ~= nil)
+            cap.topSheen:SetShown(cap.region ~= nil)
+            cap.bottomShade:SetShown(cap.region ~= nil)
         else
             cap.background:Hide()
             cap.paint:Hide()
+            cap.topSheen:Hide()
+            cap.bottomShade:Hide()
         end
     end
 
     local outerTrim = cuts[0]
     for _, cap in ipairs(endCapCuts) do
         local trim = cuts[cap.column]
-        if cap.column < radius and trim > 0 then
+        if cap.column < radius then
             cap.edge:Show()
             cap.edge:SetSize(1, 1)
             cap.edge:ClearAllPoints()
@@ -323,9 +345,10 @@ local function UpdateTubeCaps(height, width)
     end
     SetHorizontalRail(tubeRim.topEdge, true, railInset, 0)
     SetHorizontalRail(tubeRim.bottomEdge, false, railInset, 0)
-    SetHorizontalRail(tubeRim.topInsetShade, true, railInset + 1, -1)
-    SetHorizontalRail(tubeRim.innerTopHighlight, true, railInset + 2, -2)
-    SetHorizontalRail(tubeRim.innerBottomShade, false, railInset + 2, 2)
+    -- A single upper steel outline replaces the dark extra top strip that
+    -- looked like a separate reddish rail in some game lighting.
+    SetHorizontalRail(tubeRim.innerTopHighlight, true, railInset + 1, -2)
+    SetHorizontalRail(tubeRim.innerBottomShade, false, railInset + 1, 2)
 
     for _, side in ipairs({{tubeRim.leftEdge, "LEFT"}, {tubeRim.rightEdge, "RIGHT"}}) do
         local edge, align = side[1], side[2]
@@ -335,8 +358,7 @@ local function UpdateTubeCaps(height, width)
     end
     tubeRim.topEdge:SetHeight(1)
     tubeRim.bottomEdge:SetHeight(1)
-    tubeRim.topInsetShade:SetHeight(math.max(1, math.min(3, math.floor(height * 0.08 + 0.5))))
-    tubeRim.innerTopHighlight:SetHeight(1)
+     tubeRim.innerTopHighlight:SetHeight(1)
     tubeRim.innerBottomShade:SetHeight(math.max(1, math.min(5, math.floor(height * 0.11 + 0.5))))
 end
 
@@ -493,9 +515,18 @@ local function CreateBar()
         for column = 0, MAX_CORNER_RADIUS - 1 do
             local backgroundCap = MakeTexture(bar, "BACKGROUND", 1, 1, 1, 1)
             local paint = MakeTexture(capFillLayer, "ARTWORK", 1, 1, 1, 1)
+            local topSheen = MakeTexture(capFillLayer, "OVERLAY", 0.55, 0.72, 1, 0.18)
+            topSheen:SetPoint("TOPLEFT", paint, "TOPLEFT")
+            topSheen:SetWidth(1)
+            local bottomShade = MakeTexture(capFillLayer, "OVERLAY", 0.015, 0.035, 0.075, 0.24)
+            bottomShade:SetPoint("BOTTOMLEFT", paint, "BOTTOMLEFT")
+            bottomShade:SetWidth(1)
             paint:Hide()
+            topSheen:Hide()
+            bottomShade:Hide()
             capPaints[#capPaints + 1] = {
                 background = backgroundCap, paint = paint,
+                topSheen = topSheen, bottomShade = bottomShade,
                 right = right, column = column,
             }
         end
@@ -523,9 +554,6 @@ local function CreateBar()
     local rightEdge = MakeTexture(tubeRim, "OVERLAY", 0.30, 0.37, 0.47, 0.96)
     rightEdge:SetWidth(1)
     tubeRim.rightEdge = rightEdge
-
-    local topInsetShade = MakeTexture(tubeRim, "OVERLAY", 0.005, 0.008, 0.016, 0.89)
-    tubeRim.topInsetShade = topInsetShade
 
     local innerTopHighlight = MakeTexture(tubeRim, "OVERLAY", 1.00, 1.00, 1.00, 0.18)
     tubeRim.innerTopHighlight = innerTopHighlight
@@ -585,7 +613,10 @@ local function CreateBar()
     midpointMarker:SetSize(32, 32)
     -- Anchor the native artwork to the actual 50% divider, not an
     -- independently calculated position on the frame.
-    midpointMarker:SetPoint("CENTER", tickMarks[10].core, "TOP", 0, -4)
+    -- Blizzard's exhaustion-tick art has a visibly left-weighted stem.
+    -- The silver stem is centered two displayed pixels left of the bright
+    -- divider unless aligned to the rim and nudged by one art pixel.
+    midpointMarker:SetPoint("CENTER", tickMarks[10].rim, "TOP", 1, -4)
     midpointMarker:SetFrameLevel(tickLayer:GetFrameLevel() + 1)
     midpointMarker:EnableMouse(false)
 
@@ -897,7 +928,10 @@ local function ApplyLayout()
         -- A single continuous groove, with a central white reflection.
         -- Removing stacked black end-blocks eliminates the dark gaps.
         local grooveHeight = math.max(2, db.height - 2)
-        tick.glint:SetHeight(math.max(1, math.floor(grooveHeight * 0.65 + 0.5)))
+        -- The center highlight continues to the top of the tube so the
+        -- Blizzard arrow visibly lands on its own 50% divider.
+        tick.glint:SetHeight(tick.isCenter and grooveHeight
+            or math.max(1, math.floor(grooveHeight * 0.65 + 0.5)))
         -- Every divider, including 50%, shares this exact physical-pixel
         -- grid. The Blizzard arrow follows tickMarks[10].core automatically.
         local x = math.floor(db.width * index / 20 * effectiveScale + 0.5) * pixel
