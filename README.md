@@ -23,10 +23,12 @@ capturing mouse input. It is on by default and can be hidden with
 The XP track has soft top-to-bottom tube shading, a single aligned metallic
 rim with height-adjusting curved ends, and all 19 dividers for **20 XP segments**.
 Straight top/bottom lines now meet the curved cap edges cleanly without a
-second rectangular border.
-Each divider has a black groove, silver edge, and pronounced white center
-between dark top/bottom sockets. Markers remain aligned to physical pixels
-at different bar sizes and scales. The 50% divider is centered below
+second rectangular border. The tube's background and earned/rested XP fills
+now extend through genuinely curved endcaps rather than a square hidden track,
+and all dividers align to the same visible inner width.
+Each divider uses a continuous black groove, silver edge and bright white
+center reflection, without separate black end blocks. Markers remain aligned
+to physical pixels at different bar sizes and scales. The 50% divider is centered below
 the Blizzard arrow. XP remains blue while rested and purple when unrested;
 the rested extension stays dark navy.
 
