@@ -389,15 +389,22 @@ local function CreateBar()
             -- Put the corner artwork back on its easy-to-grab, outside
             -- bottom-right handle. Scale only the visible glyph/plate with
             -- bar height; the 30px invisible hit target never shrinks.
-            local backing = MakeTexture(indicator, "OVERLAY", 0.025, 0.045, 0.075, 0.90)
+            -- The old near-black plate swallowed the gold L-grip against
+            -- an empty XP segment. Put the backing BEHIND the golden strokes,
+            -- with explicit overlay sublayers so no panel can dim their color.
+            local backing = MakeTexture(indicator, "BACKGROUND", 0.06, 0.09, 0.13, 0.76)
             backing:SetPoint("BOTTOMRIGHT", indicator, "BOTTOMRIGHT", -1, 1)
-            local horizontal = MakeTexture(indicator, "OVERLAY", 1, 0.78, 0.30, 1)
+            local horizontal = MakeTexture(indicator, "OVERLAY", 1, 0.84, 0.42, 1)
+            horizontal:SetDrawLayer("OVERLAY", 3)
             horizontal:SetPoint("BOTTOMRIGHT", backing, "BOTTOMRIGHT", -3, 3)
-            local vertical = MakeTexture(indicator, "OVERLAY", 1, 0.78, 0.30, 1)
+            local vertical = MakeTexture(indicator, "OVERLAY", 1, 0.84, 0.42, 1)
+            vertical:SetDrawLayer("OVERLAY", 3)
             vertical:SetPoint("BOTTOMRIGHT", backing, "BOTTOMRIGHT", -3, 3)
-            local detailH = MakeTexture(indicator, "OVERLAY", 1, 0.87, 0.53, 1)
+            local detailH = MakeTexture(indicator, "OVERLAY", 1, 0.94, 0.67, 1)
+            detailH:SetDrawLayer("OVERLAY", 4)
             detailH:SetPoint("BOTTOMRIGHT", backing, "BOTTOMRIGHT", -9, 10)
-            local detailV = MakeTexture(indicator, "OVERLAY", 1, 0.87, 0.53, 1)
+            local detailV = MakeTexture(indicator, "OVERLAY", 1, 0.94, 0.67, 1)
+            detailV:SetDrawLayer("OVERLAY", 4)
             detailV:SetPoint("BOTTOMRIGHT", backing, "BOTTOMRIGHT", -10, 9)
             handle.resizeCornerVisuals = {
                 backing = backing, horizontal = horizontal, vertical = vertical,
