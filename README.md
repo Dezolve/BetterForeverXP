@@ -9,8 +9,9 @@ details one hover away. It shows exact and abbreviated XP values, rested XP,
 completed-quest XP, session pace, time to level, and progress in Blizzard-style
 five-percent bars. It has no external dependencies.
 
-A small carved-stone arrowhead permanently marks the 50% position at the top
-border without covering labels or capturing mouse input.
+A small carved-stone arrowhead marks the 50% position along the top border
+without covering labels or capturing mouse input. It is on by default and
+can be hidden with **Show 50% stone marker** in the Options panel.
 
 ## Install
 
@@ -39,8 +40,8 @@ Lock the bar from Settings or with `/bfxp lock` to hide the resize controls and
 prevent accidental movement. Existing users keep their saved lock preference.
 
 The Height control supports 10–120px, while the overall UI scale is separate.
-The panel also provides separate width, height, scale, visibility, default-bar
-visibility, and XP number-format controls. At smaller widths the bar reduces
+The panel also provides separate width, height, scale, 50% marker visibility,
+default-bar visibility, and XP number-format controls. At smaller widths the bar reduces
 text detail automatically to avoid overlap.
 
 ## Commands
