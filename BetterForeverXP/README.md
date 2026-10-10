@@ -37,9 +37,11 @@ Session XP and its start time survive `/reload`, so XP/hour and ETA do not reset
 while adjusting the UI. A genuine fresh character login starts a new session.
 
 The classic **20 visible 5%-XP segments** remain part of the tube design.
-Each divider is a single scale-aware, pixel-snapped line, styled for contrast
-against blue/purple earned XP, navy rested coverage, and the near-black track.
-The 50% line is anchored precisely beneath the silver Blizzard arrow.
+Each divider now resembles a subtle recessed metallic groove: a shaded
+one-physical-pixel core and a faint, vertically fading highlight beside it.
+Both use the same pixel-snapped placement, so they stay together as bar size
+and UI scale change. Grooves adjust to earned XP, rested XP, or empty track
+colors; the 50% groove is slightly stronger beneath the silver Blizzard arrow.
 The right-hand text still reports bars remaining, rounded to the nearest
 half-bar, such as `8.5 bars left`.
 
