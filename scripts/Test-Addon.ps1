@@ -66,7 +66,7 @@ if ($failures.Count -eq 0) {
     Assert-Condition ($lua -match 'pcall\(texture[.]SetGradient, texture, "VERTICAL"') 'Gradient calls should be protected on uncertain Classic clients.'
     Assert-Condition ($lua -match 'statusBar:SetStatusBarColor\(flat\[1\], flat\[2\], flat\[3\], 1\)') 'Unsupported clients should retain readable classic solid fill colors.'
     Assert-Condition ($lua -match 'ApplyTubeStatusColor\(restedFill,') 'Rested coverage needs matching tube shading.'
-    Assert-Condition ($lua -match 'ApplyVerticalGradient\(background,') 'The unearned track should have a dark channel gradient.'
+    Assert-Condition ($lua -match 'ApplyVerticalGradient\(tubeBackground,') 'The inner unearned track should retain its dark channel gradient.'
     Assert-Condition ($lua -match 'fillSheen:SetPoint\("TOPLEFT", fill:GetStatusBarTexture\(\), "TOPLEFT"\)') 'XP bevel should follow earned fill width rather than entire frame.'
     Assert-Condition ($lua -match 'fillShade:SetPoint\("BOTTOMLEFT", fill:GetStatusBarTexture\(\), "BOTTOMLEFT"\)') 'XP bottom shade should follow earned fill width.'
     Assert-Condition ($lua -match 'restedSheen:SetPoint\("TOPLEFT", restedFill:GetStatusBarTexture\(\), "TOPLEFT"\)') 'Rested bevel should follow rested coverage.'
