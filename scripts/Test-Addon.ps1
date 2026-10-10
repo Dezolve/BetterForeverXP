@@ -154,7 +154,7 @@ if ($failures.Count -eq 0) {
     Assert-Condition ($lua -match 'local x = math[.]floor\(db[.]width [*] index / 20 [*] effectiveScale [+] 0[.]5\) [*] pixel') '5-percent grooves should align to the shared visible inner track, not the outer rectangle.'
     Assert-Condition ($lua -match 'tick[.]core:SetPoint\("TOP", tickLayer, "TOPLEFT", x, -1\)') 'All division lines must use the same pixel-snapped coordinates, including 50%.'
     Assert-Condition ($lua -notmatch 'if index ~= 10 then') 'The center tick must not bypass pixel snapping.'
-    Assert-Condition ($lua -match 'tickMarks\[10\][.]core') 'Blizzard arrow must reference the actual center divider texture.'
+    Assert-Condition ($lua -match 'tickMarks\[10\][.]glint') 'Blizzard arrow must reference the centered white reflection inside the 50-percent divider.'
     Assert-Condition ($lua -match 'local function ApplyBeveledTick\(tick, region\)') 'Dividers should retain dynamic blue/rested/empty contrast.'
     Assert-Condition ($lua -match 'ApplyVerticalGradient\(tick[.]core, palette[.]coreBottom, coreTop\)') 'Dark groove gradient should remain enabled.'
     Assert-Condition ($lua -match 'ApplyVerticalGradient\(tick[.]rim, palette[.]rimBottom, rimTop\)') 'White rim should have gradient fallback.'
