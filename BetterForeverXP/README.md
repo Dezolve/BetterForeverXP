@@ -15,7 +15,11 @@ XP ready to turn in, session XP, XP/hour, and estimated time to level.
 
 The hover card also tracks online time spent on the current level, shows how
 much of a level completed quests are worth, projects progress after turn-ins,
-and expresses rested coverage in 5%-sized bars.
+and directly underneath shows **XP into next level** (the positive excess of
+completed-quest XP beyond the current level requirement, or 0 XP if none).
+This is a raw XP estimate, not a next-level percentage, because the next level's
+XP cap is not yet available. The hover card also expresses rested coverage in
+5%-sized bars.
 
 The hover card is organized into Progress, Bonuses & Ready Quests, and Leveling
 Pace sections. Rested percentage, XP/hour, and ETA remain visible at zero so
