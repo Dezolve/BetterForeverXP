@@ -48,16 +48,18 @@ Session XP and its start time survive `/reload`, so XP/hour and ETA do not reset
 while adjusting the UI. A genuine fresh character login starts a new session.
 
 The classic **20 visible 5%-XP segments** remain part of the tube design.
-Each 5% divider now has a **3-physical-pixel dark groove with its silver
-reflection and white glint centered within it**, rather than offset to
-one side. Removing separate black end blocks prevents dark gaps showing
-through the marks. All 19 dividers are positioned
+Each 5% divider now has a **3-physical-pixel gunmetal groove and a full-height
+one-pixel muted silver reflection centered inside it**, rather than an offset
+or partial-height white highlight. All 19 dividers use the same neutral steel
+color family, with only a small opacity adjustment for contrast over earned,
+rested, and empty XP. Removing separate black end blocks prevents dark gaps
+showing through the marks. All 19 dividers are positioned
 at exact 5% positions across the **entire visible rounded tube**, including
 endcaps; earned and rested progress use the same absolute positions and
 pixel-snapped dividers adapt as the bar changes width/scale. The native
-Blizzard silver arrow now anchors directly to the **centered white glint**
-of the pixel-snapped 50% divider, preventing an apparent offset between
-the arrow, white reflection and black groove.
+Blizzard silver arrow now anchors directly to the **centered muted-silver
+reflection** of the pixel-snapped 50% divider; its native art has a restrained
+cool-steel tint so it visually matches the rest of the dividers.
 The right-hand text still reports bars remaining, rounded to the nearest
 half-bar, such as `8.5 bars left`.
 
