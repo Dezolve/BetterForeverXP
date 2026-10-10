@@ -111,7 +111,7 @@ if ($failures.Count -eq 0) {
     Assert-Condition ($lua -notmatch 'centerText:SetSize\(db[.]width [*] 0[.]43 - 12, db[.]height\)') 'Do not restore old center box that overlaps the right region.'
     Assert-Condition ($lua -match 'SetFittingLabel\(centerText, \{') 'Current XP and percent must use width-aware fallback choices.'
     Assert-Condition ($lua -match 'SetFittingLabel\(rightText, \{') 'Remaining XP and bars-left text must use width-aware fallback choices.'
-    Assert-Condition ($lua -match 'Short\(remaining\) [.] [.] " XP left"') 'Compact remaining-XP labels must be available without duplicate exact and short figures.'
+    Assert-Condition ($lua -match 'Short\(remaining\) [.][.] " XP left"') 'Compact remaining-XP labels must be available without duplicate exact and short figures.'
     Assert-Condition ($lua -match 'local function UpdateTextScrims\(\)') 'A subtle shadow directly behind visible words should reduce divider interference.'
     Assert-Condition ($lua -match 'scrim:SetWidth\(width\)') 'Text shadow strip must only cover the measured text width.'
     Assert-Condition ($lua -match 'if not label:IsShown\(\) or not label:GetText\(\)') 'Scrims should hide with their text.'
