@@ -128,20 +128,21 @@ local function UpdateResizeHandles()
     end
 end
 
--- On drag start, pin the opposite edge before changing dimensions.
--- Right-edge drags keep the top-left fixed; top-edge/corner drags keep the
--- bottom-left fixed so the top follows the pointer without jumping.
+-- On drag start, pin the opposite corner before changing dimensions.
+-- Top-edge drags keep the bottom-left fixed (top grows upward). Right-edge
+-- and bottom-right drags keep the top-left fixed (bottom grows downward).
 local function AnchorForResizing(mode)
     local parentScale = UIParent:GetEffectiveScale()
     local frameScale = bar:GetEffectiveScale()
     if not parentScale or parentScale <= 0 or not frameScale or frameScale <= 0 then
         return false
     end
-    local point = mode == "width" and "TOPLEFT" or "BOTTOMLEFT"
+    local topAnchored = mode ~= "height"
+    local point = topAnchored and "TOPLEFT" or "BOTTOMLEFT"
     local left = bar:GetLeft()
-    local barY = mode == "width" and bar:GetTop() or bar:GetBottom()
+    local barY = topAnchored and bar:GetTop() or bar:GetBottom()
     local parentLeft = UIParent:GetLeft()
-    local parentY = mode == "width" and UIParent:GetTop() or UIParent:GetBottom()
+    local parentY = topAnchored and UIParent:GetTop() or UIParent:GetBottom()
     if not left or not barY or not parentLeft or not parentY then return false end
     local ratio = parentScale / frameScale
     local x = left - parentLeft * ratio
@@ -207,7 +208,7 @@ local function CreateBar()
 
     -- Invisible edge hit zones, with subtle affordances shown only while the
     -- pointer is hovering or dragging. No permanent floating W/H/+ buttons.
-    -- Top edge grows upward; right edge grows rightward; top-right does both.
+    -- Top edge grows upward; right edge grows rightward; bottom-right grows down/right.
     local MIN_WIDTH, MAX_WIDTH = 300, 1600
     local MIN_HEIGHT, MAX_HEIGHT = 10, 40
     local activeResize
@@ -251,10 +252,14 @@ local function CreateBar()
                     math.min(MAX_WIDTH, available, width + dx)) + 0.5)
             end
             if mode ~= "width" then
-                -- The bottom stays stationary while the top tracks the mouse.
-                local available = math.max(MIN_HEIGHT, UIParent:GetHeight() / db.scale - db.y)
+                -- Top-edge dragging grows upward from a fixed bottom.
+                -- Bottom-right dragging grows downward from a fixed top.
+                local fromTop = mode == "corner"
+                local available = math.max(MIN_HEIGHT,
+                    UIParent:GetHeight() / db.scale + (fromTop and db.y or -db.y))
+                local heightDelta = fromTop and -dy or dy
                 height = math.floor(math.max(MIN_HEIGHT,
-                    math.min(MAX_HEIGHT, available, height + dy)) + 0.5)
+                    math.min(MAX_HEIGHT, available, height + heightDelta)) + 0.5)
             end
             if width ~= db.width or height ~= db.height then
                 db.width, db.height = width, height
@@ -268,6 +273,8 @@ local function CreateBar()
         handle:SetPoint(point, bar, point, x, y)
         handle:SetFrameLevel(bar:GetFrameLevel() + (mode == "corner" and 30 or 25))
         handle:EnableMouse(true)
+        -- Slightly extend the interactive rectangle without changing visuals.
+        handle:SetHitRectInsets(-2, -2, -2, -2)
         local indicator = CreateFrame("Frame", nil, handle)
         indicator:SetAllPoints()
         indicator:EnableMouse(false)
@@ -277,9 +284,10 @@ local function CreateBar()
         elseif mode == "width" then
             line:SetPoint("CENTER"); line:SetSize(2, 10)
         else
-            line:SetPoint("TOPRIGHT", -2, -2); line:SetSize(12, 2)
+            -- Match the visual cue to its bottom-right hit zone.
+            line:SetPoint("BOTTOMRIGHT", -3, 3); line:SetSize(12, 2)
             local vertical = MakeTexture(indicator, "OVERLAY", 1, 0.72, 0.35, 0.96)
-            vertical:SetPoint("TOPRIGHT", -2, -2); vertical:SetSize(2, 12)
+            vertical:SetPoint("BOTTOMRIGHT", -3, 3); vertical:SetSize(2, 12)
         end
         indicator:Hide()
         handle.resizeIndicator = indicator
@@ -302,14 +310,15 @@ local function CreateBar()
         resizeHandles[mode] = handle
     end
 
-    -- Edge zones sit primarily OUTSIDE the slender XP bar so the center
-    -- remains usable for dragging and normal tooltip interactions.
-    AddResizeHandle("width", "RIGHT", 6, 0)
-    AddResizeHandle("height", "TOP", 0, 5)
-    AddResizeHandle("corner", "TOPRIGHT", 6, 6)
-    resizeHandles.width:SetSize(12, math.max(12, db.height))
-    resizeHandles.height:SetSize(math.max(30, db.width - 42), 10)
-    resizeHandles.corner:SetSize(16, 16)
+    -- Larger, mostly external hover zones are easier to discover/catch while
+    -- preserving the bar body for movement and XP tooltip interactions.
+    -- Bottom-right corner has a higher frame level than the width zone.
+    AddResizeHandle("width", "RIGHT", 10, 0)
+    AddResizeHandle("height", "TOP", 0, 8)
+    AddResizeHandle("corner", "BOTTOMRIGHT", 12, -10)
+    resizeHandles.width:SetSize(24, math.max(28, db.height + 12))
+    resizeHandles.height:SetSize(math.max(60, db.width - 48), 18)
+    resizeHandles.corner:SetSize(30, 30)
     UpdateResizeHandles()
 
     bar:SetScript("OnDragStart", function(self)
@@ -362,8 +371,8 @@ local function ApplyLayout()
         rightText:SetPoint("RIGHT", textLayer, "RIGHT", -6, 0)
         rightText:SetSize(db.width * 0.42 - 12, db.height)
     end
-    resizeHandles.width:SetHeight(math.max(12, db.height))
-    resizeHandles.height:SetWidth(math.max(30, db.width - 42))
+    resizeHandles.width:SetHeight(math.max(28, db.height + 12))
+    resizeHandles.height:SetWidth(math.max(60, db.width - 48))
     UpdateResizeHandles()
 
     for index, tick in ipairs(tickMarks) do
@@ -476,7 +485,7 @@ local function ShowDetails()
     if db.locked then
         GameTooltip:AddLine("Shift-drag to move • /bfxp unlock for normal dragging", 0.55, 0.62, 0.72)
     else
-        GameTooltip:AddLine("Drag to move • hover top/right/top-right to resize • /bfxp lock", 0.55, 0.62, 0.72)
+        GameTooltip:AddLine("Drag to move • hover top/right/bottom-right to resize • /bfxp lock", 0.55, 0.62, 0.72)
     end
     GameTooltip:Show()
 end
