@@ -82,7 +82,7 @@ if ($failures.Count -eq 0) {
     Assert-Condition ($lua -match 'resizeHandles[.]height:SetSize\(db[.]width, 24\)') 'Entire bottom edge must respond to hover.'
     Assert-Condition ($lua -match 'resizeHandles[.]height:SetWidth\(db[.]width\)') 'Bottom hover target must track bar width.'
     Assert-Condition ($lua -match 'handle:SetHitRectInsets') 'Resize zones must have forgiving hit insets.'
-    Assert-Condition ($lua -match 'fromTop and -dy or dy') 'Bottom-right drag must increase height on downward cursor motion.'
+    Assert-Condition ($lua -match 'height - dy') 'Bottom-right drag must increase height on downward cursor motion.'
     Assert-Condition ($lua -match 'shadow:SetSize\(44, 7\)') 'Top-center shadow should remain compact and thin.'
     Assert-Condition ([regex]::Matches($lua, 'local gripBack = MakeTexture\(indicator, "OVERLAY", 0[.]06, 0[.]09, 0[.]13, 1\)').Count -eq 1) 'Only the right edge should retain its solid navy grip backing.'
     Assert-Condition ($lua -match 'local shadow = MakeTexture\(indicator, "OVERLAY", 0[.]02, 0[.]03, 0[.]05, 0[.]35\)') 'Top grabber should use only a faint translucent shadow.'
