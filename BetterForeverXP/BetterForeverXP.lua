@@ -333,8 +333,13 @@ local function CreateBar()
         handle:SetPoint(point, bar, point, x, y)
         handle:SetFrameLevel(bar:GetFrameLevel() + (mode == "corner" and 30 or 25))
         handle:EnableMouse(true)
-        -- Slightly extend the interactive rectangle without changing visuals.
-        handle:SetHitRectInsets(-2, -2, -2, -2)
+        -- Keep the height handle strictly outside the bar, with no expanded
+        -- hit rectangle. The other controls retain their forgiving insets.
+        if mode == "height" then
+            handle:SetHitRectInsets(0, 0, 0, 0)
+        else
+            handle:SetHitRectInsets(-2, -2, -2, -2)
+        end
         -- Keep the hit area invisible until hovered, but make its feedback
         -- genuinely discoverable. Prior 28x2/2x10/12x2 marks were so small
         -- that the user could barely tell which edge was interactive.
@@ -342,9 +347,9 @@ local function CreateBar()
         indicator:SetAllPoints()
         indicator:EnableMouse(false)
         if mode == "height" then
-            -- Keep the wide bottom-edge hover area but show only a compact,
-            -- centered gold line with a faint shadow. This handle is below
-            -- the bar and cannot intercept the bar's drag or XP tooltip.
+            -- Only a compact center grab target is interactive: the rest of
+            -- the bar remains available for drag and XP tooltip at 10px height.
+            -- The small gold line and faint shadow are hover-only.
             local shadow = MakeTexture(indicator, "OVERLAY", 0.02, 0.03, 0.05, 0.35)
             shadow:SetPoint("CENTER", 0, 0)
             shadow:SetSize(44, 7)
@@ -410,18 +415,16 @@ local function CreateBar()
         resizeHandles[mode] = handle
     end
 
-    -- Larger, mostly external hover zones are easier to discover/catch while
-    -- preserving the bar body for movement and XP tooltip interactions.
+    -- Small, external resize targets leave the entire XP bar available for
+    -- dragging and tooltip interactions, especially at 10–16px bar heights.
     -- Bottom-right corner has a higher frame level than the width zone.
     AddResizeHandle("width", "RIGHT", 10, 0)
-    -- The 24px-high hitbox and its 2px insets end at the bottom border.
-    -- Nothing overlaps the XP bar's draggable and tooltip-bearing body.
+    -- Center-only 96×18px height hitbox, 5px clear of the bottom border.
+    -- No full-width invisible hit strip to intercept a click on the bar.
     AddResizeHandle("height", "BOTTOM", 0, -14)
     AddResizeHandle("corner", "BOTTOMRIGHT", 12, -10)
     resizeHandles.width:SetSize(24, math.max(28, db.height + 12))
-    -- Hover anywhere just BELOW the bar to reveal the centered grip.
-    -- The visual stays compact; the invisible target spans the bar width.
-    resizeHandles.height:SetSize(db.width, 24)
+    resizeHandles.height:SetSize(96, 18)
     resizeHandles.corner:SetSize(30, 30)
     UpdateResizeHandles()
 
@@ -485,7 +488,7 @@ local function ApplyLayout()
         rightText:SetSize(db.width * 0.42 - 12, db.height)
     end
     resizeHandles.width:SetHeight(math.max(28, db.height + 12))
-    resizeHandles.height:SetWidth(db.width)
+    -- Height handle stays centered at a fixed, compact width on every resize.
     -- Keep the original external corner-grab position and L shape, but
     -- resize the ARTWORK when the bar gets thin. This avoids a huge corner
     -- icon on a 10px bar without sacrificing the generous 30px hit area.
