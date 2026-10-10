@@ -496,10 +496,14 @@ SlashCmdList.BETTERFOREVERXP = function(message)
     elseif command == "show" then SetSetting("enabled", true)
     elseif command == "hide" then SetSetting("enabled", false)
     elseif command == "reset" then ResetPosition(); if addon.RefreshOptions then addon.RefreshOptions() end; Print("position and size reset")
-    elseif command == "width" and SetSetting("width", number) then
-    elseif command == "height" and SetSetting("height", number) then
-    elseif command == "scale" and SetSetting("scale", number) then
-    elseif command == "format" and SetSetting("numberFormat", argument) then Print("number format: " .. argument)
+    elseif command == "width" then
+        if not SetSetting("width", number) then Help() end
+    elseif command == "height" then
+        if not SetSetting("height", number) then Help() end
+    elseif command == "scale" then
+        if not SetSetting("scale", number) then Help() end
+    elseif command == "format" then
+        if SetSetting("numberFormat", argument) then Print("number format: " .. argument) else Help() end
     elseif command == "default" and (argument == "on" or argument == "off") then
         SetSetting("hideBlizzard", argument == "off")
         Print("Blizzard bar: " .. argument .. " (reload may be required to restore it)")
