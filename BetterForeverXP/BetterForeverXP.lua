@@ -128,23 +128,26 @@ local function UpdateResizeHandles()
     end
 end
 
--- Fix the current top-left corner in screen space before resizing. This
--- removes the half-speed/jumping behavior caused by center-anchored bars.
--- GetLeft/GetTop are expressed in the bar's effective scale; SavedVariables
--- use UIParent coordinates, so convert between those coordinate systems.
+-- Fix the current top-left corner in screen space before resizing, so
+-- increasing dimensions grows only right/down. GetLeft/GetTop AND SetPoint
+-- offsets are in the *bar's* effective units. UIParent coordinates must be
+-- converted into those units before taking the difference.
 local function AnchorForResizing()
     local parentScale = UIParent:GetEffectiveScale()
     local frameScale = bar:GetEffectiveScale()
     if not parentScale or parentScale <= 0 or not frameScale or frameScale <= 0 then
-        return
+        return false
     end
     local left, top = bar:GetLeft(), bar:GetTop()
-    if not left or not top then return end
-    local x = left * frameScale / parentScale
-    local y = top * frameScale / parentScale - UIParent:GetHeight()
+    local parentLeft, parentTop = UIParent:GetLeft(), UIParent:GetTop()
+    if not left or not top or not parentLeft or not parentTop then return false end
+    local ratio = parentScale / frameScale
+    local x = left - parentLeft * ratio
+    local y = top - parentTop * ratio
     db.point, db.relativePoint, db.x, db.y = "TOPLEFT", "TOPLEFT", x, y
     bar:ClearAllPoints()
     bar:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
+    return true
 end
 
 local ApplyResizeLayout
@@ -217,7 +220,7 @@ local function CreateBar()
 
     local function BeginResize(handle, mode, button)
         if button ~= "LeftButton" or not db or db.locked then return end
-        AnchorForResizing()
+        if not AnchorForResizing() then return end
         local cursorX, cursorY = GetCursorPosition()
         local scale = bar:GetEffectiveScale()
         if not scale or scale <= 0 then scale = 1 end
@@ -240,7 +243,7 @@ local function CreateBar()
                 -- A rightward drag moves the right edge right by the exact
                 -- cursor distance, irrespective of the bar's prior anchor.
                 local visibleWidth = math.max(MIN_WIDTH,
-                    (UIParent:GetWidth() - db.x) / db.scale)
+                    UIParent:GetWidth() / db.scale - db.x)
                 width = math.floor(math.max(MIN_WIDTH,
                     math.min(MAX_WIDTH, visibleWidth, width + dx)) + 0.5)
             end
@@ -248,7 +251,7 @@ local function CreateBar()
                 -- Screen-space Y rises upwards. Moving the bottom edge
                 -- down increases the height, while the top-left stays fixed.
                 local visibleHeight = math.max(MIN_HEIGHT,
-                    (UIParent:GetHeight() + db.y) / db.scale)
+                    UIParent:GetHeight() / db.scale + db.y)
                 height = math.floor(math.max(MIN_HEIGHT,
                     math.min(MAX_HEIGHT, visibleHeight, height - dy)) + 0.5)
             end
