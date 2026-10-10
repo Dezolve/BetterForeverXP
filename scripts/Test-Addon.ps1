@@ -145,7 +145,7 @@ if ($failures.Count -eq 0) {
     Assert-Condition ($lua -match 'eventFrame:RegisterEvent\("PLAYER_REGEN_ENABLED"\)') 'Defer protected native UI changes during combat.'
     Assert-Condition ($lua -match 'elseif event == "PLAYER_REGEN_ENABLED" then\s+ApplyDefaultBarVisibility\(\)') 'Apply deferred native bar toggles after combat.'
     Assert-Condition ($lua -match 'else ApplyDefaultBarVisibility\(\) end') 'Settings boolean change must apply Blizzard visibility immediately.'
-    Assert-Condition ($options -match 'Show Blizzard') 'Settings must communicate immediate restoration.'
+    Assert-Condition ($options -match 'Show or hide Blizzard') 'Settings must communicate immediate restoration.'
     Assert-Condition ($lua -match 'addon.SetSetting = SetSetting') 'Settings panel and commands must share an update path.'
     Assert-Condition ($lua -match 'addon.InitializeOptions') 'Addon does not initialize the options panel.'
     Assert-Condition ($options -match 'Settings.RegisterCanvasLayoutCategory') 'Options panel must register in native Settings.'
