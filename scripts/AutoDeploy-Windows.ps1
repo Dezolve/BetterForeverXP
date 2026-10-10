@@ -96,9 +96,25 @@ if ($Install) {
 
     # A user-level task, not a privileged machine service. Runs while the
     # developer is logged into Windows, including when WoW is running.
+    # Running powershell.exe directly as a user-level task causes an annoying
+    # console window to flash every minute. wscript.exe starts PowerShell with
+    # WindowStyle=0 (hidden), including child processes such as gh.exe.
     $powershellExe = (Get-Process -Id $PID).Path
-    $arguments = '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}" -Sync' -f $scriptPath
-    $action = New-ScheduledTaskAction -Execute $powershellExe -Argument $arguments
+    $wscriptExe = Join-Path $env:WINDIR 'System32\wscript.exe'
+    if (-not (Test-Path -LiteralPath $wscriptExe -PathType Leaf)) {
+        throw "Windows Script Host was not found: $wscriptExe"
+    }
+    $launcherPath = Join-Path $dataDir 'AutoDeploy-Hidden.vbs'
+    $commandLine = '"{0}" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{1}" -Sync' -f $powershellExe, $scriptPath
+    # VBScript escapes quotes by doubling them inside a string literal.
+    $escapedCommandLine = $commandLine.Replace('"', '""')
+    $launcher = @"
+Set shell = CreateObject("WScript.Shell")
+shell.Run "$escapedCommandLine", 0, True
+"@
+    Set-Content -LiteralPath $launcherPath -Value $launcher -Encoding ASCII
+    $arguments = '//B //Nologo "{0}"' -f $launcherPath
+    $action = New-ScheduledTaskAction -Execute $wscriptExe -Argument $arguments
     $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 1) -RepetitionDuration (New-TimeSpan -Days 3650)
     $taskSettings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Minutes 5) -MultipleInstances IgnoreNew -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
     Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Settings $taskSettings -Description 'Install latest successful Better Forever XP feature-branch build every minute' -Force | Out-Null
