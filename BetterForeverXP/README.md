@@ -85,11 +85,12 @@ Open **Settings → AddOns → Better Forever XP**, type `/bfxp`, or **right-cli
   Width/height change the layout; scale proportionally grows
   or shrinks the entire presentation. Larger scales can exceed your screen
   width; use `/bfxp reset` to restore the defaults if needed.
-- The bar is **text-free even while hovering** by default: hover reveals the
-  detailed tooltip with all XP values, without duplicate labels on the tube.
-  Enable **Always show XP text on bar** in Settings if you prefer persistent
-  labels. Previous preferences are migrated, and **Reset all defaults**
-  restores the clean, tooltip-only layout.
+- **XP bar text** now has three exclusive display modes in Settings:
+  **Tooltip only** (default: no labels on the bar, even during hover),
+  **Text on hover** (labels appear while the pointer is over the bar),
+  and **Always visible** (labels remain on screen). The detailed XP tooltip
+  appears on hover in every mode. Previous hover-only and permanent-label
+  preferences are migrated; **Reset all defaults** returns to Tooltip only.
 - Toggle the custom bar, the decorative 50% metal marker, and Blizzard's XP
   bar; choose the XP number format or reset position and size.
 - When permanently enabled, XP labels have genuinely non-overlapping layout
