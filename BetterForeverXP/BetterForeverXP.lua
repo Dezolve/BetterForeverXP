@@ -803,6 +803,7 @@ local function CreateBar()
     bar:SetScript("OnEnter", function()
         tooltipVisible = true
         UpdateTextVisibility()
+        UpdateTextScrims()
         if bar.ShowDetails then bar:ShowDetails() end
     end)
     bar:SetScript("OnLeave", function()
@@ -1240,7 +1241,7 @@ local function SetSetting(key, value)
         if key == "locked" then UpdateResizeHandles()
         elseif key == "enabled" then UpdateBar()
         elseif key == "showMidpointMarker" then midpointMarker:SetShown(value)
-        elseif key == "hoverTextOnly" then UpdateTextVisibility()
+        elseif key == "hoverTextOnly" then UpdateTextVisibility(); UpdateTextScrims()
         else ApplyDefaultBarVisibility() end
     elseif key == "numberFormat" then
         if value ~= "short" and value ~= "commas" and value ~= "exact" then return false end
