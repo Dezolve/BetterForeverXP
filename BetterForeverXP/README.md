@@ -8,10 +8,13 @@ The bar is 1,100 pixels wide and 16 pixels high by default. It shows level,
 percent, remaining XP, and current/maximum XP. Values always use commas and
 also show shorthand at 1,000 or above, such as `4,500 (4.5K)`.
 
-Earned XP is electric blue while rested and switches to classic purple
-when no rested XP remains. Remaining rested coverage extends beyond earned XP
-in dark navy with a warm metallic end marker; unearned XP is near-black.
-Both the earned fill and its top highlight update as rested status changes.
+Earned XP uses a subtle vertical tube gradient: light blue above and deeper
+blue below while rested, switching to light/deep classic purple when the rested
+bonus ends. The remaining rested coverage has a secondary navy gradient;
+unearned XP sits in a softly shaded near-black channel. Slim top highlights,
+bottom shading, and 2px softened outside corners add depth without a thick
+capsule frame. On older clients without gradient support, solid XP colors and
+the bevel highlights are retained.
 Hover for exact progress, rested XP, completed quest
 XP ready to turn in, session XP, XP/hour, and estimated time to level.
 
@@ -33,8 +36,10 @@ the layout does not jump around as values become available.
 Session XP and its start time survive `/reload`, so XP/hour and ETA do not reset
 while adjusting the UI. A genuine fresh character login starts a new session.
 
-The track has 20 subtle divisions (5% each), and the right-hand text shows how
-many Blizzard-style bars remain, rounded to the nearest half-bar, such as
+The former 5%/25% segment lines have been removed for a clean, scaling-safe
+tube surface. One center-anchored 50% divider remains beneath the silver
+Blizzard arrow. The right-hand text still reports progress as 20 conceptual
+Blizzard-style bars, rounded to the nearest half-bar, such as
 `8.5 bars left`.
 
 The exact **native WoW Classic silver exhaustion-tick texture** now marks the
