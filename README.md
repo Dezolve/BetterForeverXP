@@ -9,7 +9,9 @@ details one hover away. It shows exact and abbreviated XP values, rested XP,
 completed-quest XP, session pace, time to level, and progress in Blizzard-style
 five-percent bars. Under **After turn-ins**, its hover tooltip shows how much
 ready-quest XP would spill into the next level (0 XP until the level threshold
-is reached). This is shown as raw XP, not a next-level percent. Earned XP is
+is reached), plus the percentage of the *following level's* requirement.
+Classic-curve estimates are marked ~; unknown curves show the XP amount
+without inventing a percent. Earned XP is
 electric blue while any rested XP remains, switching to classic purple when
 rested XP runs out. The addon has no external dependencies.
 
