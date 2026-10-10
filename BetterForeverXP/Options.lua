@@ -87,6 +87,8 @@ function addon.InitializeOptions()
     AddCheckbox("locked", "Lock position and resizing", -105, "Disable edge resizing and accidental movement.")
     AddCheckbox("hideBlizzard", "Hide Blizzard's XP bar", -105,
         "Show or hide Blizzard's XP bar immediately (or after combat).", 305)
+    AddCheckbox("hoverTextOnly", "Show XP text only on hover", -138,
+        "Keep the bar clean until hovered. Full XP details remain in the tooltip.")
 
     Label(panel, "Bar dimensions", 24, -179, "GameFontNormalLarge")
     AddSlider("width", "Width", -209, 300, 1600, 10, " px")
