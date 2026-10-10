@@ -173,10 +173,16 @@ local function TubeGeometry(height, width)
     return radius, radius, math.max(1, width - radius * 2)
 end
 
+-- Rested earned XP matches the deeper, saturated Blizzard Classic cobalt.
+-- Both the center StatusBar and rounded cap strips use these exact stops.
+local earnedBlue = {
+    bottom = {0.025, 0.105, 0.50},
+    top = {0.11, 0.31, 0.90},
+    flat = {0.065, 0.22, 0.75},
+}
+
 local capColors = {
-    blue = {
-        bottom = {0.12, 0.31, 0.72}, top = {0.41, 0.66, 1.00}, flat = {0.22, 0.48, 1.00},
-    },
+    blue = earnedBlue,
     purple = {
         bottom = {0.29, 0.10, 0.40}, top = {0.64, 0.36, 0.77}, flat = {0.48, 0.19, 0.61},
     },
@@ -184,6 +190,19 @@ local capColors = {
         bottom = {0.013, 0.042, 0.105}, top = {0.085, 0.17, 0.31}, flat = {0.025, 0.075, 0.18},
     },
 }
+
+-- Gradient coordinates on trimmed endcap columns need to match the full
+-- height of the StatusBar: otherwise the gradient stretches into a stripe.
+local function TrimmedGradientStops(colors, fraction)
+    local function Between(top, bottom)
+        return {
+            top[1] * (1 - fraction) + bottom[1] * fraction,
+            top[2] * (1 - fraction) + bottom[2] * fraction,
+            top[3] * (1 - fraction) + bottom[3] * fraction,
+        }
+    end
+    return Between(colors.bottom, colors.top), Between(colors.top, colors.bottom)
+end
 
 local function SetCapPaint(cap, region)
     if cap.region == region then return end
@@ -193,7 +212,11 @@ local function SetCapPaint(cap, region)
         return
     end
     local colors = capColors[region]
-    if not ApplyVerticalGradient(cap.paint, colors.bottom, colors.top) then
+    -- Reset the original base tint before shading. SetGradient multiplies
+    -- SetColorTexture, which previously darkened caps twice.
+    cap.paint:SetColorTexture(1, 1, 1, 1)
+    local bottom, top = TrimmedGradientStops(colors, cap.trimFraction or 0)
+    if not ApplyVerticalGradient(cap.paint, bottom, top) then
         cap.paint:SetColorTexture(colors.flat[1], colors.flat[2], colors.flat[3], 1)
     end
     cap.paint:Show()
@@ -230,6 +253,18 @@ local function UpdateTubeCaps(height, width)
     for _, cap in ipairs(capPaints) do
         local trim = cuts[cap.column]
         if cap.column < radius then
+            local trimFraction = trim / math.max(1, height)
+            if cap.trimFraction ~= trimFraction then
+                cap.trimFraction = trimFraction
+                cap.region = nil
+            end
+            local backgroundBottom, backgroundTop = TrimmedGradientStops(
+                {bottom = {0.006, 0.012, 0.022}, top = {0.055, 0.077, 0.12}},
+                trimFraction)
+            cap.background:SetColorTexture(1, 1, 1, 1)
+            if not ApplyVerticalGradient(cap.background, backgroundBottom, backgroundTop) then
+                cap.background:SetColorTexture(0.012, 0.017, 0.025, 0.97)
+            end
             for _, texture in ipairs({cap.background, cap.paint}) do
                 texture:ClearAllPoints()
                 if cap.right then
@@ -346,9 +381,11 @@ local function CreateBar()
 
     -- A shallow vertical gradient gives the empty track some depth while
     -- keeping its original dark, readable appearance.
-    tubeBackground = MakeTexture(bar, "BACKGROUND", 0.012, 0.017, 0.025, 0.97)
-    ApplyVerticalGradient(tubeBackground,
-        {0.006, 0.012, 0.022, 0.98}, {0.055, 0.077, 0.12, 0.98})
+    tubeBackground = MakeTexture(bar, "BACKGROUND", 1, 1, 1, 1)
+    if not ApplyVerticalGradient(tubeBackground,
+        {0.006, 0.012, 0.022, 0.98}, {0.055, 0.077, 0.12, 0.98}) then
+        tubeBackground:SetColorTexture(0.012, 0.017, 0.025, 0.97)
+    end
     -- The rounded track has no full-width background to leave square corners.
 
     restedFill = CreateFrame("StatusBar", nil, bar)
@@ -371,8 +408,7 @@ local function CreateBar()
     fill = CreateFrame("StatusBar", nil, bar)
     fill:SetAllPoints(restedFill); fill:SetStatusBarTexture("Interface\\Buttons\\WHITE8X8")
     fill:SetFrameLevel(bar:GetFrameLevel() + 2)
-    ApplyTubeStatusColor(fill,
-        {0.12, 0.31, 0.72}, {0.41, 0.66, 1.00}, {0.22, 0.48, 1.00})
+    ApplyTubeStatusColor(fill, earnedBlue.bottom, earnedBlue.top, earnedBlue.flat)
     fill:EnableMouse(false)
     -- Both bevel bands follow the moving status-bar texture, not the whole
     -- bar frame, so highlights stop precisely where the earned XP stops.
@@ -399,10 +435,8 @@ local function CreateBar()
     capFillLayer:EnableMouse(false)
     for _, right in ipairs({false, true}) do
         for column = 0, MAX_CORNER_RADIUS - 1 do
-            local backgroundCap = MakeTexture(bar, "BACKGROUND", 0.012, 0.017, 0.025, 0.97)
-            ApplyVerticalGradient(backgroundCap,
-                {0.006, 0.012, 0.022, 0.98}, {0.055, 0.077, 0.12, 0.98})
-            local paint = MakeTexture(capFillLayer, "ARTWORK", 0.22, 0.48, 1.00, 1)
+            local backgroundCap = MakeTexture(bar, "BACKGROUND", 1, 1, 1, 1)
+            local paint = MakeTexture(capFillLayer, "ARTWORK", 1, 1, 1, 1)
             paint:Hide()
             capPaints[#capPaints + 1] = {
                 background = backgroundCap, paint = paint,
@@ -727,7 +761,12 @@ local function ApplyLayout()
     end
     for _, label in ipairs({ leftText, centerText, rightText }) do
         local fontPath = label:GetFont()
-        if fontPath then label:SetFont(fontPath, fontSize, "OUTLINE") end
+        -- Thick black outlines at larger sizes keep white XP labels legible
+        -- even when a bright 5% glint happens to cross a glyph.
+        if fontPath then
+            label:SetFont(fontPath, fontSize,
+                fontSize >= 14 and "THICKOUTLINE" or "OUTLINE")
+        end
         label:ClearAllPoints()
     end
     if db.width < 530 then
@@ -780,7 +819,7 @@ local function ApplyLayout()
         local grooveHeight = math.max(2, db.height - 2)
         tick.glint:SetHeight(math.max(1, math.floor(grooveHeight * 0.65 + 0.5)))
         if index ~= 10 then
-            local x = math.floor((visualLeft + visualWidth * index / 20) * effectiveScale + 0.5) * pixel
+            local x = math.floor(db.width * index / 20 * effectiveScale + 0.5) * pixel
             tick.core:ClearAllPoints()
             tick.core:SetPoint("TOP", tickLayer, "TOPLEFT", x, -1)
             tick.core:SetPoint("BOTTOM", tickLayer, "BOTTOMLEFT", x, 1)
@@ -991,9 +1030,8 @@ local function UpdateBar()
     -- Keep Blizzard's blue-when-rested / purple-when-unrested distinction,
     -- but shade each fill from a lighter upper arc to a darker lower arc.
     if rested > 0 then
-        ApplyTubeStatusColor(fill,
-            {0.12, 0.31, 0.72}, {0.41, 0.66, 1.00}, {0.22, 0.48, 1.00})
-        fillSheen:SetColorTexture(0.78, 0.90, 1.00, 0.22)
+        ApplyTubeStatusColor(fill, earnedBlue.bottom, earnedBlue.top, earnedBlue.flat)
+        fillSheen:SetColorTexture(0.55, 0.72, 1.00, 0.18)
     else
         ApplyTubeStatusColor(fill,
             {0.29, 0.10, 0.40}, {0.64, 0.36, 0.77}, {0.48, 0.19, 0.61})
@@ -1001,12 +1039,21 @@ local function UpdateBar()
     end
     local remaining, percent = math.max(0, xpMax - xp), xp / xpMax * 100
     local barsLeft = remaining / xpMax * 20
-    local _, _, innerWidth = TubeGeometry(db.height, db.width)
-    local earnedWidth = innerWidth * xp / xpMax
+    local _, visualLeft, innerWidth = TubeGeometry(db.height, db.width)
+    -- The visible tube runs from x=0 to the full configured width, including
+    -- rounded caps. Convert absolute XP boundaries to inner StatusBar values
+    -- so each 5% groove and the color change agree at exactly the same x.
+    local earnedX = db.width * xp / xpMax
     local restedAmount = math.min(rested, remaining)
-    local restedWidth = innerWidth * restedAmount / xpMax
-    fill:SetMinMaxValues(0, xpMax); fill:SetValue(xp)
-    restedFill:SetMinMaxValues(0, xpMax); restedFill:SetValue(math.min(xpMax, xp + rested)); restedFill:SetShown(rested > 0)
+    local restedEndX = db.width * math.min(xpMax, xp + restedAmount) / xpMax
+    local function InnerPosition(absoluteX)
+        return math.max(0, math.min(innerWidth, absoluteX - visualLeft))
+    end
+    local earnedWidth = InnerPosition(earnedX)
+    local restedEndWidth = InnerPosition(restedEndX)
+    local restedWidth = math.max(0, restedEndWidth - earnedWidth)
+    fill:SetMinMaxValues(0, innerWidth); fill:SetValue(earnedWidth)
+    restedFill:SetMinMaxValues(0, innerWidth); restedFill:SetValue(restedEndWidth); restedFill:SetShown(rested > 0)
     restedEndMarker:ClearAllPoints()
     restedEndMarker:SetPoint("TOP", restedFill, "TOPLEFT", earnedWidth + restedWidth, 0)
     restedEndMarker:SetPoint("BOTTOM", restedFill, "BOTTOMLEFT", earnedWidth + restedWidth, 0)
@@ -1017,12 +1064,12 @@ local function UpdateBar()
     local earnedCapColor = rested > 0 and "blue" or "purple"
     for _, cap in ipairs(capPaints) do
         local region
-        if cap.right then
-            if xp >= xpMax then region = earnedCapColor
-            elseif xp + rested >= xpMax and rested > 0 then region = "rested" end
-        else
-            if xp > 0 then region = earnedCapColor
-            elseif rested > 0 then region = "rested" end
+        local capX = cap.right and (db.width - cap.column - 0.5)
+            or (cap.column + 0.5)
+        if capX <= earnedX then
+            region = earnedCapColor
+        elseif rested > 0 and capX <= restedEndX then
+            region = "rested"
         end
         SetCapPaint(cap, region)
     end
