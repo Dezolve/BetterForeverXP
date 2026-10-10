@@ -11,9 +11,9 @@ also show shorthand at 1,000 or above, such as `4,500 (4.5K)`.
 Earned XP uses a subtle vertical tube gradient: light blue above and deeper
 blue below while rested, switching to light/deep classic purple when the rested
 bonus ends. The remaining rested coverage has a secondary navy gradient;
-unearned XP sits in a softly shaded near-black channel. Slim top highlights,
-bottom shading, and 2px softened outside corners add depth without a thick
-capsule frame. On older clients without gradient support, solid XP colors and
+unearned XP sits in a softly shaded near-black channel. Dark upper and lower
+tube rims, a thin white inner reflection, bottom shading, and 2px softened
+outside corners add depth without a thick capsule frame. On older clients without gradient support, solid XP colors and
 the bevel highlights are retained.
 Hover for exact progress, rested XP, completed quest
 XP ready to turn in, session XP, XP/hour, and estimated time to level.
@@ -37,11 +37,12 @@ Session XP and its start time survive `/reload`, so XP/hour and ETA do not reset
 while adjusting the UI. A genuine fresh character login starts a new session.
 
 The classic **20 visible 5%-XP segments** remain part of the tube design.
-Each divider now resembles a subtle recessed metallic groove: a shaded
-one-physical-pixel core and a faint, vertically fading highlight beside it.
+Each divider now resembles a recessed metallic groove: a strongly darkened
+one-physical-pixel core with a white, vertically fading highlight beside it.
 Both use the same pixel-snapped placement, so they stay together as bar size
-and UI scale change. Grooves adjust to earned XP, rested XP, or empty track
-colors; the 50% groove is slightly stronger beneath the silver Blizzard arrow.
+and UI scale change. Separate contrast palettes keep the markers legible on
+earned XP, rested navy, and the empty track; the 50% groove is slightly more
+pronounced beneath the silver Blizzard arrow.
 The right-hand text still reports bars remaining, rounded to the nearest
 half-bar, such as `8.5 bars left`.
 
