@@ -197,28 +197,52 @@ local function CreateBar()
     restedEndMarker:SetColorTexture(0.78, 0.67, 0.43, 0.96)
     restedEndMarker:SetWidth(2)
 
-    -- One permanent, carved-stone chip at the 50% mark, attached to the
-    -- TOP border. A solid tapered arrowhead reads more like classic WoW
-    -- ornamentation than floating V-shaped resize handles. Its tip only
-    -- crosses the border by 2px, leaving XP text clear even at min height.
-    -- All parts are textures in a mouse-disabled layer: no input capture.
+    -- One permanent 50%-progress ornament: slate stone seated inside an
+    -- aged-bronze tapered bezel. Unlike a plain black triangle, the separate
+    -- rim, stone face, bevel and recessed edge give this a classic WoW feel.
+    -- The tip crosses the top border by only 1px; the text remains clear.
+    -- All parts are mouse-transparent textures on the existing tick layer.
     local function AddStoneMidpointMarker()
-        local widths = {18, 18, 16, 14, 12, 10, 8, 6, 4}
+        local widths = {20, 20, 18, 16, 14, 12, 10, 8, 6, 4}
         for index, width in ipairs(widths) do
-            local y = 8 - index -- 7px above the top edge, tapering into it
-            local shadow = MakeTexture(tickLayer, "OVERLAY", 0.025, 0.03, 0.045, 0.9)
-            shadow:SetPoint("CENTER", bar, "TOP", 0, y - 0.6)
-            shadow:SetSize(width + 2, 1.9)
+            local y = 9 - index -- 8px above the bar down to 1px inside it
 
-            local shade = 0.45 - (index - 1) * 0.022
-            local stone = MakeTexture(tickLayer, "OVERLAY", shade * 0.9, shade, shade * 1.08, 1)
-            stone:SetPoint("CENTER", bar, "TOP", 0, y)
-            stone:SetSize(width, 1.45)
+            -- Recessed shadow: creates the look of a metal fitting mounted
+            -- directly to the XP bar instead of floating over the terrain.
+            local shadow = MakeTexture(tickLayer, "OVERLAY", 0.015, 0.022, 0.035, 0.8)
+            shadow:SetPoint("CENTER", bar, "TOP", 0, y - 0.8)
+            shadow:SetSize(width + 2, 1.8)
+
+            -- Warm, desaturated bronze silhouette follows the tapered tip.
+            local rim = MakeTexture(tickLayer, "OVERLAY", 0.52, 0.40, 0.23, 1)
+            rim:SetPoint("CENTER", bar, "TOP", 0, y)
+            rim:SetSize(width, 1.5)
+
+            -- Real stone-colored inset, with the bronze edge still showing
+            -- on each side. The final tip stays solid bronze.
+            if index > 1 and index < #widths then
+                local shade = 0.40 - (index - 2) * 0.018
+                local stone = MakeTexture(tickLayer, "OVERLAY", shade * 0.85, shade, shade * 1.08, 1)
+                stone:SetPoint("CENTER", bar, "TOP", 0, y + 0.05)
+                stone:SetSize(width - 3, 1.15)
+
+                -- Edge lighting adds a beveled, hand-carved appearance.
+                local light = MakeTexture(tickLayer, "OVERLAY", 0.75, 0.73, 0.64, 0.85)
+                light:SetPoint("CENTER", bar, "TOP", -(width / 2) + 1.15, y + 0.15)
+                light:SetSize(1.2, 1.1)
+                local recess = MakeTexture(tickLayer, "OVERLAY", 0.23, 0.19, 0.15, 0.75)
+                recess:SetPoint("CENTER", bar, "TOP", (width / 2) - 1.0, y - 0.1)
+                recess:SetSize(1, 1.1)
+            end
         end
-        -- A narrow aged-metal highlight gives the chip a carved rim.
-        local bevel = MakeTexture(tickLayer, "OVERLAY", 0.7, 0.66, 0.54, 0.85)
-        bevel:SetPoint("CENTER", bar, "TOP", 0, 7.5)
-        bevel:SetSize(16, 1)
+
+        -- A bright top lip and a tiny dark seam fasten the chip to the bar.
+        local bevel = MakeTexture(tickLayer, "OVERLAY", 0.81, 0.70, 0.48, 0.95)
+        bevel:SetPoint("CENTER", bar, "TOP", 0, 8.4)
+        bevel:SetSize(17, 1.1)
+        local seam = MakeTexture(tickLayer, "OVERLAY", 0.04, 0.055, 0.08, 0.8)
+        seam:SetPoint("CENTER", bar, "TOP", 0, -0.5)
+        seam:SetSize(7, 0.8)
     end
     AddStoneMidpointMarker()
 
