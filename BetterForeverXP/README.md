@@ -32,13 +32,15 @@ many Blizzard-style bars remain, rounded to the nearest half-bar, such as
 
 Open **Settings → AddOns → Better Forever XP**, type `/bfxp`, or **right-click the XP bar** (even when locked).
 
-- New installs start unlocked. Drag the bar body to move it. The resize zones
-  are invisible until hovered: **top edge** changes height, **right edge**
-  changes width, and **bottom-right corner** changes both independently.
-  Hovering anywhere along the top edge reveals a compact grab tab at the
-  center. The right edge shows a narrow gold grip. The bottom-right gold corner
-  indicator floats just outside the bar again, with its artwork automatically
-  shrinking on thin bars. Click targets remain generous; hints hide off hover.
+- New installs start unlocked. Drag the bar body to move it, or hover over it
+  to view the XP details. Resize zones are invisible until hovered:
+  **below the bottom edge** changes height, **right edge** changes width,
+  and **bottom-right corner** changes both independently. Hovering anywhere
+  along the strip immediately below the bar reveals a compact centered gold
+  grip. This strip stays outside the bar so it does not block moving the bar
+  or its XP tooltip. The right edge has a narrow gold grip; the bottom-right
+  corner has an external gold L-shaped grip that scales down on thin bars.
+  Click targets remain generous; hints hide off hover.
 - Lock the bar in Settings or via `/bfxp lock`. This disables all resize zones and
   prevents ordinary dragging. Shift-drag remains an intentional move shortcut.
 - Set width (300–1600), height (10–120), and overall scale (0.5–3) independently
