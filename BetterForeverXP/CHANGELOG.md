@@ -6,8 +6,8 @@ By Dezolve Labs
 
 - Adds a built-in Settings → AddOns panel, also accessible through `/bfxp` or `/bfxp options`.
 - New installations start unlocked; existing installations retain their previous lock setting.
-- Adds a small bottom-right arrow grabber for live, proportional scaling of the complete bar and its text.
-- Locking the bar hides the grabber and disables ordinary dragging; Shift-drag remains available.
+- Adds mouse-tracking edge and corner grabbers: **W** adjusts width, **H** adjusts height, and **+** adjusts both directly. The overall scale slider remains available for proportional bar/text scaling.
+- Locking the bar hides all resize grabbers and disables ordinary dragging; Shift-drag remains available.
 - Adds panel controls for enabled state, bar lock, Blizzard bar visibility, width, height, scale, number format, and resets.
 - Expands configurable bar height up to 40 pixels.
 - Adapts text layout across narrow, medium, and wide bar widths so labels do not overlap.
