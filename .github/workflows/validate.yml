@@ -25,6 +25,17 @@ jobs:
           luac -p BetterForeverXP/BetterForeverXP.lua
           luac -p BetterForeverXP/Options.lua
 
+      - name: Parse Windows auto-deploy script
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile("scripts/AutoDeploy-Windows.ps1", [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
+
       - name: Validate addon
         shell: pwsh
         run: ./scripts/Test-Addon.ps1
