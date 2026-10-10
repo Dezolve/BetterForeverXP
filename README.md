@@ -19,15 +19,28 @@ five-percent bars. It has no external dependencies.
 This addon targets the WoW Forever beta client interface listed in
 [`BetterForeverXP.toc`](BetterForeverXP/BetterForeverXP.toc).
 
+## In-game customization
+
+Type **`/bfxp`** to open the addon's Options panel under **Settings → AddOns**.
+The XP bar starts **unlocked on new installations**. Drag the bar to move it, or
+drag the small corner arrow to uniformly scale the full bar, including its text.
+Lock the bar from Settings or with `/bfxp lock` to hide the corner grabber and
+prevent accidental movement. Existing users keep their saved lock preference.
+
+The panel also provides separate width, height, scale, visibility, default-bar
+visibility, and XP number-format controls. At smaller widths the bar reduces
+text detail automatically to avoid overlap.
+
 ## Commands
 
 | Command | Action |
 | --- | --- |
-| `/bfxp lock` / `/bfxp unlock` | Lock or unlock dragging. Shift-drag always moves the bar. |
+| `/bfxp` / `/bfxp options` | Open the in-game settings panel. |
+| `/bfxp lock` / `/bfxp unlock` | Lock or unlock dragging and the scale grabber. Shift-drag still moves the bar. |
 | `/bfxp show` / `/bfxp hide` | Show or hide the addon bar. |
 | `/bfxp reset` | Restore the default position and dimensions. |
 | `/bfxp width 300-1600` | Set the bar width. |
-| `/bfxp height 10-30` | Set the bar height. |
+| `/bfxp height 10-40` | Set the bar height. |
 | `/bfxp scale 0.5-2` | Set the UI scale. |
 | `/bfxp format short\|commas\|exact` | Choose the number format. |
 | `/bfxp default on\|off` | Show or hide Blizzard's default tracking bar. |
