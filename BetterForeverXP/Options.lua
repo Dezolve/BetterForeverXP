@@ -77,10 +77,10 @@ function addon.InitializeOptions()
     panel.name = "Better Forever XP"
     panel:SetSize(630, 520)
     Label(panel, "Better Forever XP", 20, -18, "GameFontNormalLarge")
-    Label(panel, "Unlocked: drag the bar to move. W = width, H = height, + = both.", 24, -46, "GameFontHighlightSmall")
+    Label(panel, "Unlocked: drag to move. Hover top/right/top-right edges to resize.", 24, -46, "GameFontHighlightSmall")
 
     AddCheckbox("enabled", "Enable custom XP bar", -72, "Display Better Forever XP when experience is available.")
-    AddCheckbox("locked", "Lock position and resizing", -105, "Hide all three grabbers and prevent accidental movement.")
+    AddCheckbox("locked", "Lock position and resizing", -105, "Disable edge resizing and accidental movement.")
     AddCheckbox("hideBlizzard", "Hide Blizzard's XP bar", -138, "Restoring Blizzard's bar may require /reload.")
 
     Label(panel, "Bar dimensions", 24, -179, "GameFontNormalLarge")
