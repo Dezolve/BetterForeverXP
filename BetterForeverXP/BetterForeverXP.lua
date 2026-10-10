@@ -538,6 +538,10 @@ local function ApplyDefaultBarVisibility()
                 hookedDefaultFrames[frame] = true
                 hooksecurefunc(frame, "Show", function(self)
                     if db and db.hideBlizzard then
+                        if InCombatLockdown and InCombatLockdown() then
+                            eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+                            return
+                        end
                         hiddenDefaultFrames[self] = true
                         self:Hide()
                     end
