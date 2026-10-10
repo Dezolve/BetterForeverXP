@@ -77,16 +77,16 @@ function addon.InitializeOptions()
     panel.name = "Better Forever XP"
     panel:SetSize(630, 520)
     Label(panel, "Better Forever XP", 20, -18, "GameFontNormalLarge")
-    Label(panel, "Move the bar by dragging it. Use the corner arrow to scale the entire bar.", 24, -46, "GameFontHighlightSmall")
+    Label(panel, "Unlocked: drag the bar to move. W = width, H = height, + = both.", 24, -46, "GameFontHighlightSmall")
 
     AddCheckbox("enabled", "Enable custom XP bar", -72, "Display Better Forever XP when experience is available.")
-    AddCheckbox("locked", "Lock position and scaling", -105, "Hide the corner grabber and prevent moving the bar.")
+    AddCheckbox("locked", "Lock position and resizing", -105, "Hide all three grabbers and prevent accidental movement.")
     AddCheckbox("hideBlizzard", "Hide Blizzard's XP bar", -138, "Restoring Blizzard's bar may require /reload.")
 
     Label(panel, "Bar dimensions", 24, -179, "GameFontNormalLarge")
     AddSlider("width", "Width", -209, 300, 1600, 10, " px")
     AddSlider("height", "Height", -273, 10, 40, 1, " px")
-    AddSlider("scale", "Scale (including text)", -337, 0.5, 2, 0.05, "x")
+    AddSlider("scale", "Overall UI scale (including text)", -337, 0.5, 2, 0.05, "x")
 
     Label(panel, "XP number format", 24, -396, "GameFontNormal")
     AddFormatButton("short", "Compact", 25)
