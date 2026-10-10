@@ -19,9 +19,12 @@ The hover card also tracks online time spent on the current level, shows how
 much of a level completed quests are worth, projects progress after turn-ins,
 and directly underneath shows **XP into next level** (the positive excess of
 completed-quest XP beyond the current level requirement, or 0 XP if none).
-This is a raw XP estimate, not a next-level percentage, because the next level's
-XP cap is not yet available. The hover card also expresses rested coverage in
-5%-sized bars.
+That line also displays the percentage of the **following level's** XP
+requirement. When the client provides a validated XP-by-level API, the
+percentage uses it directly; otherwise a matching Classic level curve gives
+an approximate percentage (prefixed with ~). Unknown level curves show the
+raw XP and an unavailable percentage rather than using the wrong denominator.
+The hover card also expresses rested coverage in 5%-sized bars.
 
 The hover card is organized into Progress, Bonuses & Ready Quests, and Leveling
 Pace sections. Rested percentage, XP/hour, and ETA remain visible at zero so
