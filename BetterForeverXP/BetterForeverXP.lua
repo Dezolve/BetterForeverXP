@@ -351,9 +351,13 @@ local function SetFittingLabel(label, candidates)
     local available = math.max(1, (label:GetWidth() or 0) - 8)
     for _, value in ipairs(candidates) do
         label:SetText(value)
-        if not label.GetStringWidth or label:GetStringWidth() <= available then
-            return
+        local width
+        if label.GetUnboundedStringWidth then
+            width = label:GetUnboundedStringWidth()
+        elseif label.GetStringWidth then
+            width = label:GetStringWidth()
         end
+        if not width or width <= available then return end
     end
     -- Last candidate is deliberately very short. If even that cannot fit,
     -- leave a blank label rather than drawing into an adjacent region.
@@ -365,7 +369,9 @@ local function UpdateTextScrims()
         if not label:IsShown() or not label:GetText() or label:GetText() == "" or db.height < 26 then
             scrim:Hide()
         else
-            local width = math.max(0, math.min(label:GetWidth(), label:GetStringWidth() + 14))
+            local textWidth = label.GetUnboundedStringWidth
+                and label:GetUnboundedStringWidth() or label:GetStringWidth()
+            local width = math.max(0, math.min(label:GetWidth(), textWidth + 14))
             if width < 4 then
                 scrim:Hide()
             else
