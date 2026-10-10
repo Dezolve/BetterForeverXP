@@ -50,6 +50,12 @@ if ($failures.Count -eq 0) {
 
     Assert-Condition ($lua -match 'ADDON_LOADED') 'Addon does not register an initialization event.'
     Assert-Condition ($lua -match 'SLASH_BETTERFOREVERXP1') 'Addon slash command is not registered.'
+    Assert-Condition ($lua -match 'local function OpenBarOptions\(button\)') 'Missing shared right-click options handler.'
+    Assert-Condition ($lua -match 'if button ~= "RightButton" then return end') 'Options shortcut must only respond to right click.'
+    Assert-Condition ($lua -match 'bar:SetScript\("OnMouseUp", function\(_, button\)') 'XP bar body must support right click.'
+    Assert-Condition ($lua -match 'handle:SetScript\("OnMouseUp", function\(self, button\)') 'Resize zones must also support right click.'
+    Assert-Condition ($lua -match 'if addon[.]OpenOptions then addon[.]OpenOptions\(\) end') 'Right click should open existing settings.'
+    Assert-Condition ($lua -match 'Right-click for options') 'Tooltip should advertise right-click settings.'
     Assert-Condition ($lua -notmatch '(?i)\b(TODO|FIXME)\b') 'Release source contains TODO or FIXME markers.'
 
     Assert-Condition ($lua -match 'enabled = true, locked = false') 'New installs should start unlocked.'
