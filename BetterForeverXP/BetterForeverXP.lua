@@ -282,18 +282,15 @@ local function CreateBar()
         indicator:SetAllPoints()
         indicator:EnableMouse(false)
         if mode == "height" then
-            -- A compact centered tab is easier to find than a gold line
-            -- running across the entire bar. Leave the transparent hit
-            -- region taller than the visible grip for forgiving targeting.
-            local gripBack = MakeTexture(indicator, "OVERLAY", 0.035, 0.06, 0.10, 0.94)
+            -- Match the right-edge grip: same opaque dark-navy backing and
+            -- warm-gold stroke, rotated horizontally. The full-width top
+            -- hit zone only reveals this compact center tab on hover.
+            local gripBack = MakeTexture(indicator, "OVERLAY", 0.06, 0.09, 0.13, 1)
             gripBack:SetPoint("CENTER", 0, 0)
             gripBack:SetSize(58, 20)
             local grip = MakeTexture(indicator, "OVERLAY", 1, 0.82, 0.38, 1)
             grip:SetPoint("CENTER", 0, 0)
             grip:SetSize(40, 5)
-            local upper = MakeTexture(indicator, "OVERLAY", 0.85, 0.91, 1, 0.35)
-            upper:SetPoint("TOP", gripBack, "TOP", 0, -2)
-            upper:SetSize(42, 2)
         elseif mode == "width" then
             -- A proper vertical edge highlight, with a thicker central grip.
             local backing = MakeTexture(indicator, "OVERLAY", 0.03, 0.06, 0.10, 0.85)
