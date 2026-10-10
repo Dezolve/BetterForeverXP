@@ -8,8 +8,8 @@ The bar is 1,100 pixels wide and 16 pixels high by default. It shows level,
 percent, remaining XP, and current/maximum XP. Values always use commas and
 also show shorthand at 1,000 or above, such as `4,500 (4.5K)`.
 
-Earned XP uses a subtle vertical tube gradient: light blue above and deeper
-blue below while rested, switching to light/deep classic purple when the rested
+Earned XP uses a deeper, more saturated Blizzard-style cobalt-blue tube
+gradient while rested, switching to light/deep classic purple when the rested
 bonus ends. The remaining rested coverage has a secondary navy gradient;
 unearned XP sits in a softly shaded near-black channel. Dark upper and lower
 tube rims, a thin white inner reflection, and deeper bottom shading add
@@ -20,7 +20,9 @@ rails now terminate exactly where the curved cap begins, with no overlapping
 rectangular border or stray black corners. The background and both colored XP
 fills are now painted inside the same genuinely rounded silhouette: transparent
 outside the corners, with blue/purple earned and navy rested XP continuing into
-the visible endcaps rather than stopping at a squared-off track. On older clients
+the visible endcaps rather than stopping at a squared-off track. The endcaps
+now use an untinted white base and correctly sampled vertical-gradient stops,
+eliminating the mismatched royal-blue strip at the left edge. On older clients
 without gradient support, solid XP colors and bevel highlights remain.
 Hover for exact progress, rested XP, completed quest
 XP ready to turn in, session XP, XP/hour, and estimated time to level.
@@ -47,8 +49,9 @@ The classic **20 visible 5%-XP segments** remain part of the tube design.
 Each 5% divider is a continuous recessed groove with a black core, silver
 edge, and white center reflection. Removing the separate black end blocks
 prevents dark gaps showing through the marks. All 19 dividers are positioned
-across the same **inner visible track** used by the XP fills, and snapped to
-physical pixels as the bar changes width/scale. The 50% divider remains centered
+at exact 5% positions across the **entire visible rounded tube**, including
+endcaps; earned and rested progress use the same absolute positions and
+pixel-snapped dividers adapt as the bar changes width/scale. The 50% divider remains centered
 beneath the native silver Blizzard arrow.
 The right-hand text still reports bars remaining, rounded to the nearest
 half-bar, such as `8.5 bars left`.
@@ -85,6 +88,8 @@ Open **Settings → AddOns → Better Forever XP**, type `/bfxp`, or **right-cli
   bar; choose the XP number format or reset position and size. **Reset all
   defaults** also restores the marker to visible.
 - The bar changes text density as width shrinks to avoid overlapping labels.
+  Larger white XP labels use a heavier black outline so bright segment dividers
+  cannot disappear into the glyphs; small bars retain a compact outline.
 - Existing installs keep their saved lock preference. Settings persist through
   relogs and `/reload`.
 - Unchecking **Hide Blizzard's XP bar** restores the native bar immediately;
