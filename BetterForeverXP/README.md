@@ -41,8 +41,9 @@ Open **Settings → AddOns → Better Forever XP** or type `/bfxp`.
   shrinking on thin bars. Click targets remain generous; hints hide off hover.
 - Lock the bar in Settings or via `/bfxp lock`. This disables all resize zones and
   prevents ordinary dragging. Shift-drag remains an intentional move shortcut.
-- Set width (300–1600), height (10–40), and overall scale (0.5–3) independently
-  using sliders. Width/height change the layout; scale proportionally grows
+- Set width (300–1600), height (10–120), and overall scale (0.5–3) independently
+  using sliders. Height above 40 also grows the XP text (up to a readable cap).
+  Width/height change the layout; scale proportionally grows
   or shrinks the entire presentation. Larger scales can exceed your screen
   width; use `/bfxp reset` to restore the defaults if needed.
 - Toggle the custom bar and Blizzard's own XP bar, choose the XP number
@@ -60,7 +61,7 @@ Open **Settings → AddOns → Better Forever XP** or type `/bfxp`.
 * `/bfxp show` or `/bfxp hide`
 * `/bfxp reset`
 * `/bfxp width 300-1600`
-* `/bfxp height 10-40`
+* `/bfxp height 10-120`
 * `/bfxp scale 0.5-3`
 * `/bfxp format short|commas|exact`
 * `/bfxp default on|off` to show or hide Blizzard's default tracking bar
