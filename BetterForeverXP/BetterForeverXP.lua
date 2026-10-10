@@ -518,15 +518,39 @@ ApplyResizeLayout = function()
 end
 
 local hookedDefaultFrames = {}
+-- Restore ONLY Blizzard frames our addon actually hid. Some native frames are
+-- legitimately hidden by Blizzard (or another addon), so showing every known
+-- status-bar frame when the checkbox is unchecked would be disruptive.
+local hiddenDefaultFrames = {}
 local defaultFrameNames = { "StatusTrackingBarManager", "MainStatusTrackingBarContainer", "MainMenuExpBar", "MainMenuBarXPBar", "MainMenuBarExpBar" }
 local function ApplyDefaultBarVisibility()
+    -- Blizzard may protect managed UI frames during combat. Defer the toggle
+    -- until combat ends instead of leaving a checkbox that seems ineffective.
+    if InCombatLockdown and InCombatLockdown() then
+        eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+        return
+    end
+    eventFrame:UnregisterEvent("PLAYER_REGEN_ENABLED")
     for _, name in ipairs(defaultFrameNames) do
         local frame = _G[name]
         if frame and frame ~= bar and frame.Hide and frame.Show then
-            if db.hideBlizzard then frame:Hide() end
             if not hookedDefaultFrames[frame] then
                 hookedDefaultFrames[frame] = true
-                hooksecurefunc(frame, "Show", function(self) if db and db.hideBlizzard then self:Hide() end end)
+                hooksecurefunc(frame, "Show", function(self)
+                    if db and db.hideBlizzard then
+                        hiddenDefaultFrames[self] = true
+                        self:Hide()
+                    end
+                end)
+            end
+            if db.hideBlizzard then
+                if frame:IsShown() then
+                    hiddenDefaultFrames[frame] = true
+                    frame:Hide()
+                end
+            elseif hiddenDefaultFrames[frame] then
+                hiddenDefaultFrames[frame] = nil
+                frame:Show()
             end
         end
     end
@@ -747,7 +771,7 @@ SlashCmdList.BETTERFOREVERXP = function(message)
         if SetSetting("numberFormat", argument) then Print("number format: " .. argument) else Help() end
     elseif command == "default" and (argument == "on" or argument == "off") then
         SetSetting("hideBlizzard", argument == "off")
-        Print("Blizzard bar: " .. argument .. " (reload may be required to restore it)")
+        Print("Blizzard bar: " .. argument .. " (applies immediately outside combat)")
     else Help() end
 end
 
@@ -791,6 +815,8 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
         eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD"); eventFrame:RegisterEvent("PLAYER_XP_UPDATE")
         eventFrame:RegisterEvent("PLAYER_LEVEL_UP"); eventFrame:RegisterEvent("UPDATE_EXHAUSTION"); eventFrame:RegisterEvent("QUEST_LOG_UPDATE")
         UpdateBar()
+    elseif event == "PLAYER_REGEN_ENABLED" then
+        ApplyDefaultBarVisibility()
     elseif event == "PLAYER_XP_UPDATE" then RecordXP(); UpdateBar()
     elseif event == "PLAYER_LEVEL_UP" then
         AccumulateLevelTime()
