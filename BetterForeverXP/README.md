@@ -37,12 +37,12 @@ The track has 20 subtle divisions (5% each), and the right-hand text shows how
 many Blizzard-style bars remain, rounded to the nearest half-bar, such as
 `8.5 bars left`.
 
-A small WoW Classic-inspired silver-steel chevron marks the bar's exact
-50% position along the top border. Silver beveled edges and a dark recessed
-center resemble the original Blizzard UI arrow. It stays clear of the XP
-text and never captures mouse input. It is visible by default, but can be
-hidden immediately with **Show 50% marker** in Settings. The choice persists
-across logins and /reload; the bottom-center resize target is unaffected.
+The exact **native WoW Classic silver exhaustion-tick texture** now marks the
+50% position along the bar's top border. A single 32px texture replaces the
+previous patchwork of rotated rectangles, so the arrow is seamless, filled,
+and centered. It's decorative, cannot capture mouse input, and remains hidden
+when **Show 50% marker** is unchecked in Settings. The setting persists
+across logins and /reload; the separate resize handles are unchanged.
 
 ## Customization
 
