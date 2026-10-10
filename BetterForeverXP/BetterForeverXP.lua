@@ -202,55 +202,65 @@ local function CreateBar()
     -- halfway arrow. Purely decorative, outside the XP label area, and
     -- independently hideable without affecting ticks or interactions.
     midpointMarker = CreateFrame("Frame", nil, bar)
-    midpointMarker:SetSize(32, 18)
-    midpointMarker:SetPoint("BOTTOM", bar, "TOP", 0, -4)
+    midpointMarker:SetSize(32, 20)
+    midpointMarker:SetPoint("BOTTOM", bar, "TOP", 0, -5)
     midpointMarker:SetFrameLevel(tickLayer:GetFrameLevel() + 1)
     midpointMarker:EnableMouse(false)
 
     local function AddMetalMidpointMarker()
-        -- Two beveled arms form a downward V; no solid dark stone triangle.
-        -- Coordinates are relative to the top border. Its point extends
-        -- about 2px into the bar; even a 10px-high bar keeps its XP text clear.
+        -- Filled WoW-style silver/steel chevron. Both beveled arms sit
+        -- slightly lower and share a solid faceted center. The tip extends
+        -- into the top border, rather than looking truncated at the edge.
         local arms = {
-            { x = -4.4, angle = -math.pi / 4 },
-            { x =  4.4, angle =  math.pi / 4 },
+            { x = -4.2, angle = -math.pi / 4 },
+            { x =  4.2, angle =  math.pi / 4 },
         }
+
         for _, arm in ipairs(arms) do
             local shadow = MakeTexture(midpointMarker, "BACKGROUND", 0.015, 0.02, 0.03, 0.80)
-            shadow:SetPoint("CENTER", bar, "TOP", arm.x, 2.6)
+            shadow:SetPoint("CENTER", bar, "TOP", arm.x, 1.8)
             shadow:SetSize(13, 6)
             shadow:SetRotation(arm.angle)
 
             local steel = MakeTexture(midpointMarker, "BORDER", 0.29, 0.32, 0.37, 1)
-            steel:SetPoint("CENTER", bar, "TOP", arm.x, 3.3)
-            steel:SetSize(12, 4.7)
+            steel:SetPoint("CENTER", bar, "TOP", arm.x, 2.5)
+            steel:SetSize(12, 4.8)
             steel:SetRotation(arm.angle)
 
-            local silver = MakeTexture(midpointMarker, "ARTWORK", 0.70, 0.75, 0.78, 1)
-            silver:SetPoint("CENTER", bar, "TOP", arm.x, 3.7)
-            silver:SetSize(11.5, 2.6)
+            local silver = MakeTexture(midpointMarker, "ARTWORK", 0.72, 0.76, 0.80, 1)
+            silver:SetPoint("CENTER", bar, "TOP", arm.x, 2.9)
+            silver:SetSize(11.3, 2.7)
             silver:SetRotation(arm.angle)
 
-            -- A thin high edge and adjacent dark inset create the classic
-            -- faceted metal look even at 1x UI scale.
-            local shine = MakeTexture(midpointMarker, "OVERLAY", 0.92, 0.93, 0.90, 0.92)
-            shine:SetPoint("CENTER", bar, "TOP", arm.x, 4.2)
-            shine:SetSize(10.5, 1.0)
+            local shine = MakeTexture(midpointMarker, "OVERLAY", 0.94, 0.95, 0.92, 0.92)
+            shine:SetPoint("CENTER", bar, "TOP", arm.x, 3.4)
+            shine:SetSize(10.0, 0.9)
             shine:SetRotation(arm.angle)
-
-            local recess = MakeTexture(midpointMarker, "OVERLAY", 0.16, 0.18, 0.22, 0.82)
-            recess:SetPoint("CENTER", bar, "TOP", arm.x * 0.82, 2.5)
-            recess:SetSize(8, 1.1)
-            recess:SetRotation(arm.angle)
         end
 
-        -- Small join at the V point, visually keyed into the top border.
+        -- Fill the old hollow center: a bright steel face with a narrow
+        -- dark recess to retain the carved Blizzard-style depth.
+        local centerFill = MakeTexture(midpointMarker, "ARTWORK", 0.58, 0.62, 0.68, 1)
+        centerFill:SetPoint("CENTER", bar, "TOP", 0, 1.0)
+        centerFill:SetSize(7, 4.2)
+
+        local centerShade = MakeTexture(midpointMarker, "OVERLAY", 0.16, 0.18, 0.22, 0.78)
+        centerShade:SetPoint("CENTER", bar, "TOP", 0, 0.6)
+        centerShade:SetSize(4.2, 2.2)
+
+        -- A solid steel point reaches through the top border without
+        -- covering the XP text or capturing its mouse events.
         local tipShadow = MakeTexture(midpointMarker, "BACKGROUND", 0.01, 0.02, 0.03, 0.82)
-        tipShadow:SetPoint("CENTER", bar, "TOP", 0, -1.2)
-        tipShadow:SetSize(5, 2.5)
-        local tip = MakeTexture(midpointMarker, "ARTWORK", 0.65, 0.70, 0.75, 1)
-        tip:SetPoint("CENTER", bar, "TOP", 0, -0.8)
-        tip:SetSize(3, 2)
+        tipShadow:SetPoint("CENTER", bar, "TOP", 0, -1.8)
+        tipShadow:SetSize(5, 3)
+
+        local tip = MakeTexture(midpointMarker, "ARTWORK", 0.64, 0.69, 0.75, 1)
+        tip:SetPoint("CENTER", bar, "TOP", 0, -1.2)
+        tip:SetSize(4, 3)
+
+        local tipHighlight = MakeTexture(midpointMarker, "OVERLAY", 0.90, 0.92, 0.95, 0.75)
+        tipHighlight:SetPoint("CENTER", bar, "TOP", 0, -0.8)
+        tipHighlight:SetSize(2.5, 0.8)
     end
     AddMetalMidpointMarker()
     midpointMarker:SetShown(db.showMidpointMarker)
