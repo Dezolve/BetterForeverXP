@@ -25,12 +25,16 @@ rim with height-adjusting curved ends, and all 19 dividers for **20 XP segments*
 Straight top/bottom lines now meet the curved cap edges cleanly without a
 second rectangular border. The tube's background and earned/rested XP fills
 now extend through genuinely curved endcaps rather than a square hidden track,
-and all dividers align to the same visible inner width.
+and dividers/XP fill boundaries now agree at exact percentages across the
+entire visible tube width.
 Each divider uses a continuous black groove, silver edge and bright white
 center reflection, without separate black end blocks. Markers remain aligned
 to physical pixels at different bar sizes and scales. The 50% divider is centered below
 the Blizzard arrow. XP remains blue while rested and purple when unrested;
-the rested extension stays dark navy.
+the rested extension stays dark navy. Its blue earned fill now uses a
+deeper Blizzard-style cobalt gradient, the rounded ends no longer have a
+mismatched blue stripe, and large white labels have thicker dark outlines
+for contrast over the segment dividers.
 
 ## Install
 
