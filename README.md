@@ -23,10 +23,12 @@ This addon targets the WoW Forever beta client interface listed in
 
 Type **`/bfxp`** or **right-click the XP bar** to open its Options panel under **Settings → AddOns**. Right-click also works when locked.
 The XP bar starts **unlocked on new installations**. Drag its body to move it.
-Hover **anywhere along the top edge** to reveal the compact centered height
-grabber. Hover the **right edge** to resize width, or the **bottom-right corner**
-to resize both. The corner grip sits outside the bar for easy grabbing, but its
-artwork shrinks with thin bars. Invisible hit zones stay generous. The
+Hover **just below the bottom edge**, anywhere along the bar, to reveal the
+compact centered height grip; drag it downward to increase thickness. The
+height hover strip sits entirely outside the bar, leaving normal dragging and
+the XP tooltip unobstructed. Hover the **right edge** to resize width, or the
+**bottom-right corner** to resize both. The corner grip sits outside the bar
+for easy grabbing, and its artwork shrinks with thin bars. The
 separate scale slider adjusts the entire bar and its text up to 3×.
 At large scales the bar may exceed the screen width; `/bfxp reset` restores
 its default size and position.
