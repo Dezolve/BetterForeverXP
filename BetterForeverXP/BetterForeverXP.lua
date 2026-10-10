@@ -599,6 +599,49 @@ local function CompletedQuestXP()
     return total
 end
 
+-- XP needed to advance FROM each level in the original Vanilla/Classic curve.
+-- Data: https://warcraft.wiki.gg/wiki/Experience_to_level (Vanilla/Classic).
+-- WoW Forever may change progression: only use this table if the game's
+-- ACTUAL UnitXPMax at the current level agrees with the table.
+local classicXPToNext = {
+    400, 900, 1400, 2100, 2800, 3600, 4500, 5400, 6500, 7600,
+    8800, 10100, 11400, 12900, 14400, 16000, 17700, 19400, 21300, 23200,
+    25200, 27300, 29400, 31700, 34000, 36400, 38900, 41400, 44300, 47400,
+    50800, 54500, 58600, 62800, 67100, 71600, 76100, 80800, 85700, 90700,
+    95800, 101000, 106300, 111800, 117500, 123200, 129100, 135100, 141200, 147500,
+    153900, 160400, 167100, 173900, 180800, 187900, 195000, 202300, 209800,
+}
+
+-- Prefer a runtime XP-by-level function when the current-level result matches
+-- the in-game XP requirement; no such API is guaranteed on Classic clients.
+-- If unavailable, the Classic table provides an estimated next-level percent.
+-- Never silently divide by the current level requirement: that is incorrect.
+local function NextLevelXPRequirement(level, currentXPMax)
+    if type(level) ~= "number" or type(currentXPMax) ~= "number"
+        or level < 1 or currentXPMax <= 0 then return nil end
+
+    local function FromAPI(fn)
+        if type(fn) ~= "function" then return nil end
+        local okCurrent, current = pcall(fn, level)
+        if not okCurrent or current ~= currentXPMax then return nil end
+        local okNext, nextXPMax = pcall(fn, level + 1)
+        if okNext and type(nextXPMax) == "number" and nextXPMax > 0 then
+            return nextXPMax
+        end
+    end
+
+    local nextXPMax =
+        FromAPI(GetXPForLevel)
+        or FromAPI(C_PlayerInfo and C_PlayerInfo.GetXPForLevel)
+        or FromAPI(C_Experience and C_Experience.GetXPForLevel)
+    if nextXPMax then return nextXPMax, false end
+
+    if classicXPToNext[level] == currentXPMax and classicXPToNext[level + 1] then
+        return classicXPToNext[level + 1], true
+    end
+    return nil
+end
+
 local function AccumulateLevelTime()
     local now = GetTime()
     if charDB then
@@ -625,10 +668,19 @@ local function ShowDetails()
     local questPercent = xpMax > 0 and questXP / xpMax * 100 or 0
     local projectedXP = math.min(xpMax, xp + questXP)
     local projectedPercent = xpMax > 0 and projectedXP / xpMax * 100 or 0
-    -- XP beyond the current level threshold carries forward when ready
-    -- quests are turned in. Don't claim a next-level percentage: the XP
-    -- requirement of the next level is not known from UnitXPMax("player").
+    -- Ready-quest XP beyond the current threshold belongs to the next
+    -- level. Its percentage requires THAT level's XP cap, not this one's.
     local nextLevelXP = xpMax > 0 and math.max(0, xp + questXP - xpMax) or 0
+    local nextXPMax, estimatedNextCap = NextLevelXPRequirement(UnitLevel("player"), xpMax)
+    local nextLevelDisplay = Commas(nextLevelXP) .. " XP"
+    if nextLevelXP == 0 then
+        nextLevelDisplay = nextLevelDisplay .. "  (0.0%)"
+    elseif nextXPMax then
+        local percentNext = math.min(100, nextLevelXP / nextXPMax * 100)
+        nextLevelDisplay = nextLevelDisplay .. string.format(estimatedNextCap and "  (~%.1f%%)" or "  (%.1f%%)", percentNext)
+    else
+        nextLevelDisplay = nextLevelDisplay .. "  (—)"
+    end
     local restedPercent = xpMax > 0 and rested / xpMax * 100 or 0
     local restedBars = xpMax > 0 and rested / xpMax * 20 or 0
     local barsLeft = xpMax > 0 and remaining / xpMax * 20 or 0
@@ -653,7 +705,7 @@ local function ShowDetails()
     GameTooltip:AddDoubleLine("Rested coverage", string.format("%.1f bars", restedBars), 0.72, 0.77, 0.86, 0.42, 0.78, 1)
     GameTooltip:AddDoubleLine("Completed quests", Commas(questXP) .. string.format(" XP  (+%.1f%%)", questPercent), 0.72, 0.77, 0.86, 1, 0.78, 0.32)
     GameTooltip:AddDoubleLine("After turn-ins", Commas(projectedXP) .. " / " .. Commas(xpMax) .. string.format("  (%.1f%%)", projectedPercent), 0.72, 0.77, 0.86, 1, 0.88, 0.48)
-    GameTooltip:AddDoubleLine("XP into next level", Commas(nextLevelXP) .. " XP", 0.72, 0.77, 0.86, 0.55, 1, 0.64)
+    GameTooltip:AddDoubleLine("XP into next level", nextLevelDisplay, 0.72, 0.77, 0.86, 0.55, 1, 0.64)
 
     AddSection("Leveling Pace", 0.55, 1, 0.64)
     GameTooltip:AddDoubleLine("Time this level", FormatTime(charDB and charDB.levelSeconds or 0), 0.72, 0.77, 0.86, 1, 1, 1)
