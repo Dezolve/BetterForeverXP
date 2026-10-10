@@ -15,9 +15,10 @@ without inventing a percent. Earned XP is
 electric blue while any rested XP remains, switching to classic purple when
 rested XP runs out. The addon has no external dependencies.
 
-A small silver-and-dark-steel WoW Classic-style V arrow marks 50% along the
-top border without covering labels or capturing mouse input. It is on by default
-and can be hidden with **Show 50% marker** in the Options panel.
+Blizzard's original silver exhaustion-tick artwork marks 50% along the top
+border as a single, filled, centered chevron, without covering XP labels or
+capturing mouse input. It is on by default and can be hidden with
+**Show 50% marker** in the Options panel.
 
 ## Install
 
