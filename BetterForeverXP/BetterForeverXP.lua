@@ -1,0 +1,456 @@
+local ADDON_NAME = ...
+
+local defaults = {
+    enabled = true, locked = true,
+    point = "BOTTOM", relativePoint = "BOTTOM", x = 0, y = 155,
+    width = 1100, height = 16, scale = 1,
+    numberFormat = "short", hideBlizzard = true,
+    version = 5,
+}
+
+local db
+local charDB
+local bar, fill, restedFill, spark
+local restedEndMarker
+local textLayer
+local tickLayer, tickMarks = nil, {}
+local leftText, centerText, rightText
+local eventFrame = CreateFrame("Frame")
+local sessionStart, sessionXP = GetTime(), 0
+local lastXP, lastXPMax
+local tooltipVisible = false
+local levelClockLast = GetTime()
+
+local function Print(message)
+    DEFAULT_CHAT_FRAME:AddMessage("|cff70d6ffBetter Forever XP:|r " .. tostring(message))
+end
+
+local function MergeDefaults(target, source)
+    for key, value in pairs(source) do
+        if target[key] == nil then target[key] = value end
+    end
+end
+
+local function Commas(value)
+    local text = tostring(math.floor(math.max(0, tonumber(value) or 0) + 0.5))
+    while true do
+        local count
+        text, count = text:gsub("^(%-?%d+)(%d%d%d)", "%1,%2")
+        if count == 0 then return text end
+    end
+end
+
+local function Short(value)
+    value = math.max(0, tonumber(value) or 0)
+    local divisor, suffix
+    if value >= 1000000000 then divisor, suffix = 1000000000, "B"
+    elseif value >= 1000000 then divisor, suffix = 1000000, "M"
+    elseif value >= 1000 then divisor, suffix = 1000, "K"
+    else return tostring(math.floor(value + 0.5)) end
+
+    local scaled = value / divisor
+    if scaled >= 100 then return string.format("%.0f%s", scaled, suffix) end
+    local text = string.format("%.1f", scaled):gsub("(%..-)0+$", "%1"):gsub("%.$", "")
+    return text .. suffix
+end
+
+local function FormatNumber(value)
+    if db and db.numberFormat == "commas" then return Commas(value) end
+    if db and db.numberFormat == "exact" then
+        return tostring(math.floor(math.max(0, tonumber(value) or 0) + 0.5))
+    end
+    return Short(value)
+end
+
+local function ExactAndShort(value)
+    local exact = Commas(value)
+    if (tonumber(value) or 0) >= 1000 then
+        return exact .. " (" .. Short(value) .. ")"
+    end
+    return exact
+end
+
+local function FormatTime(seconds)
+    if not seconds or seconds <= 0 or seconds == math.huge then return "—" end
+    seconds = math.floor(seconds + 0.5)
+    if seconds >= 3600 then
+        return string.format("%dh %02dm", math.floor(seconds / 3600), math.floor(seconds % 3600 / 60))
+    elseif seconds >= 60 then
+        return string.format("%dm %02ds", math.floor(seconds / 60), seconds % 60)
+    end
+    return seconds .. "s"
+end
+
+local function RoundedHalfBars(value)
+    return math.floor(math.max(0, value) * 2 + 0.5) / 2
+end
+
+local function FormatBars(value)
+    local rounded = RoundedHalfBars(value)
+    if rounded == math.floor(rounded) then return tostring(math.floor(rounded)) end
+    return string.format("%.1f", rounded)
+end
+
+local function MakeTexture(parent, layer, r, g, b, a)
+    local texture = parent:CreateTexture(nil, layer)
+    texture:SetColorTexture(r, g, b, a)
+    return texture
+end
+
+local function AddBorder(frame)
+    local top = MakeTexture(frame, "BORDER", 0.33, 0.42, 0.55, 0.9)
+    top:SetPoint("TOPLEFT"); top:SetPoint("TOPRIGHT"); top:SetHeight(1)
+    local bottom = MakeTexture(frame, "BORDER", 0.01, 0.02, 0.04, 1)
+    bottom:SetPoint("BOTTOMLEFT"); bottom:SetPoint("BOTTOMRIGHT"); bottom:SetHeight(1)
+    local left = MakeTexture(frame, "BORDER", 0.08, 0.10, 0.14, 1)
+    left:SetPoint("TOPLEFT"); left:SetPoint("BOTTOMLEFT"); left:SetWidth(1)
+    local right = MakeTexture(frame, "BORDER", 0.08, 0.10, 0.14, 1)
+    right:SetPoint("TOPRIGHT"); right:SetPoint("BOTTOMRIGHT"); right:SetWidth(1)
+end
+
+local function MakeLabel(parent, justify)
+    local text = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    local fontPath, fontSize = text:GetFont()
+    if fontPath and fontSize then
+        text:SetFont(fontPath, fontSize, "OUTLINE")
+    end
+    text:SetJustifyH(justify); text:SetJustifyV("MIDDLE")
+    text:SetTextColor(1, 1, 1, 1)
+    text:SetShadowColor(0, 0, 0, 1); text:SetShadowOffset(1, -1)
+    text:SetWordWrap(false)
+    return text
+end
+
+local function CreateBar()
+    if bar then return end
+    bar = CreateFrame("Frame", "BetterForeverXPBar", UIParent)
+    bar:SetClampedToScreen(true); bar:SetMovable(true); bar:EnableMouse(true)
+    bar:RegisterForDrag("LeftButton"); bar:SetFrameStrata("MEDIUM")
+
+    local background = MakeTexture(bar, "BACKGROUND", 0.012, 0.017, 0.025, 0.97)
+    background:SetAllPoints(); AddBorder(bar)
+
+    restedFill = CreateFrame("StatusBar", nil, bar)
+    restedFill:SetPoint("TOPLEFT", 1, -1); restedFill:SetPoint("BOTTOMRIGHT", -1, 1)
+    restedFill:SetStatusBarTexture("Interface\\Buttons\\WHITE8X8")
+    restedFill:SetFrameLevel(bar:GetFrameLevel() + 1)
+    -- Blizzard-style hierarchy: earned XP is bright electric blue, rested
+    -- coverage is secondary dark navy, and untouched space is near-black.
+    restedFill:SetStatusBarColor(0.025, 0.075, 0.18, 0.99); restedFill:EnableMouse(false)
+
+    fill = CreateFrame("StatusBar", nil, bar)
+    fill:SetAllPoints(restedFill); fill:SetStatusBarTexture("Interface\\Buttons\\WHITE8X8")
+    fill:SetFrameLevel(bar:GetFrameLevel() + 2)
+    fill:SetStatusBarColor(0.22, 0.48, 1.00, 1.00); fill:EnableMouse(false)
+    local sheen = fill:CreateTexture(nil, "ARTWORK")
+    sheen:SetColorTexture(0.55, 0.80, 1, 0.16)
+    sheen:SetPoint("TOPLEFT"); sheen:SetPoint("TOPRIGHT"); sheen:SetHeight(2)
+
+    spark = fill:CreateTexture(nil, "OVERLAY")
+    spark:SetColorTexture(0.78, 0.67, 0.43, 0.98); spark:SetWidth(2)
+    spark:SetPoint("TOP"); spark:SetPoint("BOTTOM")
+
+    tickLayer = CreateFrame("Frame", nil, bar)
+    tickLayer:SetAllPoints(); tickLayer:SetFrameLevel(bar:GetFrameLevel() + 5); tickLayer:EnableMouse(false)
+    for index = 1, 19 do
+        -- A dark stroke reads over earned XP; its faint light edge reads over
+        -- rested and empty sections. Together they remain visible everywhere.
+        local dark = tickLayer:CreateTexture(nil, "OVERLAY")
+        dark:SetColorTexture(0.01, 0.025, 0.07, 0.52)
+        dark:SetWidth(1)
+        local light = tickLayer:CreateTexture(nil, "OVERLAY")
+        light:SetColorTexture(0.72, 0.84, 1, 0.18)
+        light:SetWidth(1)
+        tickMarks[index] = { dark = dark, light = light }
+    end
+    restedEndMarker = tickLayer:CreateTexture(nil, "OVERLAY")
+    restedEndMarker:SetColorTexture(0.78, 0.67, 0.43, 0.96)
+    restedEndMarker:SetWidth(2)
+
+    -- A separate child frame keeps every label above both status-bar fills.
+    textLayer = CreateFrame("Frame", nil, bar)
+    textLayer:SetAllPoints(); textLayer:SetFrameLevel(bar:GetFrameLevel() + 10); textLayer:EnableMouse(false)
+    leftText, centerText, rightText = MakeLabel(textLayer, "LEFT"), MakeLabel(textLayer, "CENTER"), MakeLabel(textLayer, "RIGHT")
+
+    bar:SetScript("OnDragStart", function(self)
+        -- Shift-drag is an escape hatch that always works, even after the bar
+        -- has been locked to prevent accidental movement.
+        if not db.locked or IsShiftKeyDown() then self:StartMoving() end
+    end)
+    bar:SetScript("OnDragStop", function(self)
+        self:StopMovingOrSizing()
+        local point, _, relativePoint, x, y = self:GetPoint(1)
+        db.point, db.relativePoint, db.x, db.y = point, relativePoint, x, y
+    end)
+    bar:SetScript("OnEnter", function()
+        tooltipVisible = true
+        if bar.ShowDetails then bar:ShowDetails() end
+    end)
+    bar:SetScript("OnLeave", function()
+        tooltipVisible = false
+        if GameTooltip:GetOwner() == bar then GameTooltip:Hide() end
+    end)
+end
+
+local function ApplyLayout()
+    CreateBar(); bar:SetScale(db.scale); bar:SetSize(db.width, db.height)
+    bar:ClearAllPoints(); bar:SetPoint(db.point, UIParent, db.relativePoint, db.x, db.y)
+    leftText:ClearAllPoints(); leftText:SetPoint("LEFT", textLayer, "LEFT", 6, 0)
+    leftText:SetSize(math.max(1, db.width * 0.18 - 12), db.height)
+    centerText:ClearAllPoints(); centerText:SetPoint("CENTER", textLayer, "CENTER", 0, 0)
+    centerText:SetSize(math.max(1, db.width * 0.58), db.height)
+    rightText:ClearAllPoints(); rightText:SetPoint("RIGHT", textLayer, "RIGHT", -6, 0)
+    rightText:SetSize(math.max(1, db.width * 0.30 - 12), db.height)
+
+    for index, tick in ipairs(tickMarks) do
+        local x = db.width * index / 20
+        tick.dark:ClearAllPoints()
+        tick.dark:SetPoint("TOP", tickLayer, "TOPLEFT", x, -1)
+        tick.dark:SetPoint("BOTTOM", tickLayer, "BOTTOMLEFT", x, 1)
+        tick.light:ClearAllPoints()
+        tick.light:SetPoint("TOP", tickLayer, "TOPLEFT", x + 1, -1)
+        tick.light:SetPoint("BOTTOM", tickLayer, "BOTTOMLEFT", x + 1, 1)
+    end
+end
+
+local hookedDefaultFrames = {}
+local defaultFrameNames = { "StatusTrackingBarManager", "MainStatusTrackingBarContainer", "MainMenuExpBar", "MainMenuBarXPBar", "MainMenuBarExpBar" }
+local function ApplyDefaultBarVisibility()
+    for _, name in ipairs(defaultFrameNames) do
+        local frame = _G[name]
+        if frame and frame ~= bar and frame.Hide and frame.Show then
+            if db.hideBlizzard then frame:Hide() end
+            if not hookedDefaultFrames[frame] then
+                hookedDefaultFrames[frame] = true
+                hooksecurefunc(frame, "Show", function(self) if db and db.hideBlizzard then self:Hide() end end)
+            end
+        end
+    end
+end
+
+local function CompletedQuestXP()
+    if not C_QuestLog or not C_QuestLog.GetNumQuestLogEntries or not C_QuestLog.GetInfo then return 0 end
+    local total, count = 0, C_QuestLog.GetNumQuestLogEntries() or 0
+    for index = 1, count do
+        local info = C_QuestLog.GetInfo(index)
+        if info and not info.isHeader and info.questID then
+            local ready = C_QuestLog.ReadyForTurnIn and C_QuestLog.ReadyForTurnIn(info.questID)
+            if ready and GetQuestLogRewardXP then
+                local ok, reward = pcall(GetQuestLogRewardXP, info.questID)
+                if ok and type(reward) == "number" then total = total + reward end
+            end
+        end
+    end
+    return total
+end
+
+local function AccumulateLevelTime()
+    local now = GetTime()
+    if charDB then
+        local elapsed = now - (levelClockLast or now)
+        if elapsed > 0 and elapsed < 120 then
+            charDB.levelSeconds = (charDB.levelSeconds or 0) + elapsed
+        end
+    end
+    levelClockLast = now
+end
+
+local function SessionRate()
+    local elapsed = math.max(1, GetTime() - sessionStart)
+    if elapsed < 10 or sessionXP <= 0 then return 0 end
+    return sessionXP / elapsed * 3600
+end
+
+local function ShowDetails()
+    if not db or not bar or not bar:IsShown() then return end
+    local xp, xpMax = UnitXP("player") or 0, UnitXPMax("player") or 0
+    local remaining = math.max(0, xpMax - xp)
+    local rested = GetXPExhaustion and (GetXPExhaustion() or 0) or 0
+    local rate, questXP = SessionRate(), CompletedQuestXP()
+    local questPercent = xpMax > 0 and questXP / xpMax * 100 or 0
+    local projectedXP = math.min(xpMax, xp + questXP)
+    local projectedPercent = xpMax > 0 and projectedXP / xpMax * 100 or 0
+    local restedPercent = xpMax > 0 and rested / xpMax * 100 or 0
+    local restedBars = xpMax > 0 and rested / xpMax * 20 or 0
+    local barsLeft = xpMax > 0 and remaining / xpMax * 20 or 0
+
+    local function AddSection(title, r, g, b)
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine(title:upper(), r, g, b)
+    end
+
+    GameTooltip:SetOwner(bar, "ANCHOR_TOP", 0, 8); GameTooltip:ClearLines()
+    GameTooltip:AddLine("Better Forever XP  |cff8499b8• by Dezolve Labs|r", 0.45, 0.84, 1)
+    GameTooltip:AddLine("Level " .. (UnitLevel("player") or 0) .. " Experience", 0.88, 0.92, 1)
+
+    AddSection("Progress", 0.45, 0.84, 1)
+    GameTooltip:AddDoubleLine("Current XP", Commas(xp) .. " / " .. Commas(xpMax), 0.72, 0.77, 0.86, 1, 1, 1)
+    GameTooltip:AddDoubleLine("Complete", xpMax > 0 and string.format("%.2f%%", xp / xpMax * 100) or "—", 0.72, 0.77, 0.86, 1, 1, 1)
+    GameTooltip:AddDoubleLine("Remaining", Commas(remaining), 0.72, 0.77, 0.86, 1, 0.82, 0.42)
+    GameTooltip:AddDoubleLine("Bars left", FormatBars(barsLeft), 0.72, 0.77, 0.86, 1, 0.82, 0.42)
+
+    AddSection("Bonuses & Ready Quests", 1, 0.76, 0.30)
+    GameTooltip:AddDoubleLine("Rested XP", Commas(rested) .. string.format("  (%.1f%%)", restedPercent), 0.72, 0.77, 0.86, 0.42, 0.78, 1)
+    GameTooltip:AddDoubleLine("Rested coverage", string.format("%.1f bars", restedBars), 0.72, 0.77, 0.86, 0.42, 0.78, 1)
+    GameTooltip:AddDoubleLine("Completed quests", Commas(questXP) .. string.format(" XP  (+%.1f%%)", questPercent), 0.72, 0.77, 0.86, 1, 0.78, 0.32)
+    GameTooltip:AddDoubleLine("After turn-ins", Commas(projectedXP) .. " / " .. Commas(xpMax) .. string.format("  (%.1f%%)", projectedPercent), 0.72, 0.77, 0.86, 1, 0.88, 0.48)
+
+    AddSection("Leveling Pace", 0.55, 1, 0.64)
+    GameTooltip:AddDoubleLine("Time this level", FormatTime(charDB and charDB.levelSeconds or 0), 0.72, 0.77, 0.86, 1, 1, 1)
+    GameTooltip:AddDoubleLine("Session time", FormatTime(GetTime() - sessionStart), 0.72, 0.77, 0.86, 1, 1, 1)
+    GameTooltip:AddDoubleLine("Session XP", Commas(sessionXP), 0.72, 0.77, 0.86, 1, 1, 1)
+    GameTooltip:AddDoubleLine("XP per hour", Commas(rate), 0.72, 0.77, 0.86, 0.55, 1, 0.64)
+    GameTooltip:AddDoubleLine("Estimated level", rate > 0 and FormatTime(remaining / rate * 3600) or "Waiting for XP gain", 0.72, 0.77, 0.86, 0.55, 1, 0.64)
+    GameTooltip:AddLine(" ")
+    if db.locked then
+        GameTooltip:AddLine("Shift-drag to move • /bfxp unlock for normal dragging", 0.55, 0.62, 0.72)
+    else
+        GameTooltip:AddLine("Drag to move • /bfxp lock when finished", 0.55, 0.62, 0.72)
+    end
+    GameTooltip:Show()
+end
+
+local function XPAvailable()
+    if not db.enabled then return false end
+    if IsXPUserDisabled and IsXPUserDisabled() then return false end
+    return (UnitXPMax("player") or 0) > 0
+end
+
+local function UpdateBar()
+    CreateBar()
+    if not XPAvailable() then bar:Hide(); return end
+    local xp, xpMax = UnitXP("player") or 0, UnitXPMax("player") or 1
+    local rested = GetXPExhaustion and (GetXPExhaustion() or 0) or 0
+    local remaining, percent = math.max(0, xpMax - xp), xp / xpMax * 100
+    local barsLeft = remaining / xpMax * 20
+    local innerWidth = math.max(1, db.width - 2)
+    local earnedWidth = innerWidth * xp / xpMax
+    local restedAmount = math.min(rested, remaining)
+    local restedWidth = innerWidth * restedAmount / xpMax
+    fill:SetMinMaxValues(0, xpMax); fill:SetValue(xp)
+    restedFill:SetMinMaxValues(0, xpMax); restedFill:SetValue(math.min(xpMax, xp + rested)); restedFill:SetShown(rested > 0)
+    restedEndMarker:ClearAllPoints()
+    restedEndMarker:SetPoint("TOP", restedFill, "TOPLEFT", earnedWidth + restedWidth, 0)
+    restedEndMarker:SetPoint("BOTTOM", restedFill, "BOTTOMLEFT", earnedWidth + restedWidth, 0)
+    restedEndMarker:SetShown(restedWidth >= 2)
+    spark:ClearAllPoints(); spark:SetPoint("CENTER", fill, "LEFT", earnedWidth, 0)
+    spark:SetShown(xp > 0 and xp < xpMax)
+    leftText:SetText("Level " .. (UnitLevel("player") or 0))
+    centerText:SetText(ExactAndShort(xp) .. " / " .. ExactAndShort(xpMax) .. string.format("  •  %.1f%%", percent))
+    rightText:SetText(ExactAndShort(remaining) .. " XP left  •  " .. FormatBars(barsLeft) .. " bars left")
+    bar:Show()
+    if tooltipVisible then ShowDetails() end
+end
+
+local function RecordXP()
+    local xp, xpMax = UnitXP("player") or 0, UnitXPMax("player") or 0
+    if lastXP and lastXPMax then
+        local gained = (xpMax ~= lastXPMax and xp < lastXP) and (math.max(0, lastXPMax - lastXP) + xp) or (xp - lastXP)
+        if gained and gained > 0 then
+            sessionXP = sessionXP + gained
+            if charDB then charDB.sessionXP = sessionXP end
+        end
+    end
+    lastXP, lastXPMax = xp, xpMax
+end
+
+local function ResetPosition()
+    db.point, db.relativePoint, db.x, db.y = defaults.point, defaults.relativePoint, defaults.x, defaults.y
+    db.width, db.height, db.scale = defaults.width, defaults.height, defaults.scale
+    ApplyLayout(); UpdateBar()
+end
+
+local function Help()
+    Print("/bfxp lock | unlock | show | hide | reset")
+    Print("/bfxp width 300-1600 • height 10-30 • scale 0.5-2")
+    Print("/bfxp format short | commas | exact")
+    Print("/bfxp default on|off  (show or hide Blizzard's bar)")
+end
+
+SLASH_BETTERFOREVERXP1, SLASH_BETTERFOREVERXP2 = "/bfxp", "/betterforeverxp"
+SlashCmdList.BETTERFOREVERXP = function(message)
+    local command, argument = (message or ""):lower():match("^%s*(%S*)%s*(.-)%s*$")
+    local number = tonumber(argument)
+    if command == "lock" then db.locked = true; Print("bar locked")
+    elseif command == "unlock" then db.locked = false; Print("bar unlocked; drag it with the left mouse button")
+    elseif command == "show" then db.enabled = true; UpdateBar()
+    elseif command == "hide" then db.enabled = false; UpdateBar()
+    elseif command == "reset" then ResetPosition(); Print("position and size reset")
+    elseif command == "width" and number and number >= 300 and number <= 1600 then db.width = math.floor(number + 0.5); ApplyLayout(); UpdateBar()
+    elseif command == "height" and number and number >= 10 and number <= 30 then db.height = math.floor(number + 0.5); ApplyLayout(); UpdateBar()
+    elseif command == "scale" and number and number >= 0.5 and number <= 2 then db.scale = number; ApplyLayout()
+    elseif command == "format" and (argument == "short" or argument == "commas" or argument == "exact") then db.numberFormat = argument; UpdateBar(); Print("number format: " .. argument)
+    elseif command == "default" and (argument == "on" or argument == "off") then
+        db.hideBlizzard = argument == "off"; Print("Blizzard bar: " .. argument .. " (reload may be required to restore it)"); ApplyDefaultBarVisibility()
+    else Help() end
+end
+
+eventFrame:RegisterEvent("ADDON_LOADED")
+eventFrame:SetScript("OnEvent", function(_, event, arg1)
+    if event == "ADDON_LOADED" then
+        if arg1 ~= ADDON_NAME then return end
+        BetterForeverXPDB = BetterForeverXPDB or {}
+        local oldVersion = BetterForeverXPDB.version or 0
+        MergeDefaults(BetterForeverXPDB, defaults); db = BetterForeverXPDB
+        BetterForeverXPCharDB = BetterForeverXPCharDB or {}
+        charDB = BetterForeverXPCharDB
+        local currentLevel = UnitLevel("player") or 0
+        if charDB.level ~= currentLevel then
+            charDB.level = currentLevel
+            charDB.levelSeconds = 0
+        end
+        charDB.levelSeconds = charDB.levelSeconds or 0
+        levelClockLast = GetTime()
+        local now = GetTime()
+        if charDB.sessionStartClock and charDB.sessionStartClock <= now then
+            sessionStart = charDB.sessionStartClock
+            sessionXP = charDB.sessionXP or 0
+        else
+            sessionStart = now
+            sessionXP = 0
+            charDB.sessionStartClock = sessionStart
+            charDB.sessionXP = 0
+        end
+        -- Version 2 originally shipped locked, which made the new standalone
+        -- bar feel immovable. Unlock existing installs once for easy placement.
+        if oldVersion < 2 then db.locked = false end
+        if oldVersion < 3 then
+            if db.width == 820 then db.width = 1000 end
+        end
+        if oldVersion < 5 and db.width == 1000 then db.width = 1100 end
+        db.version = 5
+        CreateBar(); bar.ShowDetails = ShowDetails; ApplyLayout(); ApplyDefaultBarVisibility()
+        lastXP, lastXPMax = UnitXP("player"), UnitXPMax("player")
+        eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD"); eventFrame:RegisterEvent("PLAYER_XP_UPDATE")
+        eventFrame:RegisterEvent("PLAYER_LEVEL_UP"); eventFrame:RegisterEvent("UPDATE_EXHAUSTION"); eventFrame:RegisterEvent("QUEST_LOG_UPDATE")
+        UpdateBar()
+    elseif event == "PLAYER_XP_UPDATE" then RecordXP(); UpdateBar()
+    elseif event == "PLAYER_LEVEL_UP" then
+        AccumulateLevelTime()
+        if charDB then
+            charDB.level = tonumber(arg1) or UnitLevel("player") or 0
+            charDB.levelSeconds = 0
+        end
+        lastXP, lastXPMax = nil, nil
+        C_Timer.After(0.2, function() lastXP, lastXPMax = UnitXP("player"), UnitXPMax("player"); UpdateBar() end)
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        -- PLAYER_ENTERING_WORLD's first flag is true for a real login and
+        -- false for /reload. Only a real login starts a new rate session.
+        if arg1 and charDB then
+            sessionStart = GetTime()
+            sessionXP = 0
+            charDB.sessionStartClock = sessionStart
+            charDB.sessionXP = 0
+        end
+        ApplyDefaultBarVisibility(); C_Timer.After(0.5, UpdateBar)
+    else UpdateBar() end
+end)
+
+C_Timer.NewTicker(1, function()
+    AccumulateLevelTime()
+    if charDB then
+        charDB.sessionStartClock = sessionStart
+        charDB.sessionXP = sessionXP
+    end
+    if db and tooltipVisible then ShowDetails() end
+end)

@@ -1,0 +1,9 @@
+## Interface: 16001
+## Title: |cff67d5ffBetter Forever XP|r
+## Notes: A slim modern XP bar with compact progress text and detailed hover information.
+## Author: Dezolve Labs
+## Version: 2.4.1
+## SavedVariables: BetterForeverXPDB
+## SavedVariablesPerCharacter: BetterForeverXPCharDB
+
+BetterForeverXP.lua

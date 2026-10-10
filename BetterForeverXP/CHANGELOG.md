@@ -1,0 +1,22 @@
+# Better Forever XP 2.4.1
+
+By Dezolve Labs
+
+Initial public release for WoW Forever beta.
+
+## Highlights
+
+- Slim, standalone modern XP bar with a configurable position, width, height, and scale.
+- Wider 1,100-pixel default better matches Blizzard's full-width presentation.
+- Twenty visible 5% divisions with bars-left estimates rounded to the nearest half-bar.
+- All 5% dividers now use a consistent visual weight.
+- Distinct earned, rested, and unearned XP colors.
+- Blizzard-inspired hierarchy uses electric-blue earned XP, dark-navy rested coverage, near-black empty space, and warm metallic boundary markers.
+- Explicit status-bar layering keeps earned XP visibly above rested coverage.
+- Outlined bar labels remain readable across bright, rested, and empty segments.
+- Remaining XP label now explicitly reads “XP left” for faster scanning.
+- Subtle Dezolve Labs branding integrated into the tooltip title.
+- Exact comma-formatted values alongside compact values such as `4,500 (4.5K)`.
+- Sectioned hover details for progress, rested XP, completed quest turn-ins, leveling pace, XP/hour, and ETA.
+- Session XP and rate survive `/reload` while fresh logins begin a new session.
+- Blizzard's default tracking bar can be hidden or restored.

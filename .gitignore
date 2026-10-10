@@ -1,0 +1,14 @@
+# Local build output
+/dist/
+/Releases/
+
+# Personal recovery data kept alongside the project locally
+/WC3 Save Recovery/
+
+# Editor and operating-system files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.tmp
