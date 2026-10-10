@@ -28,10 +28,10 @@ The track has 20 subtle divisions (5% each), and the right-hand text shows how
 many Blizzard-style bars remain, rounded to the nearest half-bar, such as
 `8.5 bars left`.
 
-Two small, permanently visible stone arrow notches flank the bar at its exact
-50% position, one above and one below. These are decorative midpoint markers,
-not resize grips. They sit outside the bar, so text, tooltips, right-click
-options and dragging remain accessible.
+A single small, permanently visible carved-stone chip marks the bar's exact
+50% position on the top border. The dark, beveled arrowhead sits mostly above
+the track, with just its tip touching the border; it does not obscure text or
+capture mouse input. The separate bottom hover strip still resizes height.
 
 ## Customization
 
