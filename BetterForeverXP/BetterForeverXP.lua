@@ -15,7 +15,7 @@ local resizeHandles = {}
 local restedEndMarker
 local midpointMarker
 local textLayer
-local tickLayer
+local tickLayer, tickMarks = nil, {}
 local leftText, centerText, rightText
 local eventFrame = CreateFrame("Frame")
 local sessionStart, sessionXP = GetTime(), 0
@@ -225,14 +225,20 @@ local function CreateBar()
 
     tickLayer = CreateFrame("Frame", nil, bar)
     tickLayer:SetAllPoints(); tickLayer:SetFrameLevel(bar:GetFrameLevel() + 5); tickLayer:EnableMouse(false)
-    -- One permanent 50% divider anchored to the exact middle of the bar.
-    -- Remove the former 19 dynamically spaced 5%-tick textures, which
-    -- distorted at unusual UI scales and cluttered the tube surface.
-    local midpointLine = tickLayer:CreateTexture(nil, "OVERLAY")
-    midpointLine:SetColorTexture(0.02, 0.035, 0.07, 0.62)
-    midpointLine:SetWidth(1)
-    midpointLine:SetPoint("TOP", tickLayer, "TOP", 0, -1)
-    midpointLine:SetPoint("BOTTOM", tickLayer, "BOTTOM", 0, 1)
+    -- Twenty classic 5% XP segments are essential, even with the tube
+    -- gradient. Draw a SINGLE crisp stroke at each division instead of the
+    -- old offset/double-stroke tick pairs. The halfway tick uses a permanent
+    -- CENTER anchor to line up with Blizzard's silver 50% arrow.
+    for index = 1, 19 do
+        local tick = tickLayer:CreateTexture(nil, "OVERLAY")
+        tick:SetColorTexture(0.015, 0.035, 0.075, 0.55)
+        tick:SetWidth(1)
+        if index == 10 then
+            tick:SetPoint("TOP", tickLayer, "TOP", 0, -1)
+            tick:SetPoint("BOTTOM", tickLayer, "BOTTOM", 0, 1)
+        end
+        tickMarks[index] = tick
+    end
     -- Tiny 2px inset cuts on the four extremities soften the silhouette,
     -- rather than rounding the whole XP bar into a large capsule.
     local endCapTrim = CreateFrame("Frame", nil, bar)
@@ -522,8 +528,22 @@ local function ApplyLayout()
     corner.resizeCornerVisuals.detailV:SetSize(math.max(2, stroke - 1), glyphLength * 0.5)
     UpdateResizeHandles()
 
-    -- The centered 50% line and Blizzard arrow follow the bar anchors;
-    -- neither needs recalculated widths or fractional pixel offsets.
+    -- Align every 5% divider to the actual rendered pixel grid after UI
+    -- scaling. This keeps thin ticks crisp and evenly spaced even when the
+    -- bar width or scale changes. Never add a second overlapping center line:
+    -- the 50% divider is already anchored directly to tickLayer's center.
+    local effectiveScale = tickLayer:GetEffectiveScale()
+    if not effectiveScale or effectiveScale <= 0 then effectiveScale = 1 end
+    local pixel = 1 / effectiveScale
+    for index, tick in ipairs(tickMarks) do
+        tick:SetWidth(pixel)
+        if index ~= 10 then
+            local x = math.floor(db.width * index / 20 * effectiveScale + 0.5) * pixel
+            tick:ClearAllPoints()
+            tick:SetPoint("TOP", tickLayer, "TOPLEFT", x, -1)
+            tick:SetPoint("BOTTOM", tickLayer, "BOTTOMLEFT", x, 1)
+        end
+    end
 end
 
 -- Called only when dimensions actually change during a drag. Keep the
@@ -749,6 +769,19 @@ local function UpdateBar()
     restedEndMarker:SetPoint("TOP", restedFill, "TOPLEFT", earnedWidth + restedWidth, 0)
     restedEndMarker:SetPoint("BOTTOM", restedFill, "BOTTOMLEFT", earnedWidth + restedWidth, 0)
     restedEndMarker:SetShown(restedWidth >= 2)
+    -- Dark strokes contrast with earned blue/purple. Muted silver-blue strokes
+    -- remain visible across both the darker rested extension and empty track.
+    -- Each tick is still one pixel wide, regardless of bar and UI scale.
+    for index, tick in ipairs(tickMarks) do
+        local division = index / 20
+        if division <= xp / xpMax then
+            tick:SetColorTexture(0.01, 0.025, 0.075, 0.55)
+        elseif division <= (xp + rested) / xpMax then
+            tick:SetColorTexture(0.52, 0.70, 0.92, 0.25)
+        else
+            tick:SetColorTexture(0.48, 0.60, 0.78, 0.25)
+        end
+    end
     spark:ClearAllPoints(); spark:SetPoint("CENTER", fill, "LEFT", earnedWidth, 0)
     spark:SetShown(xp > 0 and xp < xpMax)
     leftText:SetText("Level " .. (UnitLevel("player") or 0))
