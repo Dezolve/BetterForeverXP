@@ -21,9 +21,10 @@ capturing mouse input. It is on by default and can be hidden with
 **Show 50% marker** in the Options panel.
 
 The XP track has soft top-to-bottom tube shading, understated 2px corner
-trims, and all 19 dividers for **20 XP segments**. Each divider has a subtle
-shaded groove and side highlight, both aligned to physical pixels to stay
-sharp as bar size and scale change. The 50% divider is centered below
+trims, dark metallic top/bottom rims with a restrained white inner reflection,
+and all 19 dividers for **20 XP segments**. Each divider now has a dark
+shaded groove and bright white fading highlight, aligned to physical pixels
+to stay sharp as bar size and scale change. The 50% divider is centered below
 the Blizzard arrow. XP remains blue while rested and purple when unrested;
 the rested extension stays dark navy.
 
