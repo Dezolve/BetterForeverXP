@@ -53,6 +53,10 @@ if ($failures.Count -eq 0) {
     Assert-Condition ($lua -notmatch '(?i)\b(TODO|FIXME)\b') 'Release source contains TODO or FIXME markers.'
 
     Assert-Condition ($lua -match 'enabled = true, locked = false') 'New installs should start unlocked.'
+    Assert-Condition ($lua -match 'value < 0[.]5 or value > 3 then return false') 'Scale setting must accept 3x.'
+    Assert-Condition ($options -match 'AddSlider\("scale", "Overall UI scale \(including text\)", -337, 0[.]5, 3, 0[.]05, "x"\)') 'Scale slider must expose 3x.'
+    Assert-Condition ($lua -match 'scale 0[.]5-3') 'Slash command help must document 3x.'
+    Assert-Condition ($lua -match 'width = 1100, height = 16, scale = 1') 'Default scale must remain 1x.'
     Assert-Condition ($lua -match 'AddResizeHandle\("width", "RIGHT"') 'Missing right-edge width resize zone.'
     Assert-Condition ($lua -match 'AddResizeHandle\("height", "TOP"') 'Missing top-edge height resize zone.'
     Assert-Condition ($lua -match 'AddResizeHandle\("corner", "BOTTOMRIGHT"') 'Missing bottom-right two-axis resize zone.'
