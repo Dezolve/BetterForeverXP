@@ -1,16 +1,17 @@
-local ADDON_NAME = ...
+local ADDON_NAME, addon = ...
 
 local defaults = {
-    enabled = true, locked = true,
+    enabled = true, locked = false,
     point = "BOTTOM", relativePoint = "BOTTOM", x = 0, y = 155,
     width = 1100, height = 16, scale = 1,
     numberFormat = "short", hideBlizzard = true,
-    version = 5,
+    version = 6,
 }
 
 local db
 local charDB
 local bar, fill, restedFill, spark
+local resizeHandle
 local restedEndMarker
 local textLayer
 local tickLayer, tickMarks = nil, {}
@@ -121,6 +122,10 @@ local function MakeLabel(parent, justify)
     return text
 end
 
+local function UpdateResizeHandle()
+    if resizeHandle then resizeHandle:SetShown(db and not db.locked) end
+end
+
 local function CreateBar()
     if bar then return end
     bar = CreateFrame("Frame", "BetterForeverXPBar", UIParent)
@@ -172,6 +177,44 @@ local function CreateBar()
     textLayer:SetAllPoints(); textLayer:SetFrameLevel(bar:GetFrameLevel() + 10); textLayer:EnableMouse(false)
     leftText, centerText, rightText = MakeLabel(textLayer, "LEFT"), MakeLabel(textLayer, "CENTER"), MakeLabel(textLayer, "RIGHT")
 
+    -- Small corner grabber scales the entire bar uniformly. Width and height
+    -- remain independent settings, so labels/ticks are never distorted.
+    resizeHandle = CreateFrame("Button", nil, bar)
+    resizeHandle:SetSize(20, 20)
+    resizeHandle:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", 5, -5)
+    resizeHandle:SetFrameLevel(bar:GetFrameLevel() + 20)
+    resizeHandle:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
+    resizeHandle:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
+    resizeHandle:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
+    local startX, startY, startScale
+    local function StopScaling(self)
+        self:SetScript("OnUpdate", nil)
+        startX, startY, startScale = nil, nil, nil
+        if addon.RefreshOptions then addon.RefreshOptions() end
+    end
+    resizeHandle:SetScript("OnMouseDown", function(self, button)
+        if button ~= "LeftButton" or not db or db.locked then return end
+        startX, startY = GetCursorPosition()
+        startScale = db.scale
+        self:SetScript("OnUpdate", function(handle)
+            if IsMouseButtonDown and not IsMouseButtonDown("LeftButton") then
+                StopScaling(handle)
+                return
+            end
+            local cursorX, cursorY = GetCursorPosition()
+            local parentScale = UIParent:GetEffectiveScale()
+            if not parentScale or parentScale <= 0 then parentScale = 1 end
+            local dx = (cursorX - startX) / parentScale
+            local dy = (cursorY - startY) / parentScale
+            local proposed = startScale + (dx + dy) / (db.width + db.height)
+            db.scale = math.max(0.5, math.min(2, math.floor(proposed * 100 + 0.5) / 100))
+            bar:SetScale(db.scale)
+        end)
+    end)
+    resizeHandle:SetScript("OnMouseUp", function(self) StopScaling(self) end)
+    resizeHandle:SetScript("OnHide", function(self) StopScaling(self) end)
+    UpdateResizeHandle()
+
     bar:SetScript("OnDragStart", function(self)
         -- Shift-drag is an escape hatch that always works, even after the bar
         -- has been locked to prevent accidental movement.
@@ -195,12 +238,34 @@ end
 local function ApplyLayout()
     CreateBar(); bar:SetScale(db.scale); bar:SetSize(db.width, db.height)
     bar:ClearAllPoints(); bar:SetPoint(db.point, UIParent, db.relativePoint, db.x, db.y)
-    leftText:ClearAllPoints(); leftText:SetPoint("LEFT", textLayer, "LEFT", 6, 0)
-    leftText:SetSize(math.max(1, db.width * 0.18 - 12), db.height)
-    centerText:ClearAllPoints(); centerText:SetPoint("CENTER", textLayer, "CENTER", 0, 0)
-    centerText:SetSize(math.max(1, db.width * 0.58), db.height)
-    rightText:ClearAllPoints(); rightText:SetPoint("RIGHT", textLayer, "RIGHT", -6, 0)
-    rightText:SetSize(math.max(1, db.width * 0.30 - 12), db.height)
+    -- Never allow the three text regions to overlap. Compact layouts
+    -- progressively remove secondary detail as available width shrinks.
+    local fontSize = math.max(8, math.min(18, db.height - 4))
+    for _, label in ipairs({ leftText, centerText, rightText }) do
+        local fontPath = label:GetFont()
+        if fontPath then label:SetFont(fontPath, fontSize, "OUTLINE") end
+        label:ClearAllPoints()
+    end
+    if db.width < 530 then
+        leftText:Hide(); rightText:Hide(); centerText:Show()
+        centerText:SetPoint("CENTER", textLayer, "CENTER")
+        centerText:SetSize(db.width - 12, db.height)
+    elseif db.width < 830 then
+        leftText:Show(); centerText:Show(); rightText:Hide()
+        leftText:SetPoint("LEFT", textLayer, "LEFT", 6, 0)
+        leftText:SetSize(db.width * 0.23 - 12, db.height)
+        centerText:SetPoint("RIGHT", textLayer, "RIGHT", -6, 0)
+        centerText:SetSize(db.width * 0.77 - 12, db.height)
+    else
+        leftText:Show(); centerText:Show(); rightText:Show()
+        leftText:SetPoint("LEFT", textLayer, "LEFT", 6, 0)
+        leftText:SetSize(db.width * 0.15 - 12, db.height)
+        centerText:SetPoint("CENTER", textLayer, "CENTER")
+        centerText:SetSize(db.width * 0.43 - 12, db.height)
+        rightText:SetPoint("RIGHT", textLayer, "RIGHT", -6, 0)
+        rightText:SetSize(db.width * 0.42 - 12, db.height)
+    end
+    UpdateResizeHandle()
 
     for index, tick in ipairs(tickMarks) do
         local x = db.width * index / 20
@@ -336,8 +401,15 @@ local function UpdateBar()
     spark:ClearAllPoints(); spark:SetPoint("CENTER", fill, "LEFT", earnedWidth, 0)
     spark:SetShown(xp > 0 and xp < xpMax)
     leftText:SetText("Level " .. (UnitLevel("player") or 0))
-    centerText:SetText(ExactAndShort(xp) .. " / " .. ExactAndShort(xpMax) .. string.format("  •  %.1f%%", percent))
-    rightText:SetText(ExactAndShort(remaining) .. " XP left  •  " .. FormatBars(barsLeft) .. " bars left")
+    if db.width < 530 then
+        centerText:SetText(string.format("%.1f%%  •  %s XP left", percent, Short(remaining)))
+    elseif db.width < 830 then
+        centerText:SetText(Short(xp) .. " / " .. Short(xpMax) .. string.format("  •  %.1f%%", percent))
+    else
+        local display = db.numberFormat == "short" and ExactAndShort or FormatNumber
+        centerText:SetText(display(xp) .. " / " .. display(xpMax) .. string.format("  •  %.1f%%", percent))
+        rightText:SetText(display(remaining) .. " XP left  •  " .. FormatBars(barsLeft) .. " bars left")
+    end
     bar:Show()
     if tooltipVisible then ShowDetails() end
 end
@@ -360,9 +432,53 @@ local function ResetPosition()
     ApplyLayout(); UpdateBar()
 end
 
+-- Shared mutation path for the Settings panel and legacy slash commands.
+local function SetSetting(key, value)
+    if not db then return false end
+    if key == "width" then
+        if type(value) ~= "number" or value < 300 or value > 1600 then return false end
+        db.width = math.floor(value + 0.5)
+        ApplyLayout(); UpdateBar()
+    elseif key == "height" then
+        if type(value) ~= "number" or value < 10 or value > 40 then return false end
+        db.height = math.floor(value + 0.5)
+        ApplyLayout(); UpdateBar()
+    elseif key == "scale" then
+        if type(value) ~= "number" or value < 0.5 or value > 2 then return false end
+        db.scale = math.floor(value * 100 + 0.5) / 100
+        ApplyLayout()
+    elseif key == "locked" or key == "enabled" or key == "hideBlizzard" then
+        if type(value) ~= "boolean" then return false end
+        db[key] = value
+        if key == "locked" then UpdateResizeHandle()
+        elseif key == "enabled" then UpdateBar()
+        else ApplyDefaultBarVisibility() end
+    elseif key == "numberFormat" then
+        if value ~= "short" and value ~= "commas" and value ~= "exact" then return false end
+        db.numberFormat = value
+        UpdateBar()
+    else
+        return false
+    end
+    if addon.RefreshOptions then addon.RefreshOptions() end
+    return true
+end
+
+addon.GetSettings = function() return db end
+addon.SetSetting = SetSetting
+addon.ResetPosition = ResetPosition
+addon.ResetAll = function()
+    if not db then return end
+    db.enabled, db.locked = defaults.enabled, defaults.locked
+    db.numberFormat, db.hideBlizzard = defaults.numberFormat, defaults.hideBlizzard
+    ResetPosition()
+    UpdateResizeHandle(); ApplyDefaultBarVisibility(); UpdateBar()
+    if addon.RefreshOptions then addon.RefreshOptions() end
+end
+
 local function Help()
     Print("/bfxp lock | unlock | show | hide | reset")
-    Print("/bfxp width 300-1600 • height 10-30 • scale 0.5-2")
+    Print("/bfxp (open options) • width 300-1600 • height 10-40 • scale 0.5-2")
     Print("/bfxp format short | commas | exact")
     Print("/bfxp default on|off  (show or hide Blizzard's bar)")
 end
@@ -371,17 +487,20 @@ SLASH_BETTERFOREVERXP1, SLASH_BETTERFOREVERXP2 = "/bfxp", "/betterforeverxp"
 SlashCmdList.BETTERFOREVERXP = function(message)
     local command, argument = (message or ""):lower():match("^%s*(%S*)%s*(.-)%s*$")
     local number = tonumber(argument)
-    if command == "lock" then db.locked = true; Print("bar locked")
-    elseif command == "unlock" then db.locked = false; Print("bar unlocked; drag it with the left mouse button")
-    elseif command == "show" then db.enabled = true; UpdateBar()
-    elseif command == "hide" then db.enabled = false; UpdateBar()
-    elseif command == "reset" then ResetPosition(); Print("position and size reset")
-    elseif command == "width" and number and number >= 300 and number <= 1600 then db.width = math.floor(number + 0.5); ApplyLayout(); UpdateBar()
-    elseif command == "height" and number and number >= 10 and number <= 30 then db.height = math.floor(number + 0.5); ApplyLayout(); UpdateBar()
-    elseif command == "scale" and number and number >= 0.5 and number <= 2 then db.scale = number; ApplyLayout()
-    elseif command == "format" and (argument == "short" or argument == "commas" or argument == "exact") then db.numberFormat = argument; UpdateBar(); Print("number format: " .. argument)
+    if command == "" or command == "options" or command == "config" then
+        if addon.OpenOptions then addon.OpenOptions() else Help() end
+    elseif command == "lock" then SetSetting("locked", true); Print("bar locked")
+    elseif command == "unlock" then SetSetting("locked", false); Print("bar unlocked; drag to move, use corner arrow to scale")
+    elseif command == "show" then SetSetting("enabled", true)
+    elseif command == "hide" then SetSetting("enabled", false)
+    elseif command == "reset" then ResetPosition(); if addon.RefreshOptions then addon.RefreshOptions() end; Print("position and size reset")
+    elseif command == "width" and SetSetting("width", number) then
+    elseif command == "height" and SetSetting("height", number) then
+    elseif command == "scale" and SetSetting("scale", number) then
+    elseif command == "format" and SetSetting("numberFormat", argument) then Print("number format: " .. argument)
     elseif command == "default" and (argument == "on" or argument == "off") then
-        db.hideBlizzard = argument == "off"; Print("Blizzard bar: " .. argument .. " (reload may be required to restore it)"); ApplyDefaultBarVisibility()
+        SetSetting("hideBlizzard", argument == "off")
+        Print("Blizzard bar: " .. argument .. " (reload may be required to restore it)")
     else Help() end
 end
 
@@ -418,8 +537,9 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
             if db.width == 820 then db.width = 1000 end
         end
         if oldVersion < 5 and db.width == 1000 then db.width = 1100 end
-        db.version = 5
+        db.version = 6
         CreateBar(); bar.ShowDetails = ShowDetails; ApplyLayout(); ApplyDefaultBarVisibility()
+        if addon.InitializeOptions then addon.InitializeOptions() end
         lastXP, lastXPMax = UnitXP("player"), UnitXPMax("player")
         eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD"); eventFrame:RegisterEvent("PLAYER_XP_UPDATE")
         eventFrame:RegisterEvent("PLAYER_LEVEL_UP"); eventFrame:RegisterEvent("UPDATE_EXHAUSTION"); eventFrame:RegisterEvent("QUEST_LOG_UPDATE")
