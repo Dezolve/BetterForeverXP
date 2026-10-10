@@ -7,6 +7,7 @@ local category
 local checkboxes = {}
 local sliders = {}
 local formatButtons = {}
+local textModeButtons = {}
 local refreshing = false
 
 local function Label(parent, text, x, y, template)
@@ -70,6 +71,21 @@ local function AddFormatButton(key, text, x)
     formatButtons[key] = { control = button, label = text }
 end
 
+local function AddTextModeButton(mode, title, x, description)
+    local button = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+    button:SetSize(126, 26)
+    button:SetPoint("TOPLEFT", panel, "TOPLEFT", x, -137)
+    button:SetText(title)
+    button:SetScript("OnClick", function() addon.SetSetting("textMode", mode) end)
+    button:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText(description, 1, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    button:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    textModeButtons[mode] = { control = button, label = title }
+end
+
 function addon.InitializeOptions()
     if panel then return end
 
@@ -87,8 +103,12 @@ function addon.InitializeOptions()
     AddCheckbox("locked", "Lock position and resizing", -105, "Disable edge resizing and accidental movement.")
     AddCheckbox("hideBlizzard", "Hide Blizzard's XP bar", -105,
         "Show or hide Blizzard's XP bar immediately (or after combat).", 305)
-    AddCheckbox("showBarText", "Always show XP text on bar", -138,
-        "Off by default. Hover the clean XP tube for its detailed tooltip; enable to keep labels visible.")
+    -- Three exclusive choices avoid conflicting visibility checkboxes and
+    -- restore the original hover-only text mode without crowding sliders.
+    Label(panel, "XP bar text", 26, -145, "GameFontNormal")
+    AddTextModeButton("tooltip", "Tooltip only", 152, "Clean bar. Hover to see detailed XP in the tooltip.")
+    AddTextModeButton("hover", "Text on hover", 288, "Show XP labels on the bar while hovering, as well as the tooltip.")
+    AddTextModeButton("always", "Always visible", 424, "Keep XP labels on the bar at all times.")
 
     Label(panel, "Bar dimensions", 24, -179, "GameFontNormalLarge")
     AddSlider("width", "Width", -209, 300, 1600, 10, " px")
@@ -123,6 +143,11 @@ function addon.InitializeOptions()
         end
         for key, data in pairs(formatButtons) do
             local selected = db.numberFormat == key
+            data.control:SetText(selected and ("* " .. data.label) or data.label)
+            data.control:SetEnabled(not selected)
+        end
+        for mode, data in pairs(textModeButtons) do
+            local selected = db.textMode == mode
             data.control:SetText(selected and ("* " .. data.label) or data.label)
             data.control:SetEnabled(not selected)
         end
