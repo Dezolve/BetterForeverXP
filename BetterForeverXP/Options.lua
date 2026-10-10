@@ -77,7 +77,7 @@ function addon.InitializeOptions()
     panel.name = "Better Forever XP"
     panel:SetSize(630, 520)
     Label(panel, "Better Forever XP", 20, -18, "GameFontNormalLarge")
-    Label(panel, "Unlocked: drag to move. Hover below/right/bottom-right to resize.", 24, -46, "GameFontHighlightSmall")
+    Label(panel, "Unlocked: drag bar to move. Resize below center, right edge, or corner.", 24, -46, "GameFontHighlightSmall")
 
     -- Two balanced rows avoid pushing the size sliders or reset buttons
     -- below the bottom of the Settings panel.
