@@ -4,7 +4,7 @@ local defaults = {
     enabled = true, locked = false,
     point = "BOTTOM", relativePoint = "BOTTOM", x = 0, y = 155,
     width = 1100, height = 16, scale = 1,
-    numberFormat = "short", hideBlizzard = true,
+    numberFormat = "short", hideBlizzard = true, showMidpointMarker = true,
     version = 6,
 }
 
@@ -13,6 +13,7 @@ local charDB
 local bar, fill, restedFill, spark
 local resizeHandles = {}
 local restedEndMarker
+local midpointMarker
 local textLayer
 local tickLayer, tickMarks = nil, {}
 local leftText, centerText, rightText
@@ -197,24 +198,27 @@ local function CreateBar()
     restedEndMarker:SetColorTexture(0.78, 0.67, 0.43, 0.96)
     restedEndMarker:SetWidth(2)
 
-    -- One permanent 50%-progress ornament: slate stone seated inside an
-    -- aged-bronze tapered bezel. Unlike a plain black triangle, the separate
-    -- rim, stone face, bevel and recessed edge give this a classic WoW feel.
-    -- The tip crosses the top border by only 1px; the text remains clear.
-    -- All parts are mouse-transparent textures on the existing tick layer.
+    -- The 50% stone ornament gets its own mouse-transparent frame so players
+    -- can hide every layer of the chip without affecting XP ticks or text.
+    midpointMarker = CreateFrame("Frame", nil, tickLayer)
+    midpointMarker:SetAllPoints(bar)
+    midpointMarker:SetFrameLevel(tickLayer:GetFrameLevel() + 1)
+    midpointMarker:EnableMouse(false)
+    -- Slate stone inside aged bronze. Lower it 1.5px to visually join the
+    -- top border while keeping the label area clear at short bar heights.
     local function AddStoneMidpointMarker()
         local widths = {20, 20, 18, 16, 14, 12, 10, 8, 6, 4}
         for index, width in ipairs(widths) do
-            local y = 9 - index -- 8px above the bar down to 1px inside it
+            local y = 7.5 - index -- lowered 1.5px: 6.5px above to 2.5px inside
 
             -- Recessed shadow: creates the look of a metal fitting mounted
             -- directly to the XP bar instead of floating over the terrain.
-            local shadow = MakeTexture(tickLayer, "OVERLAY", 0.015, 0.022, 0.035, 0.8)
+            local shadow = MakeTexture(midpointMarker, "OVERLAY", 0.015, 0.022, 0.035, 0.8)
             shadow:SetPoint("CENTER", bar, "TOP", 0, y - 0.8)
             shadow:SetSize(width + 2, 1.8)
 
             -- Warm, desaturated bronze silhouette follows the tapered tip.
-            local rim = MakeTexture(tickLayer, "OVERLAY", 0.52, 0.40, 0.23, 1)
+            local rim = MakeTexture(midpointMarker, "OVERLAY", 0.52, 0.40, 0.23, 1)
             rim:SetPoint("CENTER", bar, "TOP", 0, y)
             rim:SetSize(width, 1.5)
 
@@ -222,29 +226,30 @@ local function CreateBar()
             -- on each side. The final tip stays solid bronze.
             if index > 1 and index < #widths then
                 local shade = 0.40 - (index - 2) * 0.018
-                local stone = MakeTexture(tickLayer, "OVERLAY", shade * 0.85, shade, shade * 1.08, 1)
+                local stone = MakeTexture(midpointMarker, "OVERLAY", shade * 0.85, shade, shade * 1.08, 1)
                 stone:SetPoint("CENTER", bar, "TOP", 0, y + 0.05)
                 stone:SetSize(width - 3, 1.15)
 
                 -- Edge lighting adds a beveled, hand-carved appearance.
-                local light = MakeTexture(tickLayer, "OVERLAY", 0.75, 0.73, 0.64, 0.85)
+                local light = MakeTexture(midpointMarker, "OVERLAY", 0.75, 0.73, 0.64, 0.85)
                 light:SetPoint("CENTER", bar, "TOP", -(width / 2) + 1.15, y + 0.15)
                 light:SetSize(1.2, 1.1)
-                local recess = MakeTexture(tickLayer, "OVERLAY", 0.23, 0.19, 0.15, 0.75)
+                local recess = MakeTexture(midpointMarker, "OVERLAY", 0.23, 0.19, 0.15, 0.75)
                 recess:SetPoint("CENTER", bar, "TOP", (width / 2) - 1.0, y - 0.1)
                 recess:SetSize(1, 1.1)
             end
         end
 
         -- A bright top lip and a tiny dark seam fasten the chip to the bar.
-        local bevel = MakeTexture(tickLayer, "OVERLAY", 0.81, 0.70, 0.48, 0.95)
-        bevel:SetPoint("CENTER", bar, "TOP", 0, 8.4)
+        local bevel = MakeTexture(midpointMarker, "OVERLAY", 0.81, 0.70, 0.48, 0.95)
+        bevel:SetPoint("CENTER", bar, "TOP", 0, 6.9)
         bevel:SetSize(17, 1.1)
-        local seam = MakeTexture(tickLayer, "OVERLAY", 0.04, 0.055, 0.08, 0.8)
-        seam:SetPoint("CENTER", bar, "TOP", 0, -0.5)
+        local seam = MakeTexture(midpointMarker, "OVERLAY", 0.04, 0.055, 0.08, 0.8)
+        seam:SetPoint("CENTER", bar, "TOP", 0, -2)
         seam:SetSize(7, 0.8)
     end
     AddStoneMidpointMarker()
+    midpointMarker:SetShown(db.showMidpointMarker)
 
     -- A separate child frame keeps every label above both status-bar fills.
     textLayer = CreateFrame("Frame", nil, bar)
@@ -441,6 +446,7 @@ end
 
 local function ApplyLayout()
     CreateBar(); bar:SetScale(db.scale); bar:SetSize(db.width, db.height)
+    midpointMarker:SetShown(db.showMidpointMarker)
     bar:ClearAllPoints(); bar:SetPoint(db.point, UIParent, db.relativePoint, db.x, db.y)
     -- Never allow the three text regions to overlap. Compact layouts
     -- progressively remove secondary detail as available width shrinks.
@@ -678,11 +684,12 @@ local function SetSetting(key, value)
         if type(value) ~= "number" or value < 0.5 or value > 3 then return false end
         db.scale = math.floor(value * 100 + 0.5) / 100
         ApplyLayout()
-    elseif key == "locked" or key == "enabled" or key == "hideBlizzard" then
+    elseif key == "locked" or key == "enabled" or key == "hideBlizzard" or key == "showMidpointMarker" then
         if type(value) ~= "boolean" then return false end
         db[key] = value
         if key == "locked" then UpdateResizeHandles()
         elseif key == "enabled" then UpdateBar()
+        elseif key == "showMidpointMarker" then midpointMarker:SetShown(value)
         else ApplyDefaultBarVisibility() end
     elseif key == "numberFormat" then
         if value ~= "short" and value ~= "commas" and value ~= "exact" then return false end
@@ -702,6 +709,7 @@ addon.ResetAll = function()
     if not db then return end
     db.enabled, db.locked = defaults.enabled, defaults.locked
     db.numberFormat, db.hideBlizzard = defaults.numberFormat, defaults.hideBlizzard
+    db.showMidpointMarker = defaults.showMidpointMarker
     ResetPosition()
     UpdateResizeHandles(); ApplyDefaultBarVisibility(); UpdateBar()
     if addon.RefreshOptions then addon.RefreshOptions() end
