@@ -127,50 +127,55 @@ local function ApplyTubeStatusColor(statusBar, bottom, top, flat)
     end
 end
 
--- A shallow recessed groove in the tube: the dark one-pixel core has
--- top-to-bottom shading, and an adjacent faint highlight catches the upper
--- curve. Dark notches and white glints stay readable across blue, purple,
--- rested navy, and the empty track without becoming bright full-height bars.
-local tickPalettes = {
-    earned = {
-        coreBottom = {0.00, 0.00, 0.00, 0.88}, coreTop = {0.08, 0.10, 0.16, 0.62},
-        rimBottom = {0.70, 0.78, 0.90, 0.12}, rimTop = {1.00, 1.00, 1.00, 0.38},
-        coreFlat = {0.00, 0.00, 0.00, 0.72}, rimFlat = {1.00, 1.00, 1.00, 0.24},
-    },
-    rested = {
-        coreBottom = {0.00, 0.00, 0.00, 0.90}, coreTop = {0.07, 0.09, 0.14, 0.66},
-        rimBottom = {0.62, 0.72, 0.86, 0.13}, rimTop = {1.00, 1.00, 1.00, 0.40},
-        coreFlat = {0.00, 0.00, 0.00, 0.74}, rimFlat = {1.00, 1.00, 1.00, 0.25},
-    },
-    empty = {
-        coreBottom = {0.00, 0.00, 0.00, 0.92}, coreTop = {0.09, 0.10, 0.13, 0.68},
-        rimBottom = {0.58, 0.66, 0.78, 0.12}, rimTop = {1.00, 1.00, 1.00, 0.42},
-        coreFlat = {0.00, 0.00, 0.00, 0.76}, rimFlat = {1.00, 1.00, 1.00, 0.26},
-    },
+-- The twenty Blizzard-style segments share one neutral brushed-steel palette.
+-- Each dark, three-physical-pixel groove holds a centered one-pixel metallic
+-- reflection spanning its FULL height. Slight alpha changes preserve contrast
+-- on blue/purple earned XP, navy rested XP, and the black empty track, without
+-- making the white marks change hue when XP crosses a boundary.
+local metallicTickPalette = {
+    coreBottom = {0.04, 0.05, 0.06, 0.98},
+    coreTop = {0.10, 0.11, 0.13, 0.92},
+    rimBottom = {0.43, 0.45, 0.48, 0.38},
+    rimTop = {0.72, 0.74, 0.77, 0.42},
+    glintBottom = {0.60, 0.63, 0.66, 0.48},
+    glintTop = {0.86, 0.88, 0.90, 0.55},
+    coreFlat = {0.06, 0.07, 0.09, 0.92},
+    rimFlat = {0.60, 0.63, 0.66, 0.40},
+    glintFlat = {0.78, 0.80, 0.83, 0.55},
 }
+
 local function ApplyBeveledTick(tick, region)
     if tick.region == region then return end
     tick.region = region
-    local palette = tickPalettes[region]
-    -- The center groove is the main landmark underneath Blizzard's silver
-    -- marker; keep it a touch stronger without increasing its physical width.
-    local coreTop, rimTop = palette.coreTop, palette.rimTop
-    if tick.isCenter then
-        coreTop = {coreTop[1], coreTop[2], coreTop[3], math.min(1, coreTop[4] + 0.18)}
-        rimTop = {rimTop[1], rimTop[2], rimTop[3], math.min(1, rimTop[4] + 0.16)}
-    end
-    if not ApplyVerticalGradient(tick.core, palette.coreBottom, coreTop) then
+    local palette = metallicTickPalette
+
+    -- Apply gradients to neutral white textures. Their original CreateTexture
+    -- tint must not multiply the desired steel color into black.
+    tick.core:SetColorTexture(1, 1, 1, 1)
+    if not ApplyVerticalGradient(tick.core, palette.coreBottom, palette.coreTop) then
         local flat = palette.coreFlat
         tick.core:SetColorTexture(flat[1], flat[2], flat[3], flat[4])
     end
-    if not ApplyVerticalGradient(tick.rim, palette.rimBottom, rimTop) then
+
+    tick.rim:SetColorTexture(1, 1, 1, 1)
+    if not ApplyVerticalGradient(tick.rim, palette.rimBottom, palette.rimTop) then
         local flat = palette.rimFlat
         tick.rim:SetColorTexture(flat[1], flat[2], flat[3], flat[4])
     end
-    -- The white reflection is intentionally strongest in the center, with
-    -- near-black sockets at both ends of every recessed 5% groove.
-    tick.glint:SetColorTexture(1, 1, 1,
-        tick.isCenter and 0.82 or (region == "earned" and 0.64 or 0.76))
+
+    -- All 19 white centers use identical silver RGB. Only slight opacity
+    -- changes keep them legible against earned/rested/empty backgrounds.
+    local alpha = region == "earned" and 0.90 or (region == "rested" and 1.02 or 1.12)
+    if tick.isCenter then alpha = alpha * 1.08 end
+    local lower = palette.glintBottom
+    local upper = palette.glintTop
+    local bottom = {lower[1], lower[2], lower[3], math.min(1, lower[4] * alpha)}
+    local top = {upper[1], upper[2], upper[3], math.min(1, upper[4] * alpha)}
+    tick.glint:SetColorTexture(1, 1, 1, 1)
+    if not ApplyVerticalGradient(tick.glint, bottom, top) then
+        local flat = palette.glintFlat
+        tick.glint:SetColorTexture(flat[1], flat[2], flat[3], math.min(1, flat[4] * alpha))
+    end
 end
 
 -- The visible rounded tube is a continuous center track with two shaped
@@ -567,11 +572,11 @@ local function CreateBar()
     -- groove with its silver/white reflection INSIDE the black core, not
     -- beside it. All layers have the same center x at every UI scale.
     for index = 1, 19 do
-        local core = MakeTexture(tickLayer, "OVERLAY", 0.0, 0.0, 0.0, 0.8)
-        local rim = MakeTexture(tickLayer, "OVERLAY", 1, 1, 1, 0.28)
+        local core = MakeTexture(tickLayer, "OVERLAY", 1, 1, 1, 1)
+        local rim = MakeTexture(tickLayer, "OVERLAY", 1, 1, 1, 1)
         rim:SetPoint("TOP", core, "TOP", 0, 0)
         rim:SetPoint("BOTTOM", core, "BOTTOM", 0, 0)
-        local glint = MakeTexture(tickLayer, "OVERLAY", 1, 1, 1, 0.68)
+        local glint = MakeTexture(tickLayer, "OVERLAY", 1, 1, 1, 1)
         glint:SetPoint("CENTER", core, "CENTER", 0, 0)
         tickMarks[index] = {
             core = core, rim = rim, glint = glint,
@@ -624,7 +629,7 @@ local function CreateBar()
         local arrow = midpointMarker:CreateTexture(nil, "OVERLAY")
         arrow:SetAllPoints(midpointMarker)
         arrow:SetTexture("Interface\\MainMenuBar\\UI-ExhaustionTickNormal")
-        arrow:SetVertexColor(1, 1, 1, 1)
+        arrow:SetVertexColor(0.90, 0.92, 0.96, 1)
     end
     AddMetalMidpointMarker()
     midpointMarker:SetShown(db.showMidpointMarker)
@@ -925,13 +930,10 @@ local function ApplyLayout()
         tick.core:SetWidth(pixel * 3)
         tick.rim:SetWidth(pixel)
         tick.glint:SetWidth(pixel)
-        -- A single continuous groove, with a central white reflection.
-        -- Removing stacked black end-blocks eliminates the dark gaps.
+        -- The silver center now spans the full inset height of every groove.
+        -- It shares the same vertical extent as the surrounding dark core.
         local grooveHeight = math.max(2, db.height - 2)
-        -- The center highlight continues to the top of the tube so the
-        -- Blizzard arrow visibly lands on its own 50% divider.
-        tick.glint:SetHeight(tick.isCenter and grooveHeight
-            or math.max(1, math.floor(grooveHeight * 0.65 + 0.5)))
+        tick.glint:SetHeight(grooveHeight)
         -- Every divider, including 50%, uses the same physical-pixel grid.
         -- The Blizzard arrow follows the centered white glint directly.
         local x = math.floor(db.width * index / 20 * effectiveScale + 0.5) * pixel
