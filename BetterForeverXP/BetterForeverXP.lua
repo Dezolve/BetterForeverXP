@@ -145,16 +145,24 @@ local metallicTickPalette = {
 }
 
 local function ApplyBeveledTick(tick, region)
-    if tick.region == region then return end
-    tick.region = region
+    -- Slim tube bars need a fine engraved seam, not a heavy metal column.
+    -- Include the compact/tall profile in the cache key so live resizing
+    -- refreshes groove colors even when the earned/rested region is unchanged.
+    local compact = db.height <= 24
+    local styleKey = region .. (compact and ":compact" or ":full")
+    if tick.region == styleKey then return end
+    tick.region = styleKey
     local palette = metallicTickPalette
+    local coreBottom = compact and {0.08, 0.09, 0.11, 0.86} or palette.coreBottom
+    local coreTop = compact and {0.14, 0.15, 0.17, 0.80} or palette.coreTop
 
     -- Apply gradients to neutral white textures. Their original CreateTexture
     -- tint must not multiply the desired steel color into black.
     tick.core:SetColorTexture(1, 1, 1, 1)
-    if not ApplyVerticalGradient(tick.core, palette.coreBottom, palette.coreTop) then
+    if not ApplyVerticalGradient(tick.core, coreBottom, coreTop) then
         local flat = palette.coreFlat
-        tick.core:SetColorTexture(flat[1], flat[2], flat[3], flat[4])
+        tick.core:SetColorTexture(flat[1], flat[2], flat[3],
+            compact and 0.80 or flat[4])
     end
 
     tick.rim:SetColorTexture(1, 1, 1, 1)
@@ -920,14 +928,15 @@ local function ApplyLayout()
     UpdateResizeHandles()
     UpdateTubeCaps(db.height, db.width)
 
-    -- The black groove occupies three rendered pixels; its silver/white
-    -- center reflection is exactly one rendered pixel. All share the same x.
+    -- A thin tube uses a finer two-pixel engraving; taller tubes retain the
+    -- three-pixel gunmetal groove. The full-height one-pixel silver center
+    -- and all 5% positions stay anchored to precisely the same x.
     local effectiveScale = tickLayer:GetEffectiveScale()
     if not effectiveScale or effectiveScale <= 0 then effectiveScale = 1 end
     local pixel = 1 / effectiveScale
     local _, visualLeft, visualWidth = TubeGeometry(db.height, db.width)
     for index, tick in ipairs(tickMarks) do
-        tick.core:SetWidth(pixel * 3)
+        tick.core:SetWidth(pixel * (db.height <= 24 and 2 or 3))
         tick.rim:SetWidth(pixel)
         tick.glint:SetWidth(pixel)
         -- The silver center now spans the full inset height of every groove.
