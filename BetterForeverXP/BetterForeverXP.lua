@@ -563,16 +563,16 @@ local function CreateBar()
 
     tickLayer = CreateFrame("Frame", nil, bar)
     tickLayer:SetAllPoints(); tickLayer:SetFrameLevel(bar:GetFrameLevel() + 5); tickLayer:EnableMouse(false)
-    -- Twenty XP segments: each separator has a deep full-height groove,
-    -- a highlight immediately beside it, a brighter white center reflection,
-    -- and short, nearly black sockets at the tube's top and bottom.
+    -- Each of the 19 segment boundaries is one recessed 3-physical-pixel
+    -- groove with its silver/white reflection INSIDE the black core, not
+    -- beside it. All layers have the same center x at every UI scale.
     for index = 1, 19 do
         local core = MakeTexture(tickLayer, "OVERLAY", 0.0, 0.0, 0.0, 0.8)
         local rim = MakeTexture(tickLayer, "OVERLAY", 1, 1, 1, 0.28)
-        rim:SetPoint("TOPLEFT", core, "TOPRIGHT", 0, 0)
-        rim:SetPoint("BOTTOMLEFT", core, "BOTTOMRIGHT", 0, 0)
+        rim:SetPoint("TOP", core, "TOP", 0, 0)
+        rim:SetPoint("BOTTOM", core, "BOTTOM", 0, 0)
         local glint = MakeTexture(tickLayer, "OVERLAY", 1, 1, 1, 0.68)
-        glint:SetPoint("CENTER", rim, "CENTER", 0, 0)
+        glint:SetPoint("CENTER", core, "CENTER", 0, 0)
         tickMarks[index] = {
             core = core, rim = rim, glint = glint,
             isCenter = index == 10,
@@ -613,10 +613,10 @@ local function CreateBar()
     midpointMarker:SetSize(32, 32)
     -- Anchor the native artwork to the actual 50% divider, not an
     -- independently calculated position on the frame.
-    -- Blizzard's exhaustion-tick art has a visibly left-weighted stem.
-    -- The silver stem is centered two displayed pixels left of the bright
-    -- divider unless aligned to the rim and nudged by one art pixel.
-    midpointMarker:SetPoint("CENTER", tickMarks[10].rim, "TOP", 1, -4)
+    -- Center the native silver exhaustion tick on the same white reflection
+    -- drawn INSIDE the 50% groove. Do not compensate for adjacent offset
+    -- strokes: none exist now, so the marker and divider share one x.
+    midpointMarker:SetPoint("CENTER", tickMarks[10].glint, "TOP", 0, -4)
     midpointMarker:SetFrameLevel(tickLayer:GetFrameLevel() + 1)
     midpointMarker:EnableMouse(false)
 
@@ -915,14 +915,14 @@ local function ApplyLayout()
     UpdateResizeHandles()
     UpdateTubeCaps(db.height, db.width)
 
-    -- Pixel-snap only the dark core; the softer highlight stays anchored to
-    -- its edge. Width is exactly one physical pixel for each layer.
+    -- The black groove occupies three rendered pixels; its silver/white
+    -- center reflection is exactly one rendered pixel. All share the same x.
     local effectiveScale = tickLayer:GetEffectiveScale()
     if not effectiveScale or effectiveScale <= 0 then effectiveScale = 1 end
     local pixel = 1 / effectiveScale
     local _, visualLeft, visualWidth = TubeGeometry(db.height, db.width)
     for index, tick in ipairs(tickMarks) do
-        tick.core:SetWidth(pixel)
+        tick.core:SetWidth(pixel * 3)
         tick.rim:SetWidth(pixel)
         tick.glint:SetWidth(pixel)
         -- A single continuous groove, with a central white reflection.
@@ -932,8 +932,8 @@ local function ApplyLayout()
         -- Blizzard arrow visibly lands on its own 50% divider.
         tick.glint:SetHeight(tick.isCenter and grooveHeight
             or math.max(1, math.floor(grooveHeight * 0.65 + 0.5)))
-        -- Every divider, including 50%, shares this exact physical-pixel
-        -- grid. The Blizzard arrow follows tickMarks[10].core automatically.
+        -- Every divider, including 50%, uses the same physical-pixel grid.
+        -- The Blizzard arrow follows the centered white glint directly.
         local x = math.floor(db.width * index / 20 * effectiveScale + 0.5) * pixel
         tick.core:ClearAllPoints()
         tick.core:SetPoint("TOP", tickLayer, "TOPLEFT", x, -1)
