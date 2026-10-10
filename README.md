@@ -20,9 +20,10 @@ border as a single, filled, centered chevron, without covering XP labels or
 capturing mouse input. It is on by default and can be hidden with
 **Show 50% marker** in the Options panel.
 
-The XP track now has soft top-to-bottom tube shading, understated 2px corner
-trims, and all 19 dividers for **20 XP segments**, snapped to physical pixels
-to stay sharp as bar size and scale change. The 50% divider is centered below
+The XP track has soft top-to-bottom tube shading, understated 2px corner
+trims, and all 19 dividers for **20 XP segments**. Each divider has a subtle
+shaded groove and side highlight, both aligned to physical pixels to stay
+sharp as bar size and scale change. The 50% divider is centered below
 the Blizzard arrow. XP remains blue while rested and purple when unrested;
 the rested extension stays dark navy.
 
