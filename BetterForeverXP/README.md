@@ -30,7 +30,7 @@ many Blizzard-style bars remain, rounded to the nearest half-bar, such as
 
 ## Customization
 
-Open **Settings → AddOns → Better Forever XP** or type `/bfxp`.
+Open **Settings → AddOns → Better Forever XP**, type `/bfxp`, or **right-click the XP bar** (even when locked).
 
 - New installs start unlocked. Drag the bar body to move it. The resize zones
   are invisible until hovered: **top edge** changes height, **right edge**
