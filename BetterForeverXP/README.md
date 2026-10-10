@@ -61,7 +61,8 @@ Open **Settings → AddOns → Better Forever XP**, type `/bfxp`, or **right-cli
 - The bar changes text density as width shrinks to avoid overlapping labels.
 - Existing installs keep their saved lock preference. Settings persist through
   relogs and `/reload`.
-- Re-enabling Blizzard's native bar may require `/reload`.
+- Unchecking **Hide Blizzard's XP bar** restores the native bar immediately;
+  changes made during combat apply as soon as combat ends.
 
 ## Commands
 
