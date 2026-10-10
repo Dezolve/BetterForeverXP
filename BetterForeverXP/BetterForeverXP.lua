@@ -611,7 +611,7 @@ local function SetSetting(key, value)
         db.height = math.floor(value + 0.5)
         ApplyLayout(); UpdateBar()
     elseif key == "scale" then
-        if type(value) ~= "number" or value < 0.5 or value > 2 then return false end
+        if type(value) ~= "number" or value < 0.5 or value > 3 then return false end
         db.scale = math.floor(value * 100 + 0.5) / 100
         ApplyLayout()
     elseif key == "locked" or key == "enabled" or key == "hideBlizzard" then
@@ -645,7 +645,7 @@ end
 
 local function Help()
     Print("/bfxp lock | unlock | show | hide | reset")
-    Print("/bfxp (open options) • width 300-1600 • height 10-40 • scale 0.5-2")
+    Print("/bfxp (open options) • width 300-1600 • height 10-40 • scale 0.5-3")
     Print("/bfxp format short | commas | exact")
     Print("/bfxp default on|off  (show or hide Blizzard's bar)")
 end
@@ -657,7 +657,7 @@ SlashCmdList.BETTERFOREVERXP = function(message)
     if command == "" or command == "options" or command == "config" then
         if addon.OpenOptions then addon.OpenOptions() else Help() end
     elseif command == "lock" then SetSetting("locked", true); Print("bar locked")
-    elseif command == "unlock" then SetSetting("locked", false); Print("bar unlocked; drag to move, use corner arrow to scale")
+    elseif command == "unlock" then SetSetting("locked", false); Print("bar unlocked; drag to move, hover edges to resize")
     elseif command == "show" then SetSetting("enabled", true)
     elseif command == "hide" then SetSetting("enabled", false)
     elseif command == "reset" then ResetPosition(); if addon.RefreshOptions then addon.RefreshOptions() end; Print("position and size reset")
