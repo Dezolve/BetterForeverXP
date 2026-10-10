@@ -64,6 +64,8 @@ if ($failures.Count -eq 0) {
     Assert-Condition ($lua -match 'handle:SetHitRectInsets') 'Resize zones must have forgiving hit insets.'
     Assert-Condition ($lua -match 'fromTop and -dy or dy') 'Bottom-right drag must increase height on downward cursor motion.'
     Assert-Condition ($lua -match 'gripBack:SetSize\(58, 20\)') 'Top-center grip background should be compact and tall.'
+    Assert-Condition ([regex]::Matches($lua, 'local gripBack = MakeTexture\(indicator, "OVERLAY", 0[.]06, 0[.]09, 0[.]13, 1\)').Count -eq 2) 'Top and right grips must share the same dark backing.'
+    Assert-Condition ($lua -notmatch 'local upper = MakeTexture') 'Top grabber should not have the mismatched pale accent.'
     Assert-Condition ($lua -match 'grip:SetSize\(40, 5\)') 'Top-center grip should be visible without a full-width line.'
     Assert-Condition ($lua -match 'grip:SetSize\(4, 24\)') 'Right-edge grip should be clearly visible.'
     Assert-Condition ($lua -match 'backing:SetPoint\("BOTTOMRIGHT", indicator, "BOTTOMRIGHT", -1, 1\)') 'Corner visual must sit on the external hit handle.'
