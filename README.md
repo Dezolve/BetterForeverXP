@@ -115,6 +115,40 @@ The package script reads the version from the TOC file and writes a clean,
 installable archive to `dist/`. GitHub Actions runs the same validation on
 every push and pull request and publishes the archive as a workflow artifact.
 
+## Publishing to CurseForge
+
+The addon is already packaged by `scripts/Package-Addon.ps1` and by every
+successful validation run. The [CurseForge release workflow](.github/workflows/publish-curseforge.yml)
+adds an optional, **manual-only** publish step for the existing
+[Better Forever XP project](https://www.curseforge.com/wow/addons/better-forever-xp)
+(CurseForge project ID `1731462`).
+
+To publish a reviewed release:
+
+1. Merge the reviewed PR into `main`; the publishing workflow deliberately
+   refuses to run from other branches.
+2. Create a [CurseForge author API token](https://www.curseforge.com/account/api-tokens).
+   In GitHub, open **Settings → Secrets and variables → Actions → New repository
+   secret** and name it **`CURSEFORGE_API_TOKEN`**. Never commit the token or
+   paste it into issues or chat.
+3. Under **Actions → Publish Better Forever XP to CurseForge**, choose
+   **Run workflow**, the `main` branch, version `2.5.0`, release type
+   `release` (or `beta` for a test channel), and enter `PUBLISH` to confirm.
+   The action compares the requested version with `BetterForeverXP.toc`,
+   checks interface `16001`, validates Lua and package contents, and uploads
+   the versioned ZIP for **WoW Forever 1.60.1**.
+4. Verify the new version appears under the project's **Files** tab after any
+   CurseForge processing/review. Refresh the project's description using
+   [CURSEFORGE_DESCRIPTION.md](CURSEFORGE_DESCRIPTION.md) if desired.
+
+The current 2.5.0 file changelog comes from
+[CURSEFORGE_RELEASE_NOTES.md](CURSEFORGE_RELEASE_NOTES.md). Update it for the
+next release. Normal pushes, draft PRs and CI builds **never publish**.
+If you prefer a one-time manual upload instead, download the successful
+GitHub Actions **BetterForeverXP** artifact, extract its
+`BetterForeverXP-2.5.0.zip`, and upload that inner ZIP through the CurseForge
+project dashboard; mark **1.60.1 / Forever** as the compatible game version.
+
 ## Automatic Windows test deployment
 
 GitHub-hosted Actions can build and package the addon, but cannot access a
