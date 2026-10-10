@@ -12,6 +12,7 @@ By Dezolve Labs
 - Enlarges the midpoint rendering frame to 32×20px and lowers it slightly, with a solid steel center and extended highlighted tip so the classic silver chevron no longer appears hollow or truncated. The marker remains a mouse-transparent, toggleable ornament.
 - Polishes the metal chevron tip by shrinking and lightening the dark shadow, raising it slightly, and tightening the silver point and highlight to remove the small black spike beneath the arrow.
 - Refines hover affordances: hovering just below the midpoint reveals a compact gold line; the right edge shows a vertical grip; the bottom-right gold L-grip sits outside the bar and adapts to its height. All resize hints hide off hover or when locked.
+- Improves visibility of the bottom-right resize corner on the unearned/empty portion of the bar: a softer translucent navy plate sits behind brighter gold L-shaped strokes and highlights with explicitly higher draw layers. No changes to mouse hit targets or earned XP colors.
 - Keeps the height grabber as a standalone warm-gold line with a thin translucent shadow instead of a bulky black plate.
 - Keeps direct mouse tracking and fixed opposite edges, and increases the proportional bar/text scale slider maximum from 2× to 3× (default remains 1×).
 - Locking the bar disables edge resizing and disables ordinary dragging; Shift-drag remains available.
