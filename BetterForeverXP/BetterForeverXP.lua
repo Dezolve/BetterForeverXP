@@ -198,59 +198,59 @@ local function CreateBar()
     restedEndMarker:SetColorTexture(0.78, 0.67, 0.43, 0.96)
     restedEndMarker:SetWidth(2)
 
-    -- The 50% stone ornament gets its own mouse-transparent frame so players
-    -- can hide every layer of the chip without affecting XP ticks or text.
-    -- Dedicated marker frame includes the part ABOVE the XP bar: a frame
-    -- bounded to the bar itself can clip the colored stone/bevel there.
-    -- Keep it mouse-transparent and separate from the text/resize layers.
+    -- A compact silver/steel chevron modeled after WoW Classic's native
+    -- halfway arrow. Purely decorative, outside the XP label area, and
+    -- independently hideable without affecting ticks or interactions.
     midpointMarker = CreateFrame("Frame", nil, bar)
     midpointMarker:SetSize(32, 18)
     midpointMarker:SetPoint("BOTTOM", bar, "TOP", 0, -4)
     midpointMarker:SetFrameLevel(tickLayer:GetFrameLevel() + 1)
     midpointMarker:EnableMouse(false)
-    -- Slate stone inside aged bronze. Keep the previously lowered 1.5px
-    -- position, now with all of the ornament inside its rendering bounds.
+
     local function AddStoneMidpointMarker()
-        local widths = {20, 20, 18, 16, 14, 12, 10, 8, 6, 4}
-        for index, width in ipairs(widths) do
-            local y = 7.5 - index -- lowered 1.5px: 6.5px above to 2.5px inside
+        -- Two beveled arms form a downward V; no solid dark stone triangle.
+        -- Coordinates are relative to the top border. Its point extends
+        -- about 2px into the bar; even a 10px-high bar keeps its XP text clear.
+        local arms = {
+            { x = -4.4, angle = -math.pi / 4 },
+            { x =  4.4, angle =  math.pi / 4 },
+        }
+        for _, arm in ipairs(arms) do
+            local shadow = MakeTexture(midpointMarker, "BACKGROUND", 0.015, 0.02, 0.03, 0.80)
+            shadow:SetPoint("CENTER", bar, "TOP", arm.x, 2.6)
+            shadow:SetSize(13, 6)
+            shadow:SetRotation(arm.angle)
 
-            -- Recessed shadow: creates the look of a metal fitting mounted
-            -- directly to the XP bar instead of floating over the terrain.
-            local shadow = MakeTexture(midpointMarker, "BACKGROUND", 0.015, 0.022, 0.035, 0.66)
-            shadow:SetPoint("CENTER", bar, "TOP", 0, y - 0.8)
-            shadow:SetSize(width + 2, 1.8)
+            local steel = MakeTexture(midpointMarker, "BORDER", 0.29, 0.32, 0.37, 1)
+            steel:SetPoint("CENTER", bar, "TOP", arm.x, 3.3)
+            steel:SetSize(12, 4.7)
+            steel:SetRotation(arm.angle)
 
-            -- Warm, desaturated bronze silhouette follows the tapered tip.
-            local rim = MakeTexture(midpointMarker, "BORDER", 0.58, 0.46, 0.29, 1)
-            rim:SetPoint("CENTER", bar, "TOP", 0, y)
-            rim:SetSize(width, 1.5)
+            local silver = MakeTexture(midpointMarker, "ARTWORK", 0.70, 0.75, 0.78, 1)
+            silver:SetPoint("CENTER", bar, "TOP", arm.x, 3.7)
+            silver:SetSize(11.5, 2.6)
+            silver:SetRotation(arm.angle)
 
-            -- Real stone-colored inset, with the bronze edge still showing
-            -- on each side. The final tip stays solid bronze.
-            if index > 1 and index < #widths then
-                local shade = 0.40 - (index - 2) * 0.018
-                local stone = MakeTexture(midpointMarker, "ARTWORK", shade * 0.97, shade * 1.05, shade * 1.11, 1)
-                stone:SetPoint("CENTER", bar, "TOP", 0, y + 0.05)
-                stone:SetSize(width - 3, 1.15)
+            -- A thin high edge and adjacent dark inset create the classic
+            -- faceted metal look even at 1x UI scale.
+            local shine = MakeTexture(midpointMarker, "OVERLAY", 0.92, 0.93, 0.90, 0.92)
+            shine:SetPoint("CENTER", bar, "TOP", arm.x, 4.2)
+            shine:SetSize(10.5, 1.0)
+            shine:SetRotation(arm.angle)
 
-                -- Edge lighting adds a beveled, hand-carved appearance.
-                local light = MakeTexture(midpointMarker, "OVERLAY", 0.75, 0.73, 0.64, 0.85)
-                light:SetPoint("CENTER", bar, "TOP", -(width / 2) + 1.15, y + 0.15)
-                light:SetSize(1.2, 1.1)
-                local recess = MakeTexture(midpointMarker, "OVERLAY", 0.23, 0.19, 0.15, 0.75)
-                recess:SetPoint("CENTER", bar, "TOP", (width / 2) - 1.0, y - 0.1)
-                recess:SetSize(1, 1.1)
-            end
+            local recess = MakeTexture(midpointMarker, "OVERLAY", 0.16, 0.18, 0.22, 0.82)
+            recess:SetPoint("CENTER", bar, "TOP", arm.x * 0.82, 2.5)
+            recess:SetSize(8, 1.1)
+            recess:SetRotation(arm.angle)
         end
 
-        -- A bright top lip and a tiny dark seam fasten the chip to the bar.
-        local bevel = MakeTexture(midpointMarker, "OVERLAY", 0.81, 0.70, 0.48, 0.95)
-        bevel:SetPoint("CENTER", bar, "TOP", 0, 6.9)
-        bevel:SetSize(17, 1.1)
-        local seam = MakeTexture(midpointMarker, "BACKGROUND", 0.04, 0.055, 0.08, 0.8)
-        seam:SetPoint("CENTER", bar, "TOP", 0, -2)
-        seam:SetSize(7, 0.8)
+        -- Small join at the V point, visually keyed into the top border.
+        local tipShadow = MakeTexture(midpointMarker, "BACKGROUND", 0.01, 0.02, 0.03, 0.82)
+        tipShadow:SetPoint("CENTER", bar, "TOP", 0, -1.2)
+        tipShadow:SetSize(5, 2.5)
+        local tip = MakeTexture(midpointMarker, "ARTWORK", 0.65, 0.70, 0.75, 1)
+        tip:SetPoint("CENTER", bar, "TOP", 0, -0.8)
+        tip:SetSize(3, 2)
     end
     AddStoneMidpointMarker()
     midpointMarker:SetShown(db.showMidpointMarker)
