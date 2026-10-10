@@ -5,8 +5,8 @@ local defaults = {
     point = "BOTTOM", relativePoint = "BOTTOM", x = 0, y = 155,
     width = 1100, height = 16, scale = 1,
     numberFormat = "short", hideBlizzard = true, showMidpointMarker = true,
-    showBarText = false,
-    version = 7,
+    textMode = "tooltip", -- "tooltip", "hover", or "always"
+    version = 8,
 }
 
 local db
@@ -372,11 +372,12 @@ local function SetFittingLabel(label, candidates)
     label:SetText("")
 end
 
--- Keep the 20-segment tube readable at rest AND on hover. The tooltip
--- provides all exact values; permanent bar labels are explicitly opt-in.
+-- The XP tube offers three independent display choices. All three keep the
+-- full, exact tooltip; only hover/always add inline labels to the bar.
 local function UpdateTextVisibility()
     if textLayer then
-        textLayer:SetShown(db.showBarText)
+        textLayer:SetShown(db.textMode == "always"
+            or (db.textMode == "hover" and tooltipVisible))
     end
 end
 
@@ -808,10 +809,13 @@ local function CreateBar()
     end)
     bar:SetScript("OnEnter", function()
         tooltipVisible = true
+        UpdateTextVisibility()
+        UpdateTextScrims()
         if bar.ShowDetails then bar:ShowDetails() end
     end)
     bar:SetScript("OnLeave", function()
         tooltipVisible = false
+        UpdateTextVisibility()
         if GameTooltip:GetOwner() == bar then GameTooltip:Hide() end
     end)
 end
@@ -1238,14 +1242,18 @@ local function SetSetting(key, value)
         if type(value) ~= "number" or value < 0.5 or value > 3 then return false end
         db.scale = math.floor(value * 100 + 0.5) / 100
         ApplyLayout()
-    elseif key == "locked" or key == "enabled" or key == "hideBlizzard" or key == "showMidpointMarker" or key == "showBarText" then
+    elseif key == "locked" or key == "enabled" or key == "hideBlizzard" or key == "showMidpointMarker" then
         if type(value) ~= "boolean" then return false end
         db[key] = value
         if key == "locked" then UpdateResizeHandles()
         elseif key == "enabled" then UpdateBar()
         elseif key == "showMidpointMarker" then midpointMarker:SetShown(value)
-        elseif key == "showBarText" then UpdateTextVisibility(); UpdateTextScrims()
         else ApplyDefaultBarVisibility() end
+    elseif key == "textMode" then
+        if value ~= "tooltip" and value ~= "hover" and value ~= "always" then return false end
+        db.textMode = value
+        UpdateTextVisibility()
+        UpdateTextScrims()
     elseif key == "numberFormat" then
         if value ~= "short" and value ~= "commas" and value ~= "exact" then return false end
         db.numberFormat = value
@@ -1265,7 +1273,8 @@ addon.ResetAll = function()
     db.enabled, db.locked = defaults.enabled, defaults.locked
     db.numberFormat, db.hideBlizzard = defaults.numberFormat, defaults.hideBlizzard
     db.showMidpointMarker = defaults.showMidpointMarker
-    db.showBarText = defaults.showBarText
+    db.textMode = defaults.textMode
+    UpdateTextVisibility()
     ResetPosition()
     UpdateResizeHandles(); ApplyDefaultBarVisibility(); UpdateBar()
     if addon.RefreshOptions then addon.RefreshOptions() end
@@ -1309,12 +1318,25 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
         if arg1 ~= ADDON_NAME then return end
         BetterForeverXPDB = BetterForeverXPDB or {}
         local oldVersion = BetterForeverXPDB.version or 0
-        -- Migrate the previous "text on hover" preference without changing
-        -- anyone's explicit choice to keep bar labels permanently visible.
-        if BetterForeverXPDB.showBarText == nil and BetterForeverXPDB.hoverTextOnly ~= nil then
-            BetterForeverXPDB.showBarText = not BetterForeverXPDB.hoverTextOnly
+        -- Restore all three display modes. Carry forward previous permanent
+        -- and hover-only choices from either of the earlier checkbox schemas;
+        -- truly new installs default to a clean tooltip-only XP tube.
+        if BetterForeverXPDB.textMode == nil then
+            if BetterForeverXPDB.showBarText == true
+                or (BetterForeverXPDB.showBarText == nil and BetterForeverXPDB.hoverTextOnly == false) then
+                BetterForeverXPDB.textMode = "always"
+            elseif BetterForeverXPDB.hoverTextOnly == true then
+                BetterForeverXPDB.textMode = "hover"
+            else
+                BetterForeverXPDB.textMode = "tooltip"
+            end
         end
+        BetterForeverXPDB.showBarText = nil
+        BetterForeverXPDB.hoverTextOnly = nil
         MergeDefaults(BetterForeverXPDB, defaults); db = BetterForeverXPDB
+        if db.textMode ~= "tooltip" and db.textMode ~= "hover" and db.textMode ~= "always" then
+            db.textMode = defaults.textMode
+        end
         BetterForeverXPCharDB = BetterForeverXPCharDB or {}
         charDB = BetterForeverXPCharDB
         local currentLevel = UnitLevel("player") or 0
@@ -1341,7 +1363,7 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
             if db.width == 820 then db.width = 1000 end
         end
         if oldVersion < 5 and db.width == 1000 then db.width = 1100 end
-        db.version = 7
+        db.version = 8
         CreateBar(); bar.ShowDetails = ShowDetails; ApplyLayout(); ApplyDefaultBarVisibility()
         if addon.InitializeOptions then addon.InitializeOptions() end
         lastXP, lastXPMax = UnitXP("player"), UnitXPMax("player")
