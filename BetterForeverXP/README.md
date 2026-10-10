@@ -48,9 +48,11 @@ Session XP and its start time survive `/reload`, so XP/hour and ETA do not reset
 while adjusting the UI. A genuine fresh character login starts a new session.
 
 The classic **20 visible 5%-XP segments** remain part of the tube design.
-Each 5% divider now has a **3-physical-pixel gunmetal groove and a full-height
-one-pixel muted silver reflection centered inside it**, rather than an offset
-or partial-height white highlight. All 19 dividers use the same neutral steel
+Each 5% divider has a full-height, one-physical-pixel muted silver reflection
+centered inside a gunmetal groove. On **thin bars (10–24px)** the groove is
+slightly lighter and only **2 physical pixels wide**; at taller heights it
+retains its original **3-pixel depth**. Neither treatment shifts the markers
+or shortens their reflections. All 19 dividers use the same neutral steel
 color family, with only a small opacity adjustment for contrast over earned,
 rested, and empty XP. Removing separate black end blocks prevents dark gaps
 showing through the marks. All 19 dividers are positioned
