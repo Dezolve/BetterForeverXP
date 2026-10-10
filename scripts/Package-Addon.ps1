@@ -29,7 +29,7 @@ $stagedAddon = Join-Path $stagingRoot 'BetterForeverXP'
 
 try {
     [System.IO.Directory]::CreateDirectory($stagedAddon) | Out-Null
-    foreach ($name in 'BetterForeverXP.lua', 'BetterForeverXP.toc', 'CHANGELOG.md', 'README.md') {
+    foreach ($name in 'BetterForeverXP.lua', 'Options.lua', 'BetterForeverXP.toc', 'CHANGELOG.md', 'README.md') {
         Copy-Item -LiteralPath (Join-Path $addonRoot $name) -Destination $stagedAddon
     }
 
