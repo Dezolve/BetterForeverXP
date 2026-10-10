@@ -275,19 +275,62 @@ local function CreateBar()
         handle:EnableMouse(true)
         -- Slightly extend the interactive rectangle without changing visuals.
         handle:SetHitRectInsets(-2, -2, -2, -2)
+        -- Keep the hit area invisible until hovered, but make its feedback
+        -- genuinely discoverable. Prior 28x2/2x10/12x2 marks were so small
+        -- that the user could barely tell which edge was interactive.
         local indicator = CreateFrame("Frame", nil, handle)
         indicator:SetAllPoints()
         indicator:EnableMouse(false)
-        local line = MakeTexture(indicator, "OVERLAY", 1, 0.72, 0.35, 0.96)
         if mode == "height" then
-            line:SetPoint("CENTER"); line:SetSize(28, 2)
+            -- Light up the entire top edge, not just a tiny mark at the
+            -- center of a bar that can be over a thousand pixels wide.
+            local backing = MakeTexture(indicator, "OVERLAY", 0.03, 0.06, 0.10, 0.85)
+            backing:SetPoint("TOPLEFT", 0, -6)
+            backing:SetPoint("TOPRIGHT", 0, -6)
+            backing:SetHeight(9)
+            local edge = MakeTexture(indicator, "OVERLAY", 1, 0.76, 0.28, 1)
+            edge:SetPoint("TOPLEFT", 0, -9)
+            edge:SetPoint("TOPRIGHT", 0, -9)
+            edge:SetHeight(3)
+            local gripBack = MakeTexture(indicator, "OVERLAY", 0.06, 0.09, 0.13, 1)
+            gripBack:SetPoint("CENTER", 0, 0)
+            gripBack:SetSize(108, 14)
+            local grip = MakeTexture(indicator, "OVERLAY", 1, 0.82, 0.38, 1)
+            grip:SetPoint("CENTER", 0, 0)
+            grip:SetSize(84, 4)
         elseif mode == "width" then
-            line:SetPoint("CENTER"); line:SetSize(2, 10)
+            -- A proper vertical edge highlight, with a thicker central grip.
+            local backing = MakeTexture(indicator, "OVERLAY", 0.03, 0.06, 0.10, 0.85)
+            backing:SetPoint("TOP", 0, -1)
+            backing:SetPoint("BOTTOM", 0, 1)
+            backing:SetWidth(11)
+            local edge = MakeTexture(indicator, "OVERLAY", 1, 0.76, 0.28, 1)
+            edge:SetPoint("TOP", 0, -1)
+            edge:SetPoint("BOTTOM", 0, 1)
+            edge:SetWidth(3)
+            local gripBack = MakeTexture(indicator, "OVERLAY", 0.06, 0.09, 0.13, 1)
+            gripBack:SetPoint("CENTER", 0, 0)
+            gripBack:SetSize(16, 30)
+            local grip = MakeTexture(indicator, "OVERLAY", 1, 0.82, 0.38, 1)
+            grip:SetPoint("CENTER", 0, 0)
+            grip:SetSize(4, 24)
         else
-            -- Match the visual cue to its bottom-right hit zone.
-            line:SetPoint("BOTTOMRIGHT", -3, 3); line:SetSize(12, 2)
-            local vertical = MakeTexture(indicator, "OVERLAY", 1, 0.72, 0.35, 0.96)
-            vertical:SetPoint("BOTTOMRIGHT", -3, 3); vertical:SetSize(2, 12)
+            -- Visible 24px corner glyph inside a 30px hit zone. It should
+            -- read as a resize grip, not a one-pixel border decoration.
+            local backing = MakeTexture(indicator, "OVERLAY", 0.03, 0.06, 0.10, 0.90)
+            backing:SetAllPoints()
+            local horizontal = MakeTexture(indicator, "OVERLAY", 1, 0.78, 0.30, 1)
+            horizontal:SetPoint("BOTTOMRIGHT", -3, 3)
+            horizontal:SetSize(24, 4)
+            local vertical = MakeTexture(indicator, "OVERLAY", 1, 0.78, 0.30, 1)
+            vertical:SetPoint("BOTTOMRIGHT", -3, 3)
+            vertical:SetSize(4, 24)
+            local detailH = MakeTexture(indicator, "OVERLAY", 1, 0.87, 0.53, 1)
+            detailH:SetPoint("BOTTOMRIGHT", -9, 10)
+            detailH:SetSize(12, 3)
+            local detailV = MakeTexture(indicator, "OVERLAY", 1, 0.87, 0.53, 1)
+            detailV:SetPoint("BOTTOMRIGHT", -10, 9)
+            detailV:SetSize(3, 12)
         end
         indicator:Hide()
         handle.resizeIndicator = indicator
