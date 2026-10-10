@@ -19,6 +19,7 @@ By Dezolve Labs
 - Expands configurable bar height up to 120 pixels (three times the previous 40px limit), with taller bars gradually enlarging their text. The default height remains 16px.
 - Adapts text layout across narrow, medium, and wide bar widths so labels do not overlap.
 - Connects the number format option to the main bar's visible XP values.
+- Adds **XP into next level** immediately below **After turn-ins** in the XP hover tooltip. Shows ready-quest XP that would carry past the current level threshold (0 XP if no overflow), without inventing a next-level percentage.
 - Preserves previous XP calculations, tooltip details, session tracking, and slash commands.
 
 # Better Forever XP 2.4.1
