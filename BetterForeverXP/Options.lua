@@ -86,7 +86,7 @@ function addon.InitializeOptions()
         "Show the carved-stone arrowhead at the halfway point of the XP bar.", 305)
     AddCheckbox("locked", "Lock position and resizing", -105, "Disable edge resizing and accidental movement.")
     AddCheckbox("hideBlizzard", "Hide Blizzard's XP bar", -105,
-        "Restoring Blizzard's bar may require /reload.", 305)
+        "Show or hide Blizzard's XP bar immediately (or after combat).", 305)
 
     Label(panel, "Bar dimensions", 24, -179, "GameFontNormalLarge")
     AddSlider("width", "Width", -209, 300, 1600, 10, " px")
