@@ -6,8 +6,47 @@ A slim, standalone experience bar for WoW Forever, by Dezolve Labs.
 
 Better Forever XP keeps the always-visible interface compact and puts the
 details one hover away. It shows exact and abbreviated XP values, rested XP,
-completed-quest XP, session pace, time to level, and progress in Blizzard-style
-five-percent bars. It has no external dependencies.
+completed-quest XP, session pace, time to level, and progress measured with
+20 visibly divided Blizzard-style five-percent bars. Under **After turn-ins**, its hover tooltip shows how much
+ready-quest XP would spill into the next level (0 XP until the level threshold
+is reached), plus the percentage of the *following level's* requirement.
+Classic-curve estimates are marked ~; unknown curves show the XP amount
+without inventing a percent. Earned XP is
+electric blue while any rested XP remains, switching to classic purple when
+rested XP runs out. The addon has no external dependencies.
+
+Blizzard's original silver exhaustion-tick artwork marks 50% along the top
+border as a single, filled, centered chevron, without covering XP labels or
+capturing mouse input. It is on by default and can be hidden with
+**Show 50% marker** in the Options panel.
+
+The XP track has soft top-to-bottom tube shading, a single aligned metallic
+rim with height-adjusting curved ends, and all 19 dividers for **20 XP segments**.
+Straight top/bottom lines meet the curved cap edges without a
+second rectangular border or extra dark top stripe; blue/purple/rested
+top sheen and bottom shading now carry through the rounded caps. The tube's background and earned/rested XP fills
+now extend through genuinely curved endcaps rather than a square hidden track,
+and dividers/XP fill boundaries now agree at exact percentages across the
+entire visible tube width.
+Each divider keeps its **full-height muted steel-silver reflection** centered
+inside a gunmetal groove. Thin bars (10–24px) use a lighter 2-physical-pixel
+groove, while taller bars retain the original 3px treatment, without
+changing the divider positions or creating offset bars. The 50% Blizzard chip gets a subtle cool-steel tint to match. Markers remain aligned
+to physical pixels at different bar sizes and scales. The Blizzard silver arrow is anchored directly to the white center of
+the 50% groove. XP remains blue while rested and purple when unrested;
+the rested extension stays dark navy. Its blue earned fill now uses a
+deeper Blizzard-style cobalt gradient, the rounded ends no longer have a
+mismatched blue stripe, and large white labels have thicker dark outlines
+for contrast over the segment dividers. The level, current XP and remaining
+XP labels now have separate non-overlapping regions; they automatically
+shorten to fit their measured font widths at taller sizes. A very subtle
+shadow only behind the actual large-label text reduces interference from
+bright 5% lines. Settings provides **three XP text modes**: **Tooltip only**
+(the clean default), **Text on hover** (bar labels while hovering), or
+**Always visible** (permanent labels). The full tooltip remains available
+in every mode, and previous hover/permanent choices are migrated. Completion uses two decimals below 1% (e.g. 0.02%) and one
+above it. The Blizzard silver arrow is anchored
+directly to the exact pixel-snapped 50% divider.
 
 ## Install
 
@@ -19,16 +58,39 @@ five-percent bars. It has no external dependencies.
 This addon targets the WoW Forever beta client interface listed in
 [`BetterForeverXP.toc`](BetterForeverXP/BetterForeverXP.toc).
 
+## In-game customization
+
+Type **`/bfxp`** or **right-click the XP bar** to open its Options panel under **Settings → AddOns**. Right-click also works when locked.
+The XP bar starts **unlocked on new installations**. Drag its body to move it.
+Hover **just below the center** of the bar to reveal the gold height grip,
+then drag downward to increase thickness. Only a compact 96×18px target
+below the bar can resize height; the rest of the bar remains available for
+click-dragging and its XP tooltip, even at minimal heights. Hover the
+**right edge** to resize width, or the **bottom-right corner** to resize both. The corner grip sits outside the bar
+for easy grabbing, and its artwork shrinks with thin bars. The
+separate scale slider adjusts the entire bar and its text up to 3×.
+At large scales the bar may exceed the screen width; `/bfxp reset` restores
+its default size and position.
+Lock the bar from Settings or with `/bfxp lock` to hide the resize controls and
+prevent accidental movement. Existing users keep their saved lock preference.
+
+The Height control supports 10–120px, while the overall UI scale is separate.
+The panel also provides separate width, height, scale, 50% marker visibility,
+default-bar visibility, and XP number-format controls. Unchecking **Hide Blizzard's XP bar**
+restores frames hidden by the addon immediately (or after combat). At smaller widths the bar reduces
+text detail automatically to avoid overlap.
+
 ## Commands
 
 | Command | Action |
 | --- | --- |
-| `/bfxp lock` / `/bfxp unlock` | Lock or unlock dragging. Shift-drag always moves the bar. |
+| `/bfxp` / `/bfxp options` | Open the in-game settings panel. |
+| `/bfxp lock` / `/bfxp unlock` | Lock or unlock dragging and the edge resize zones. Shift-drag still moves the bar. |
 | `/bfxp show` / `/bfxp hide` | Show or hide the addon bar. |
 | `/bfxp reset` | Restore the default position and dimensions. |
 | `/bfxp width 300-1600` | Set the bar width. |
-| `/bfxp height 10-30` | Set the bar height. |
-| `/bfxp scale 0.5-2` | Set the UI scale. |
+| `/bfxp height 10-120` | Set the bar height. |
+| `/bfxp scale 0.5-3` | Set the UI scale. |
 | `/bfxp format short\|commas\|exact` | Choose the number format. |
 | `/bfxp default on\|off` | Show or hide Blizzard's default tracking bar. |
 
@@ -52,6 +114,97 @@ Build a release archive:
 The package script reads the version from the TOC file and writes a clean,
 installable archive to `dist/`. GitHub Actions runs the same validation on
 every push and pull request and publishes the archive as a workflow artifact.
+
+## Publishing to CurseForge
+
+The addon is already packaged by `scripts/Package-Addon.ps1` and by every
+successful validation run. The [CurseForge release workflow](.github/workflows/publish-curseforge.yml)
+adds an optional, **manual-only** publish step for the existing
+[Better Forever XP project](https://www.curseforge.com/wow/addons/better-forever-xp)
+(CurseForge project ID `1731462`).
+
+To publish a reviewed release:
+
+1. Merge the reviewed PR into `main`; the publishing workflow deliberately
+   refuses to run from other branches.
+2. Create a [CurseForge author API token](https://www.curseforge.com/account/api-tokens).
+   In GitHub, open **Settings → Secrets and variables → Actions → New repository
+   secret** and name it **`CURSEFORGE_API_TOKEN`**. Never commit the token or
+   paste it into issues or chat.
+3. Under **Actions → Publish Better Forever XP to CurseForge**, choose
+   **Run workflow**, the `main` branch, version `2.5.0`, release type
+   `release` (or `beta` for a test channel), and enter `PUBLISH` to confirm.
+   The action compares the requested version with `BetterForeverXP.toc`,
+   checks interface `16001`, validates Lua and package contents, and uploads
+   the versioned ZIP for **WoW Forever 1.60.1**.
+4. Verify the new version appears under the project's **Files** tab after any
+   CurseForge processing/review. Refresh the project's description using
+   [CURSEFORGE_DESCRIPTION.md](CURSEFORGE_DESCRIPTION.md) if desired.
+
+The current 2.5.0 file changelog comes from
+[CURSEFORGE_RELEASE_NOTES.md](CURSEFORGE_RELEASE_NOTES.md). Update it for the
+next release. Normal pushes, draft PRs and CI builds **never publish**.
+If you prefer a one-time manual upload instead, download the successful
+GitHub Actions **BetterForeverXP** artifact, extract its
+`BetterForeverXP-2.5.0.zip`, and upload that inner ZIP through the CurseForge
+project dashboard; mark **1.60.1 / Forever** as the compatible game version.
+
+## Automatic Windows test deployment
+
+GitHub-hosted Actions can build and package the addon, but cannot access a
+Windows PC's C: drive. Instead, the optional local updater
+[scripts/AutoDeploy-Windows.ps1](scripts/AutoDeploy-Windows.ps1) checks the
+**latest successful push build** of the feature branch every minute and
+installs the packaged addon locally. No GitHub self-hosted runner is needed.
+
+**One-time setup on the Windows PC:**
+
+1. Install [GitHub CLI](https://cli.github.com/) (or run
+   `winget install --id GitHub.cli -e`) and complete `gh auth login`.
+2. Clone or switch your local repo to `feature/options-and-scaling`.
+3. From the repository root in PowerShell, run:
+
+```powershell
+.\scripts\AutoDeploy-Windows.ps1 -Install -TargetPath 'C:\PATH\TO\WoWForever\Interface\AddOns\BetterForeverXP'
+```
+
+Use the **actual** WoW Forever `Interface\AddOns\BetterForeverXP` folder,
+not a copy in Downloads, unless that Downloads folder is explicitly linked to
+the live AddOns folder. The updater warns when the path doesn't resemble a
+live AddOns directory.
+
+Installation copies the updater into `%LOCALAPPDATA%\BetterForeverXP-AutoDeploy`
+and creates a **user-level Windows Scheduled Task** that runs every minute.
+The task runs through a hidden Windows Script Host launcher so it does not
+flash a console window while you're playing.
+The initial sync runs immediately. The updater downloads the GitHub Actions
+artifact, extracts the versioned release ZIP inside it, validates all files
+listed in the TOC (including `Options.lua`), and copies the addon into the
+selected path. It never touches `WTF` or SavedVariables.
+
+After successfully installing a new build, it posts the
+`BetterForeverXP/local-install` status to the matching GitHub commit. Once
+both CI and that status pass, the installed addon is ready for `/reload`
+in the WoW client. This status only indicates file deployment, **not**
+that the in-game UI has been verified.
+
+To upgrade an older updater that flashed a command window, download the latest
+AutoDeploy-Windows.ps1 from this branch and repeat the `-Install` command with
+your existing target path. That replaces the scheduled task with the silent
+launcher.
+
+Troubleshooting:
+
+```powershell
+Get-Content "$env:LOCALAPPDATA\BetterForeverXP-AutoDeploy\deploy.log" -Tail 30
+Get-ScheduledTask -TaskName BetterForeverXP-AutoDeploy
+.\scripts\AutoDeploy-Windows.ps1 -Uninstall
+```
+
+Uninstalling removes the scheduled task and leaves logs and configuration for
+diagnosis. The task requires the Windows user to be logged in and the
+authenticated GitHub CLI to remain available. Builds are never applied
+unless their GitHub Actions workflow completed successfully.
 
 ## License
 

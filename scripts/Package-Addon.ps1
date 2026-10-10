@@ -29,8 +29,18 @@ $stagedAddon = Join-Path $stagingRoot 'BetterForeverXP'
 
 try {
     [System.IO.Directory]::CreateDirectory($stagedAddon) | Out-Null
-    foreach ($name in 'BetterForeverXP.lua', 'BetterForeverXP.toc', 'CHANGELOG.md', 'README.md') {
+    foreach ($name in 'BetterForeverXP.lua', 'Options.lua', 'BetterForeverXP.toc', 'CHANGELOG.md', 'README.md') {
         Copy-Item -LiteralPath (Join-Path $addonRoot $name) -Destination $stagedAddon
+    }
+
+    # Fail packaging if any TOC-listed file is missing from the release.
+    $loadFiles = $toc -split "`r?`n" |
+        Where-Object { $_ -and -not $_.StartsWith('##') } |
+        ForEach-Object { $_.Trim() }
+    foreach ($name in $loadFiles) {
+        if (-not (Test-Path -LiteralPath (Join-Path $stagedAddon $name) -PathType Leaf)) {
+            throw "Release archive is missing TOC-listed file '$name'."
+        }
     }
 
     if (Test-Path -LiteralPath $archivePath) {
