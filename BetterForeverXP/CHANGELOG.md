@@ -12,7 +12,7 @@ By Dezolve Labs
 - Keeps direct mouse tracking and fixed opposite edges, and increases the proportional bar/text scale slider maximum from 2× to 3× (default remains 1×).
 - Locking the bar disables edge resizing and disables ordinary dragging; Shift-drag remains available.
 - Adds panel controls for enabled state, bar lock, Blizzard bar visibility, width, height, scale, number format, and resets.
-- Expands configurable bar height up to 40 pixels.
+- Expands configurable bar height up to 120 pixels (three times the previous 40px limit), with taller bars gradually enlarging their text. The default height remains 16px.
 - Adapts text layout across narrow, medium, and wide bar widths so labels do not overlap.
 - Connects the number format option to the main bar's visible XP values.
 - Preserves previous XP calculations, tooltip details, session tracking, and slash commands.
