@@ -16,9 +16,9 @@ local function Label(parent, text, x, y, template)
     return label
 end
 
-local function AddCheckbox(key, text, y, description)
+local function AddCheckbox(key, text, y, description, x)
     local check = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
-    check:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, y)
+    check:SetPoint("TOPLEFT", panel, "TOPLEFT", x or 24, y)
     check:SetSize(24, 24)
     local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     title:SetPoint("LEFT", check, "RIGHT", 6, 0)
@@ -79,9 +79,14 @@ function addon.InitializeOptions()
     Label(panel, "Better Forever XP", 20, -18, "GameFontNormalLarge")
     Label(panel, "Unlocked: drag to move. Hover below/right/bottom-right to resize.", 24, -46, "GameFontHighlightSmall")
 
+    -- Two balanced rows avoid pushing the size sliders or reset buttons
+    -- below the bottom of the Settings panel.
     AddCheckbox("enabled", "Enable custom XP bar", -72, "Display Better Forever XP when experience is available.")
+    AddCheckbox("showMidpointMarker", "Show 50% stone marker", -72,
+        "Show the carved-stone arrowhead at the halfway point of the XP bar.", 305)
     AddCheckbox("locked", "Lock position and resizing", -105, "Disable edge resizing and accidental movement.")
-    AddCheckbox("hideBlizzard", "Hide Blizzard's XP bar", -138, "Restoring Blizzard's bar may require /reload.")
+    AddCheckbox("hideBlizzard", "Hide Blizzard's XP bar", -105,
+        "Restoring Blizzard's bar may require /reload.", 305)
 
     Label(panel, "Bar dimensions", 24, -179, "GameFontNormalLarge")
     AddSlider("width", "Width", -209, 300, 1600, 10, " px")
