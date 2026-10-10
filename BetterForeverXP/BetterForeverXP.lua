@@ -16,6 +16,7 @@ local restedEndMarker
 local midpointMarker
 local textLayer
 local tickLayer, tickMarks = nil, {}
+local tubeRim, endCapCuts = nil, {}
 local leftText, centerText, rightText
 local eventFrame = CreateFrame("Frame")
 local sessionStart, sessionXP = GetTime(), 0
@@ -157,6 +158,56 @@ local function ApplyBeveledTick(tick, region)
         local flat = palette.rimFlat
         tick.rim:SetColorTexture(flat[1], flat[2], flat[3], flat[4])
     end
+    -- The white reflection is intentionally strongest in the center, with
+    -- near-black sockets at both ends of every recessed 5% groove.
+    tick.glint:SetColorTexture(1, 1, 1,
+        tick.isCenter and 0.82 or (region == "earned" and 0.64 or 0.76))
+    tick.topNotch:SetColorTexture(0.0, 0.0, 0.0, 0.93)
+    tick.bottomNotch:SetColorTexture(0.0, 0.0, 0.0, 0.96)
+end
+
+-- Rounded visual endcaps are built from small, resizable columns so their
+-- curvature remains proportionate as the bar height changes (10-120 px).
+-- This also retains a reliable rectangular mouse hitbox and does not require
+-- undocumented texture assets or clipping APIs on the Classic beta.
+local MAX_CORNER_RADIUS = 16
+
+local function UpdateTubeCaps(height, width)
+    local radius = math.min(MAX_CORNER_RADIUS, math.max(3, math.floor(height * 0.44 + 0.5)))
+    for _, cap in ipairs(endCapCuts) do
+        local i = cap.column
+        local x = radius - i - 0.5
+        local trimHeight = 0
+        if x > 0 then
+            trimHeight = math.max(0, math.floor(radius - math.sqrt(radius * radius - x * x) + 0.5))
+        end
+        -- Do not erase more than half the bar even at the 10px minimum.
+        trimHeight = math.min(trimHeight, math.floor((height - 2) / 2))
+        if i < radius and trimHeight > 0 then
+            cap.cut:SetSize(1, trimHeight)
+            cap.cut:Show()
+            cap.edge:Show()
+            cap.edge:SetSize(1, 1)
+            cap.edge:ClearAllPoints()
+            local offset = cap.right and -i or i
+            if cap.top then
+                local anchor = cap.right and "TOPRIGHT" or "TOPLEFT"
+                cap.edge:SetPoint(anchor, cap.host, anchor, offset, -trimHeight)
+            else
+                local anchor = cap.right and "BOTTOMRIGHT" or "BOTTOMLEFT"
+                cap.edge:SetPoint(anchor, cap.host, anchor, offset, trimHeight)
+            end
+        else
+            cap.cut:Hide()
+            cap.edge:Hide()
+        end
+    end
+    -- Maintain visible physical depth without swallowing a 10px bar.
+    local thick = math.max(1, math.min(3, math.floor(height * 0.11 + 0.5)))
+    tubeRim.topEdge:SetHeight(thick)
+    tubeRim.bottomEdge:SetHeight(thick)
+    tubeRim.innerTopHighlight:SetHeight(math.max(1, thick - 1))
+    tubeRim.innerBottomShade:SetHeight(math.max(1, math.min(5, math.floor(height * 0.11 + 0.5))))
 end
 
 local function AddBorder(frame)
@@ -268,7 +319,7 @@ local function CreateBar()
     -- Add a restrained metal tube frame above the status-bar fills. Using a
     -- separate mouse-transparent frame keeps these lines visible on earned,
     -- rested, and empty sections without covering the XP text or 5% grooves.
-    local tubeRim = CreateFrame("Frame", nil, bar)
+    tubeRim = CreateFrame("Frame", nil, bar)
     tubeRim:SetAllPoints(bar)
     tubeRim:SetFrameLevel(bar:GetFrameLevel() + 4)
     tubeRim:EnableMouse(false)
@@ -276,49 +327,76 @@ local function CreateBar()
     local topEdge = MakeTexture(tubeRim, "OVERLAY", 0.005, 0.008, 0.016, 0.94)
     topEdge:SetPoint("TOPLEFT", tubeRim, "TOPLEFT", 1, -1)
     topEdge:SetPoint("TOPRIGHT", tubeRim, "TOPRIGHT", -1, -1)
-    topEdge:SetHeight(1)
+    topEdge:SetHeight(2)
+    tubeRim.topEdge = topEdge
 
     local bottomEdge = MakeTexture(tubeRim, "OVERLAY", 0.00, 0.00, 0.00, 0.98)
     bottomEdge:SetPoint("BOTTOMLEFT", tubeRim, "BOTTOMLEFT", 1, 1)
     bottomEdge:SetPoint("BOTTOMRIGHT", tubeRim, "BOTTOMRIGHT", -1, 1)
-    bottomEdge:SetHeight(1)
+    bottomEdge:SetHeight(2)
+    tubeRim.bottomEdge = bottomEdge
 
     local innerTopHighlight = MakeTexture(tubeRim, "OVERLAY", 1.00, 1.00, 1.00, 0.18)
     innerTopHighlight:SetPoint("TOPLEFT", tubeRim, "TOPLEFT", 2, -2)
     innerTopHighlight:SetPoint("TOPRIGHT", tubeRim, "TOPRIGHT", -2, -2)
     innerTopHighlight:SetHeight(1)
+    tubeRim.innerTopHighlight = innerTopHighlight
 
     local innerBottomShade = MakeTexture(tubeRim, "OVERLAY", 0.00, 0.00, 0.00, 0.24)
     innerBottomShade:SetPoint("BOTTOMLEFT", tubeRim, "BOTTOMLEFT", 2, 2)
     innerBottomShade:SetPoint("BOTTOMRIGHT", tubeRim, "BOTTOMRIGHT", -2, 2)
-    innerBottomShade:SetHeight(2)
+    innerBottomShade:SetHeight(4)
+    tubeRim.innerBottomShade = innerBottomShade
 
     tickLayer = CreateFrame("Frame", nil, bar)
     tickLayer:SetAllPoints(); tickLayer:SetFrameLevel(bar:GetFrameLevel() + 5); tickLayer:EnableMouse(false)
-    -- Each of the 19 divisions has a shaded single-pixel groove and a
-    -- separate, faint one-pixel glint at its right edge. Both follow the
-    -- SAME snapped position, so varying bar scales cannot pull them apart.
+    -- Twenty XP segments: each separator has a deep full-height groove,
+    -- a highlight immediately beside it, a brighter white center reflection,
+    -- and short, nearly black sockets at the tube's top and bottom.
     for index = 1, 19 do
-        local core = MakeTexture(tickLayer, "OVERLAY", 0.012, 0.035, 0.075, 0.59)
-        local rim = MakeTexture(tickLayer, "OVERLAY", 0.61, 0.76, 0.96, 0.14)
+        local core = MakeTexture(tickLayer, "OVERLAY", 0.0, 0.0, 0.0, 0.8)
+        local rim = MakeTexture(tickLayer, "OVERLAY", 1, 1, 1, 0.28)
         rim:SetPoint("TOPLEFT", core, "TOPRIGHT", 0, 0)
         rim:SetPoint("BOTTOMLEFT", core, "BOTTOMRIGHT", 0, 0)
+        local glint = MakeTexture(tickLayer, "OVERLAY", 1, 1, 1, 0.68)
+        glint:SetPoint("CENTER", rim, "CENTER", 0, 0)
+        local topNotch = MakeTexture(tickLayer, "OVERLAY", 0, 0, 0, 0.94)
+        topNotch:SetPoint("TOP", core, "TOP")
+        local bottomNotch = MakeTexture(tickLayer, "OVERLAY", 0, 0, 0, 0.96)
+        bottomNotch:SetPoint("BOTTOM", core, "BOTTOM")
         if index == 10 then
             core:SetPoint("TOP", tickLayer, "TOP", 0, -1)
             core:SetPoint("BOTTOM", tickLayer, "BOTTOM", 0, 1)
         end
-        tickMarks[index] = {core = core, rim = rim, isCenter = index == 10}
+        tickMarks[index] = {
+            core = core, rim = rim, glint = glint,
+            topNotch = topNotch, bottomNotch = bottomNotch,
+            isCenter = index == 10,
+        }
     end
-    -- Tiny 2px inset cuts on the four extremities soften the silhouette,
-    -- rather than rounding the whole XP bar into a large capsule.
+    -- The old fixed 2px squares were invisible at high bar heights.
+    -- Shape the ends with a stepped circular contour and a metallic rim.
+    -- These art-only caps are above fills/grooves but below readable text.
     local endCapTrim = CreateFrame("Frame", nil, bar)
-    endCapTrim:SetAllPoints()
+    endCapTrim:SetAllPoints(bar)
     endCapTrim:SetFrameLevel(bar:GetFrameLevel() + 7)
     endCapTrim:EnableMouse(false)
-    for _, corner in ipairs({"TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT"}) do
-        local trim = MakeTexture(endCapTrim, "OVERLAY", 0.015, 0.025, 0.04, 0.90)
-        trim:SetSize(2, 2)
-        trim:SetPoint(corner, endCapTrim, corner)
+    for _, right in ipairs({false, true}) do
+        for _, top in ipairs({false, true}) do
+            local anchor
+            if top then anchor = right and "TOPRIGHT" or "TOPLEFT"
+            else anchor = right and "BOTTOMRIGHT" or "BOTTOMLEFT" end
+            for column = 0, MAX_CORNER_RADIUS - 1 do
+                local offset = right and -column or column
+                local cut = MakeTexture(endCapTrim, "OVERLAY", 0.006, 0.010, 0.018, 0.99)
+                cut:SetPoint(anchor, endCapTrim, anchor, offset, 0)
+                local edge = MakeTexture(endCapTrim, "OVERLAY", 0.40, 0.47, 0.58, 0.80)
+                endCapCuts[#endCapCuts + 1] = {
+                    cut = cut, edge = edge, column = column, right = right,
+                    top = top, host = endCapTrim,
+                }
+            end
+        end
     end
 
     restedEndMarker = tickLayer:CreateTexture(nil, "OVERLAY")
@@ -597,6 +675,7 @@ local function ApplyLayout()
     corner.resizeCornerVisuals.detailH:SetSize(glyphLength * 0.5, math.max(2, stroke - 1))
     corner.resizeCornerVisuals.detailV:SetSize(math.max(2, stroke - 1), glyphLength * 0.5)
     UpdateResizeHandles()
+    UpdateTubeCaps(db.height, db.width)
 
     -- Pixel-snap only the dark core; the softer highlight stays anchored to
     -- its edge. Width is exactly one physical pixel for each layer.
@@ -606,6 +685,14 @@ local function ApplyLayout()
     for index, tick in ipairs(tickMarks) do
         tick.core:SetWidth(pixel)
         tick.rim:SetWidth(pixel)
+        tick.glint:SetWidth(pixel)
+        tick.topNotch:SetWidth(pixel)
+        tick.bottomNotch:SetWidth(pixel)
+        local grooveHeight = math.max(2, db.height - 2)
+        local notchHeight = math.max(1, math.min(5, math.floor(grooveHeight * 0.13 + 0.5)))
+        tick.topNotch:SetHeight(notchHeight)
+        tick.bottomNotch:SetHeight(notchHeight)
+        tick.glint:SetHeight(math.max(1, grooveHeight - notchHeight * 2 - 2))
         if index ~= 10 then
             local x = math.floor(db.width * index / 20 * effectiveScale + 0.5) * pixel
             tick.core:ClearAllPoints()
