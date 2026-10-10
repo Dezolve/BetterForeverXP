@@ -20,8 +20,10 @@ border as a single, filled, centered chevron, without covering XP labels or
 capturing mouse input. It is on by default and can be hidden with
 **Show 50% marker** in the Options panel.
 
-The XP track has soft top-to-bottom tube shading, a stronger metallic rim,
-height-adjusting curved end contours, and all 19 dividers for **20 XP segments**.
+The XP track has soft top-to-bottom tube shading, a single aligned metallic
+rim with height-adjusting curved ends, and all 19 dividers for **20 XP segments**.
+Straight top/bottom lines now meet the curved cap edges cleanly without a
+second rectangular border.
 Each divider has a black groove, silver edge, and pronounced white center
 between dark top/bottom sockets. Markers remain aligned to physical pixels
 at different bar sizes and scales. The 50% divider is centered below
