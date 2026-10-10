@@ -85,19 +85,23 @@ Open **Settings → AddOns → Better Forever XP**, type `/bfxp`, or **right-cli
   Width/height change the layout; scale proportionally grows
   or shrinks the entire presentation. Larger scales can exceed your screen
   width; use `/bfxp reset` to restore the defaults if needed.
-- **Show XP text only on hover** is enabled by default: the blue/purple XP tube,
-  20 divisions and silver midpoint marker stay unobstructed until you move the
-  pointer over the bar. Hover reveals concise values and the detailed tooltip.
-  Uncheck it for persistent text. This setting survives `/reload`; **Reset all
-  defaults** restores hover-only mode.
+- The bar is **text-free even while hovering** by default: hover reveals the
+  detailed tooltip with all XP values, without duplicate labels on the tube.
+  Enable **Always show XP text on bar** in Settings if you prefer persistent
+  labels. Previous preferences are migrated, and **Reset all defaults**
+  restores the clean, tooltip-only layout.
 - Toggle the custom bar, the decorative 50% metal marker, and Blizzard's XP
   bar; choose the XP number format or reset position and size.
-- Text labels now have genuinely non-overlapping layout regions, and use
+- When permanently enabled, XP labels have genuinely non-overlapping layout
+  regions, and use
   measured text widths to automatically reduce detail before XP totals grow
   too long. For example, `47,390 (47.4K) XP left • 20 bars left` can become
   `47.4K left • 20 bars` when needed. The full exact values remain in the
   tooltip. Large labels keep their strong black outline and have a faint dark
   backing only behind the actual visible words, while small bars remain clean.
+- Completion percentages display two decimals below 1% (e.g. `0.02%`),
+  one decimal at 1% and above, and `<0.01%` for extremely small nonzero
+  progress, both in the tooltip and optional permanent labels.
 - Existing installs keep their saved lock preference. Settings persist through
   relogs and `/reload`.
 - Unchecking **Hide Blizzard's XP bar** restores the native bar immediately;
