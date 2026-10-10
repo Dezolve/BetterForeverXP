@@ -6,8 +6,8 @@ A slim, standalone experience bar for WoW Forever, by Dezolve Labs.
 
 Better Forever XP keeps the always-visible interface compact and puts the
 details one hover away. It shows exact and abbreviated XP values, rested XP,
-completed-quest XP, session pace, time to level, and progress measured in
-Blizzard-style five-percent bars (without cluttering the display with ticks). Under **After turn-ins**, its hover tooltip shows how much
+completed-quest XP, session pace, time to level, and progress measured with
+20 visibly divided Blizzard-style five-percent bars. Under **After turn-ins**, its hover tooltip shows how much
 ready-quest XP would spill into the next level (0 XP until the level threshold
 is reached), plus the percentage of the *following level's* requirement.
 Classic-curve estimates are marked ~; unknown curves show the XP amount
@@ -21,8 +21,10 @@ capturing mouse input. It is on by default and can be hidden with
 **Show 50% marker** in the Options panel.
 
 The XP track now has soft top-to-bottom tube shading, understated 2px corner
-trims, and only one center-anchored 50% divider. XP remains blue while rested
-and purple when unrested; the rested extension stays dark navy.
+trims, and all 19 dividers for **20 XP segments**, snapped to physical pixels
+to stay sharp as bar size and scale change. The 50% divider is centered below
+the Blizzard arrow. XP remains blue while rested and purple when unrested;
+the rested extension stays dark navy.
 
 ## Install
 
