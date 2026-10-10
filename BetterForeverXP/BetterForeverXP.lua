@@ -282,22 +282,18 @@ local function CreateBar()
         indicator:SetAllPoints()
         indicator:EnableMouse(false)
         if mode == "height" then
-            -- Light up the entire top edge, not just a tiny mark at the
-            -- center of a bar that can be over a thousand pixels wide.
-            local backing = MakeTexture(indicator, "OVERLAY", 0.03, 0.06, 0.10, 0.85)
-            backing:SetPoint("TOPLEFT", 0, -6)
-            backing:SetPoint("TOPRIGHT", 0, -6)
-            backing:SetHeight(9)
-            local edge = MakeTexture(indicator, "OVERLAY", 1, 0.76, 0.28, 1)
-            edge:SetPoint("TOPLEFT", 0, -9)
-            edge:SetPoint("TOPRIGHT", 0, -9)
-            edge:SetHeight(3)
-            local gripBack = MakeTexture(indicator, "OVERLAY", 0.06, 0.09, 0.13, 1)
+            -- A compact centered tab is easier to find than a gold line
+            -- running across the entire bar. Leave the transparent hit
+            -- region taller than the visible grip for forgiving targeting.
+            local gripBack = MakeTexture(indicator, "OVERLAY", 0.035, 0.06, 0.10, 0.94)
             gripBack:SetPoint("CENTER", 0, 0)
-            gripBack:SetSize(108, 14)
+            gripBack:SetSize(58, 20)
             local grip = MakeTexture(indicator, "OVERLAY", 1, 0.82, 0.38, 1)
             grip:SetPoint("CENTER", 0, 0)
-            grip:SetSize(84, 4)
+            grip:SetSize(40, 5)
+            local upper = MakeTexture(indicator, "OVERLAY", 0.85, 0.91, 1, 0.35)
+            upper:SetPoint("TOP", gripBack, "TOP", 0, -2)
+            upper:SetSize(42, 2)
         elseif mode == "width" then
             -- A proper vertical edge highlight, with a thicker central grip.
             local backing = MakeTexture(indicator, "OVERLAY", 0.03, 0.06, 0.10, 0.85)
@@ -315,22 +311,20 @@ local function CreateBar()
             grip:SetPoint("CENTER", 0, 0)
             grip:SetSize(4, 24)
         else
-            -- Visible 24px corner glyph inside a 30px hit zone. It should
-            -- read as a resize grip, not a one-pixel border decoration.
-            local backing = MakeTexture(indicator, "OVERLAY", 0.03, 0.06, 0.10, 0.90)
+            -- The hit zone stays 30px, but its glyph sits INSIDE the bar's
+            -- bottom-right corner. Its size follows bar height, preventing
+            -- a tiny/scaled-down XP bar from wearing a huge floating L.
+            indicator:ClearAllPoints()
+            indicator:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", -1, 1)
+            local backing = MakeTexture(indicator, "OVERLAY", 0.025, 0.045, 0.075, 0.82)
             backing:SetAllPoints()
-            local horizontal = MakeTexture(indicator, "OVERLAY", 1, 0.78, 0.30, 1)
-            horizontal:SetPoint("BOTTOMRIGHT", -3, 3)
-            horizontal:SetSize(24, 4)
-            local vertical = MakeTexture(indicator, "OVERLAY", 1, 0.78, 0.30, 1)
-            vertical:SetPoint("BOTTOMRIGHT", -3, 3)
-            vertical:SetSize(4, 24)
-            local detailH = MakeTexture(indicator, "OVERLAY", 1, 0.87, 0.53, 1)
-            detailH:SetPoint("BOTTOMRIGHT", -9, 10)
-            detailH:SetSize(12, 3)
-            local detailV = MakeTexture(indicator, "OVERLAY", 1, 0.87, 0.53, 1)
-            detailV:SetPoint("BOTTOMRIGHT", -10, 9)
-            detailV:SetSize(3, 12)
+            local horizontal = MakeTexture(indicator, "OVERLAY", 1, 0.82, 0.38, 1)
+            horizontal:SetPoint("BOTTOMRIGHT", -2, 2)
+            local vertical = MakeTexture(indicator, "OVERLAY", 1, 0.82, 0.38, 1)
+            vertical:SetPoint("BOTTOMRIGHT", -2, 2)
+            handle.resizeCornerVisuals = {
+                horizontal = horizontal, vertical = vertical,
+            }
         end
         indicator:Hide()
         handle.resizeIndicator = indicator
@@ -357,10 +351,10 @@ local function CreateBar()
     -- preserving the bar body for movement and XP tooltip interactions.
     -- Bottom-right corner has a higher frame level than the width zone.
     AddResizeHandle("width", "RIGHT", 10, 0)
-    AddResizeHandle("height", "TOP", 0, 8)
+    AddResizeHandle("height", "TOP", 0, 9)
     AddResizeHandle("corner", "BOTTOMRIGHT", 12, -10)
     resizeHandles.width:SetSize(24, math.max(28, db.height + 12))
-    resizeHandles.height:SetSize(math.max(60, db.width - 48), 18)
+    resizeHandles.height:SetSize(88, 24)
     resizeHandles.corner:SetSize(30, 30)
     UpdateResizeHandles()
 
@@ -415,7 +409,14 @@ local function ApplyLayout()
         rightText:SetSize(db.width * 0.42 - 12, db.height)
     end
     resizeHandles.width:SetHeight(math.max(28, db.height + 12))
-    resizeHandles.height:SetWidth(math.max(60, db.width - 48))
+    -- The corner glyph shrinks alongside the bar, but its invisible
+    -- hit target remains large enough to grab at low UI scale.
+    local corner = resizeHandles.corner
+    local glyphLength = math.max(7, math.min(14, db.height - 2))
+    local stroke = db.height <= 12 and 1.5 or 2.5
+    corner.resizeIndicator:SetSize(glyphLength + 4, glyphLength + 4)
+    corner.resizeCornerVisuals.horizontal:SetSize(glyphLength, stroke)
+    corner.resizeCornerVisuals.vertical:SetSize(stroke, glyphLength)
     UpdateResizeHandles()
 
     for index, tick in ipairs(tickMarks) do
