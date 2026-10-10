@@ -9,8 +9,8 @@ details one hover away. It shows exact and abbreviated XP values, rested XP,
 completed-quest XP, session pace, time to level, and progress in Blizzard-style
 five-percent bars. It has no external dependencies.
 
-Small stone-carved arrows permanently mark the bar's 50% position above and
-below the XP track, without covering labels or capturing mouse input.
+A small carved-stone arrowhead permanently marks the 50% position at the top
+border without covering labels or capturing mouse input.
 
 ## Install
 
