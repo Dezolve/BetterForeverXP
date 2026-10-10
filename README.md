@@ -33,6 +33,7 @@ its default size and position.
 Lock the bar from Settings or with `/bfxp lock` to hide the resize controls and
 prevent accidental movement. Existing users keep their saved lock preference.
 
+The Height control supports 10–120px, while the overall UI scale is separate.
 The panel also provides separate width, height, scale, visibility, default-bar
 visibility, and XP number-format controls. At smaller widths the bar reduces
 text detail automatically to avoid overlap.
@@ -46,7 +47,7 @@ text detail automatically to avoid overlap.
 | `/bfxp show` / `/bfxp hide` | Show or hide the addon bar. |
 | `/bfxp reset` | Restore the default position and dimensions. |
 | `/bfxp width 300-1600` | Set the bar width. |
-| `/bfxp height 10-40` | Set the bar height. |
+| `/bfxp height 10-120` | Set the bar height. |
 | `/bfxp scale 0.5-3` | Set the UI scale. |
 | `/bfxp format short\|commas\|exact` | Choose the number format. |
 | `/bfxp default on\|off` | Show or hide Blizzard's default tracking bar. |
