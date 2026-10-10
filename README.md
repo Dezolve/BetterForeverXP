@@ -38,10 +38,10 @@ for contrast over the segment dividers. The level, current XP and remaining
 XP labels now have separate non-overlapping regions; they automatically
 shorten to fit their measured font widths at taller sizes. A very subtle
 shadow only behind the actual large-label text reduces interference from
-bright 5% lines. **The XP tube remains text-free even while hovered**, since
-the tooltip already shows complete XP details. Enable **Always show XP text
-on bar** in Settings for permanent labels; the previous display preference
-is migrated. Completion uses two decimals below 1% (e.g. 0.02%) and one
+bright 5% lines. Settings provides **three XP text modes**: **Tooltip only**
+(the clean default), **Text on hover** (bar labels while hovering), or
+**Always visible** (permanent labels). The full tooltip remains available
+in every mode, and previous hover/permanent choices are migrated. Completion uses two decimals below 1% (e.g. 0.02%) and one
 above it. The Blizzard silver arrow is anchored
 directly to the exact pixel-snapped 50% divider.
 
