@@ -10,7 +10,7 @@ local defaults = {
 
 local db
 local charDB
-local bar, fill, restedFill, spark
+local bar, fill, restedFill, spark, fillSheen
 local resizeHandles = {}
 local restedEndMarker
 local midpointMarker
@@ -165,17 +165,18 @@ local function CreateBar()
     restedFill:SetPoint("TOPLEFT", 1, -1); restedFill:SetPoint("BOTTOMRIGHT", -1, 1)
     restedFill:SetStatusBarTexture("Interface\\Buttons\\WHITE8X8")
     restedFill:SetFrameLevel(bar:GetFrameLevel() + 1)
-    -- Blizzard-style hierarchy: earned XP is bright electric blue, rested
-    -- coverage is secondary dark navy, and untouched space is near-black.
+    -- Blizzard-style hierarchy: earned XP is blue while rested, purple
+    -- when not rested; remaining rested coverage is dark navy, and
+    -- untouched space is near-black.
     restedFill:SetStatusBarColor(0.025, 0.075, 0.18, 0.99); restedFill:EnableMouse(false)
 
     fill = CreateFrame("StatusBar", nil, bar)
     fill:SetAllPoints(restedFill); fill:SetStatusBarTexture("Interface\\Buttons\\WHITE8X8")
     fill:SetFrameLevel(bar:GetFrameLevel() + 2)
     fill:SetStatusBarColor(0.22, 0.48, 1.00, 1.00); fill:EnableMouse(false)
-    local sheen = fill:CreateTexture(nil, "ARTWORK")
-    sheen:SetColorTexture(0.55, 0.80, 1, 0.16)
-    sheen:SetPoint("TOPLEFT"); sheen:SetPoint("TOPRIGHT"); sheen:SetHeight(2)
+    fillSheen = fill:CreateTexture(nil, "ARTWORK")
+    fillSheen:SetColorTexture(0.55, 0.80, 1, 0.16)
+    fillSheen:SetPoint("TOPLEFT"); fillSheen:SetPoint("TOPRIGHT"); fillSheen:SetHeight(2)
 
     spark = fill:CreateTexture(nil, "OVERLAY")
     spark:SetColorTexture(0.78, 0.67, 0.43, 0.98); spark:SetWidth(2)
@@ -673,6 +674,16 @@ local function UpdateBar()
     if not XPAvailable() then bar:Hide(); return end
     local xp, xpMax = UnitXP("player") or 0, UnitXPMax("player") or 1
     local rested = GetXPExhaustion and (GetXPExhaustion() or 0) or 0
+    -- Match Blizzard's earned XP state color. The status changes between
+    -- blue (rested) and purple (no rested XP), including when the last
+    -- rested point is consumed. Tint the highlight to match the fill.
+    if rested > 0 then
+        fill:SetStatusBarColor(0.22, 0.48, 1.00, 1.00)
+        fillSheen:SetColorTexture(0.55, 0.80, 1.00, 0.16)
+    else
+        fill:SetStatusBarColor(0.48, 0.19, 0.61, 1.00)
+        fillSheen:SetColorTexture(0.78, 0.56, 0.88, 0.16)
+    end
     local remaining, percent = math.max(0, xpMax - xp), xp / xpMax * 100
     local barsLeft = remaining / xpMax * 20
     local innerWidth = math.max(1, db.width - 2)
