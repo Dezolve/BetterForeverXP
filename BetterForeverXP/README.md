@@ -36,11 +36,12 @@ the layout does not jump around as values become available.
 Session XP and its start time survive `/reload`, so XP/hour and ETA do not reset
 while adjusting the UI. A genuine fresh character login starts a new session.
 
-The former 5%/25% segment lines have been removed for a clean, scaling-safe
-tube surface. One center-anchored 50% divider remains beneath the silver
-Blizzard arrow. The right-hand text still reports progress as 20 conceptual
-Blizzard-style bars, rounded to the nearest half-bar, such as
-`8.5 bars left`.
+The classic **20 visible 5%-XP segments** remain part of the tube design.
+Each divider is a single scale-aware, pixel-snapped line, styled for contrast
+against blue/purple earned XP, navy rested coverage, and the near-black track.
+The 50% line is anchored precisely beneath the silver Blizzard arrow.
+The right-hand text still reports bars remaining, rounded to the nearest
+half-bar, such as `8.5 bars left`.
 
 The exact **native WoW Classic silver exhaustion-tick texture** now marks the
 50% position along the bar's top border. A single 32px texture replaces the
