@@ -34,8 +34,9 @@ Open **Settings → AddOns → Better Forever XP** or type `/bfxp`.
 
 - New installs start unlocked. Drag the bar body to move it. The resize zones
   are invisible until hovered: **top edge** changes height, **right edge**
-  changes width, and **top-right corner** changes both independently.
-  A subtle golden indicator appears only while hovering or resizing.
+  changes width, and **bottom-right corner** changes both independently.
+  Subtle golden indicators appear only while hovering or resizing. The
+  hover zones are larger than the visible hints, making them easier to grab.
 - Lock the bar in Settings or via `/bfxp lock`. This disables all resize zones and
   prevents ordinary dragging. Shift-drag remains an intentional move shortcut.
 - Set width (300–1600), height (10–40), and overall scale (0.5–2) independently
