@@ -66,6 +66,56 @@ The package script reads the version from the TOC file and writes a clean,
 installable archive to `dist/`. GitHub Actions runs the same validation on
 every push and pull request and publishes the archive as a workflow artifact.
 
+## Automatic Windows test deployment
+
+GitHub-hosted Actions can build and package the addon, but cannot access a
+Windows PC's C: drive. Instead, the optional local updater
+[scripts/AutoDeploy-Windows.ps1](scripts/AutoDeploy-Windows.ps1) checks the
+**latest successful push build** of the feature branch every minute and
+installs the packaged addon locally. No GitHub self-hosted runner is needed.
+
+**One-time setup on the Windows PC:**
+
+1. Install [GitHub CLI](https://cli.github.com/) (or run
+   `winget install --id GitHub.cli -e`) and complete `gh auth login`.
+2. Clone or switch your local repo to `feature/options-and-scaling`.
+3. From the repository root in PowerShell, run:
+
+```powershell
+.\scripts\AutoDeploy-Windows.ps1 -Install -TargetPath 'C:\PATH\TO\WoWForever\Interface\AddOns\BetterForeverXP'
+```
+
+Use the **actual** WoW Forever `Interface\AddOns\BetterForeverXP` folder,
+not a copy in Downloads, unless that Downloads folder is explicitly linked to
+the live AddOns folder. The updater warns when the path doesn't resemble a
+live AddOns directory.
+
+Installation copies the updater into `%LOCALAPPDATA%\BetterForeverXP-AutoDeploy`
+and creates a **user-level Windows Scheduled Task** that runs every minute.
+The initial sync runs immediately. The updater downloads the GitHub Actions
+artifact, extracts the versioned release ZIP inside it, validates all files
+listed in the TOC (including `Options.lua`), and copies the addon into the
+selected path. It never touches `WTF` or SavedVariables.
+
+After successfully installing a new build, it posts the
+`BetterForeverXP/local-install` status to the matching GitHub commit. Once
+both CI and that status pass, the installed addon is ready for `/reload`
+in the WoW client. This status only indicates file deployment, **not**
+that the in-game UI has been verified.
+
+Troubleshooting:
+
+```powershell
+Get-Content "$env:LOCALAPPDATA\BetterForeverXP-AutoDeploy\deploy.log" -Tail 30
+Get-ScheduledTask -TaskName BetterForeverXP-AutoDeploy
+.\scripts\AutoDeploy-Windows.ps1 -Uninstall
+```
+
+Uninstalling removes the scheduled task and leaves logs and configuration for
+diagnosis. The task requires the Windows user to be logged in and the
+authenticated GitHub CLI to remain available. Builds are never applied
+unless their GitHub Actions workflow completed successfully.
+
 ## License
 
 Copyright © Dezolve Labs. All rights reserved. No license is granted for
