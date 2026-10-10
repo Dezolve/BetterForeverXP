@@ -6,11 +6,11 @@ By Dezolve Labs
 
 - Adds a built-in Settings → AddOns panel, accessible through `/bfxp`, `/bfxp options`, or right-clicking the XP bar (including while locked or over a resize zone).
 - New installations start unlocked; existing installations retain their previous lock setting.
-- Adds invisible hover-resize zones: **below the bottom edge** adjusts height, **right edge** adjusts width, and **bottom-right corner** adjusts both. Large hit targets make the edges easy to catch.
+- Adds invisible hover-resize zones: **a compact target below the center** adjusts height, **right edge** adjusts width, and **bottom-right corner** adjusts both. The height target is 96×18px with a clear gap from the bar and no expanded mouse hit rect, preserving click-drag and tooltips even at 10px height.
 - Adds one carved-stone notch at the top border's 50% point, replacing the two floating chevrons. Aged bronze edging, a slate-stone inset, subtle bevel lighting, and a recessed seam help it look built into the bar; the notch has been lowered 1.5px to meet the border. **Show 50% stone marker** in Settings toggles it instantly, defaults to on, persists across sessions, and is restored by Reset all defaults. The ornament is mouse-transparent; the XP tooltip, dragging, right-click options, and bottom-only height resizing are preserved.
 - Fixes the dark/clipped appearance after adding the visibility toggle by sizing the marker's rendering frame to extend above the bar. The dark shadow, bronze rim, stone inset and bevels use separate drawing layers, retaining their intended colors.
-- Refines hover affordances: hovering anywhere just below the bar reveals a compact center line; the right edge shows a vertical grip; the bottom-right gold L-grip sits just outside the bar and adapts to bar height. The height hitbox no longer covers the bar and interfere with normal dragging or the XP tooltip. All hide off hover or when locked.
-- Refines the top-center grabber to a standalone warm-gold line with a thin translucent shadow, removing the bulky black plate without changing its full-width hover target or resizing behavior.
+- Refines hover affordances: hovering just below the midpoint reveals a compact gold line; the right edge shows a vertical grip; the bottom-right gold L-grip sits outside the bar and adapts to its height. All resize hints hide off hover or when locked.
+- Keeps the height grabber as a standalone warm-gold line with a thin translucent shadow instead of a bulky black plate.
 - Keeps direct mouse tracking and fixed opposite edges, and increases the proportional bar/text scale slider maximum from 2× to 3× (default remains 1×).
 - Locking the bar disables edge resizing and disables ordinary dragging; Shift-drag remains available.
 - Adds panel controls for enabled state, bar lock, Blizzard bar visibility, width, height, scale, number format, and resets.
