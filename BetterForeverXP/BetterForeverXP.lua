@@ -119,25 +119,25 @@ end
 
 -- A shallow recessed groove in the tube: the dark one-pixel core has
 -- top-to-bottom shading, and an adjacent faint highlight catches the upper
--- curve. Palettes stay low-contrast so twenty segments don't dominate text.
+-- curve. Dark notches and white glints stay readable across blue, purple,
+-- rested navy, and the empty track without becoming bright full-height bars.
 local tickPalettes = {
     earned = {
-        coreBottom = {0.005, 0.016, 0.045, 0.77}, coreTop = {0.055, 0.13, 0.24, 0.50},
-        rimBottom = {0.28, 0.44, 0.65, 0.06}, rimTop = {0.83, 0.91, 1.00, 0.25},
-        coreFlat = {0.012, 0.035, 0.075, 0.59}, rimFlat = {0.61, 0.76, 0.96, 0.14},
+        coreBottom = {0.00, 0.00, 0.00, 0.88}, coreTop = {0.08, 0.10, 0.16, 0.62},
+        rimBottom = {0.70, 0.78, 0.90, 0.12}, rimTop = {1.00, 1.00, 1.00, 0.38},
+        coreFlat = {0.00, 0.00, 0.00, 0.72}, rimFlat = {1.00, 1.00, 1.00, 0.24},
     },
     rested = {
-        coreBottom = {0.010, 0.029, 0.064, 0.83}, coreTop = {0.070, 0.12, 0.20, 0.53},
-        rimBottom = {0.24, 0.42, 0.63, 0.10}, rimTop = {0.72, 0.84, 0.97, 0.30},
-        coreFlat = {0.020, 0.044, 0.082, 0.65}, rimFlat = {0.58, 0.72, 0.89, 0.16},
+        coreBottom = {0.00, 0.00, 0.00, 0.90}, coreTop = {0.07, 0.09, 0.14, 0.66},
+        rimBottom = {0.62, 0.72, 0.86, 0.13}, rimTop = {1.00, 1.00, 1.00, 0.40},
+        coreFlat = {0.00, 0.00, 0.00, 0.74}, rimFlat = {1.00, 1.00, 1.00, 0.25},
     },
     empty = {
-        coreBottom = {0.009, 0.017, 0.037, 0.85}, coreTop = {0.06, 0.08, 0.13, 0.60},
-        rimBottom = {0.20, 0.33, 0.48, 0.09}, rimTop = {0.65, 0.77, 0.91, 0.30},
-        coreFlat = {0.028, 0.045, 0.081, 0.70}, rimFlat = {0.50, 0.64, 0.79, 0.17},
+        coreBottom = {0.00, 0.00, 0.00, 0.92}, coreTop = {0.09, 0.10, 0.13, 0.68},
+        rimBottom = {0.58, 0.66, 0.78, 0.12}, rimTop = {1.00, 1.00, 1.00, 0.42},
+        coreFlat = {0.00, 0.00, 0.00, 0.76}, rimFlat = {1.00, 1.00, 1.00, 0.26},
     },
 }
-
 local function ApplyBeveledTick(tick, region)
     if tick.region == region then return end
     tick.region = region
@@ -146,8 +146,8 @@ local function ApplyBeveledTick(tick, region)
     -- marker; keep it a touch stronger without increasing its physical width.
     local coreTop, rimTop = palette.coreTop, palette.rimTop
     if tick.isCenter then
-        coreTop = {coreTop[1], coreTop[2], coreTop[3], math.min(1, coreTop[4] + 0.14)}
-        rimTop = {rimTop[1], rimTop[2], rimTop[3], math.min(1, rimTop[4] + 0.11)}
+        coreTop = {coreTop[1], coreTop[2], coreTop[3], math.min(1, coreTop[4] + 0.18)}
+        rimTop = {rimTop[1], rimTop[2], rimTop[3], math.min(1, rimTop[4] + 0.16)}
     end
     if not ApplyVerticalGradient(tick.core, palette.coreBottom, coreTop) then
         local flat = palette.coreFlat
@@ -264,6 +264,34 @@ local function CreateBar()
     spark = fill:CreateTexture(nil, "OVERLAY")
     spark:SetColorTexture(0.78, 0.67, 0.43, 0.98); spark:SetWidth(2)
     spark:SetPoint("TOP"); spark:SetPoint("BOTTOM")
+
+    -- Add a restrained metal tube frame above the status-bar fills. Using a
+    -- separate mouse-transparent frame keeps these lines visible on earned,
+    -- rested, and empty sections without covering the XP text or 5% grooves.
+    local tubeRim = CreateFrame("Frame", nil, bar)
+    tubeRim:SetAllPoints(bar)
+    tubeRim:SetFrameLevel(bar:GetFrameLevel() + 4)
+    tubeRim:EnableMouse(false)
+
+    local topEdge = MakeTexture(tubeRim, "OVERLAY", 0.005, 0.008, 0.016, 0.94)
+    topEdge:SetPoint("TOPLEFT", tubeRim, "TOPLEFT", 1, -1)
+    topEdge:SetPoint("TOPRIGHT", tubeRim, "TOPRIGHT", -1, -1)
+    topEdge:SetHeight(1)
+
+    local bottomEdge = MakeTexture(tubeRim, "OVERLAY", 0.00, 0.00, 0.00, 0.98)
+    bottomEdge:SetPoint("BOTTOMLEFT", tubeRim, "BOTTOMLEFT", 1, 1)
+    bottomEdge:SetPoint("BOTTOMRIGHT", tubeRim, "BOTTOMRIGHT", -1, 1)
+    bottomEdge:SetHeight(1)
+
+    local innerTopHighlight = MakeTexture(tubeRim, "OVERLAY", 1.00, 1.00, 1.00, 0.18)
+    innerTopHighlight:SetPoint("TOPLEFT", tubeRim, "TOPLEFT", 2, -2)
+    innerTopHighlight:SetPoint("TOPRIGHT", tubeRim, "TOPRIGHT", -2, -2)
+    innerTopHighlight:SetHeight(1)
+
+    local innerBottomShade = MakeTexture(tubeRim, "OVERLAY", 0.00, 0.00, 0.00, 0.24)
+    innerBottomShade:SetPoint("BOTTOMLEFT", tubeRim, "BOTTOMLEFT", 2, 2)
+    innerBottomShade:SetPoint("BOTTOMRIGHT", tubeRim, "BOTTOMRIGHT", -2, 2)
+    innerBottomShade:SetHeight(2)
 
     tickLayer = CreateFrame("Frame", nil, bar)
     tickLayer:SetAllPoints(); tickLayer:SetFrameLevel(bar:GetFrameLevel() + 5); tickLayer:EnableMouse(false)
