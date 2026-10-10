@@ -174,15 +174,31 @@ local MAX_CORNER_RADIUS = 16
 
 local function UpdateTubeCaps(height, width)
     local radius = math.min(MAX_CORNER_RADIUS, math.max(3, math.floor(height * 0.44 + 0.5)))
+
+    -- Use the SAME circular profile to position the curved ends and their
+    -- straight top/bottom rails. Previously AddBorder() painted a second
+    -- rectangular outline through the rounded corners, causing misaligned
+    -- black segments and stray horizontal protrusions.
+    local cuts = {}
+    local railInset = radius
+    for i = 0, MAX_CORNER_RADIUS - 1 do
+        local trimHeight = 0
+        if i < radius then
+            local x = radius - i - 0.5
+            trimHeight = math.max(0,
+                math.floor(radius - math.sqrt(radius * radius - x * x) + 0.5))
+            trimHeight = math.min(trimHeight, math.floor((height - 2) / 2))
+        end
+        cuts[i] = trimHeight
+        if i < radius and trimHeight == 0 and railInset == radius then
+            railInset = i
+        end
+    end
+
+    local outerTrim = cuts[0]
     for _, cap in ipairs(endCapCuts) do
         local i = cap.column
-        local x = radius - i - 0.5
-        local trimHeight = 0
-        if x > 0 then
-            trimHeight = math.max(0, math.floor(radius - math.sqrt(radius * radius - x * x) + 0.5))
-        end
-        -- Do not erase more than half the bar even at the 10px minimum.
-        trimHeight = math.min(trimHeight, math.floor((height - 2) / 2))
+        local trimHeight = cuts[i]
         if i < radius and trimHeight > 0 then
             cap.cut:SetSize(1, trimHeight)
             cap.cut:Show()
@@ -202,23 +218,41 @@ local function UpdateTubeCaps(height, width)
             cap.edge:Hide()
         end
     end
-    -- Maintain visible physical depth without swallowing a 10px bar.
-    local thick = math.max(1, math.min(3, math.floor(height * 0.11 + 0.5)))
-    tubeRim.topEdge:SetHeight(thick)
-    tubeRim.bottomEdge:SetHeight(thick)
-    tubeRim.innerTopHighlight:SetHeight(math.max(1, thick - 1))
-    tubeRim.innerBottomShade:SetHeight(math.max(1, math.min(5, math.floor(height * 0.11 + 0.5))))
-end
 
-local function AddBorder(frame)
-    local top = MakeTexture(frame, "BORDER", 0.33, 0.42, 0.55, 0.9)
-    top:SetPoint("TOPLEFT"); top:SetPoint("TOPRIGHT"); top:SetHeight(1)
-    local bottom = MakeTexture(frame, "BORDER", 0.01, 0.02, 0.04, 1)
-    bottom:SetPoint("BOTTOMLEFT"); bottom:SetPoint("BOTTOMRIGHT"); bottom:SetHeight(1)
-    local left = MakeTexture(frame, "BORDER", 0.08, 0.10, 0.14, 1)
-    left:SetPoint("TOPLEFT"); left:SetPoint("BOTTOMLEFT"); left:SetWidth(1)
-    local right = MakeTexture(frame, "BORDER", 0.08, 0.10, 0.14, 1)
-    right:SetPoint("TOPRIGHT"); right:SetPoint("BOTTOMRIGHT"); right:SetWidth(1)
+    local function SetHorizontalRail(texture, top, inset, y)
+        texture:ClearAllPoints()
+        if top then
+            texture:SetPoint("TOPLEFT", tubeRim, "TOPLEFT", inset, y)
+            texture:SetPoint("TOPRIGHT", tubeRim, "TOPRIGHT", -inset, y)
+        else
+            texture:SetPoint("BOTTOMLEFT", tubeRim, "BOTTOMLEFT", inset, y)
+            texture:SetPoint("BOTTOMRIGHT", tubeRim, "BOTTOMRIGHT", -inset, y)
+        end
+    end
+
+    -- The outer steel rail begins exactly where the curved pixel contour
+    -- reaches the straight top/bottom edge; there is no second square border.
+    SetHorizontalRail(tubeRim.topEdge, true, railInset, 0)
+    SetHorizontalRail(tubeRim.bottomEdge, false, railInset, 0)
+    SetHorizontalRail(tubeRim.topInsetShade, true, railInset + 1, -1)
+    SetHorizontalRail(tubeRim.innerTopHighlight, true, railInset + 2, -2)
+    SetHorizontalRail(tubeRim.innerBottomShade, false, railInset + 2, 2)
+
+    -- Join the top and bottom curves with only the straight center portions
+    -- of the side rails, so no full-height rectangle leaks into the caps.
+    for _, side in ipairs({{tubeRim.leftEdge, "LEFT"}, {tubeRim.rightEdge, "RIGHT"}}) do
+        local edge, align = side[1], side[2]
+        edge:ClearAllPoints()
+        edge:SetPoint("TOP" .. align, tubeRim, "TOP" .. align, 0, -outerTrim - 1)
+        edge:SetPoint("BOTTOM" .. align, tubeRim, "BOTTOM" .. align, 0, outerTrim + 1)
+    end
+    -- Thin outer steel edge + restrained interior black bevel work at 10px
+    -- without becoming a dark slab at 80-120px.
+    tubeRim.topEdge:SetHeight(1)
+    tubeRim.bottomEdge:SetHeight(1)
+    tubeRim.topInsetShade:SetHeight(math.max(1, math.min(3, math.floor(height * 0.08 + 0.5))))
+    tubeRim.innerTopHighlight:SetHeight(1)
+    tubeRim.innerBottomShade:SetHeight(math.max(1, math.min(5, math.floor(height * 0.11 + 0.5))))
 end
 
 local function MakeLabel(parent, justify)
@@ -275,7 +309,7 @@ local function CreateBar()
     background:SetAllPoints()
     ApplyVerticalGradient(background,
         {0.006, 0.012, 0.022, 0.98}, {0.055, 0.077, 0.12, 0.98})
-    AddBorder(bar)
+    -- The rounded tube draws one unified outline on tubeRim/endCapTrim.
 
     restedFill = CreateFrame("StatusBar", nil, bar)
     restedFill:SetPoint("TOPLEFT", 1, -1); restedFill:SetPoint("BOTTOMRIGHT", -1, 1)
@@ -324,28 +358,28 @@ local function CreateBar()
     tubeRim:SetFrameLevel(bar:GetFrameLevel() + 4)
     tubeRim:EnableMouse(false)
 
-    local topEdge = MakeTexture(tubeRim, "OVERLAY", 0.005, 0.008, 0.016, 0.94)
-    topEdge:SetPoint("TOPLEFT", tubeRim, "TOPLEFT", 1, -1)
-    topEdge:SetPoint("TOPRIGHT", tubeRim, "TOPRIGHT", -1, -1)
-    topEdge:SetHeight(2)
+    -- Metallic outer rails and curved endcaps share one contour palette.
+    -- Positions are set together by UpdateTubeCaps, never independently.
+    local topEdge = MakeTexture(tubeRim, "OVERLAY", 0.40, 0.47, 0.58, 0.96)
     tubeRim.topEdge = topEdge
 
-    local bottomEdge = MakeTexture(tubeRim, "OVERLAY", 0.00, 0.00, 0.00, 0.98)
-    bottomEdge:SetPoint("BOTTOMLEFT", tubeRim, "BOTTOMLEFT", 1, 1)
-    bottomEdge:SetPoint("BOTTOMRIGHT", tubeRim, "BOTTOMRIGHT", -1, 1)
-    bottomEdge:SetHeight(2)
+    local bottomEdge = MakeTexture(tubeRim, "OVERLAY", 0.28, 0.34, 0.44, 0.96)
     tubeRim.bottomEdge = bottomEdge
 
+    local leftEdge = MakeTexture(tubeRim, "OVERLAY", 0.30, 0.37, 0.47, 0.96)
+    leftEdge:SetWidth(1)
+    tubeRim.leftEdge = leftEdge
+    local rightEdge = MakeTexture(tubeRim, "OVERLAY", 0.30, 0.37, 0.47, 0.96)
+    rightEdge:SetWidth(1)
+    tubeRim.rightEdge = rightEdge
+
+    local topInsetShade = MakeTexture(tubeRim, "OVERLAY", 0.005, 0.008, 0.016, 0.89)
+    tubeRim.topInsetShade = topInsetShade
+
     local innerTopHighlight = MakeTexture(tubeRim, "OVERLAY", 1.00, 1.00, 1.00, 0.18)
-    innerTopHighlight:SetPoint("TOPLEFT", tubeRim, "TOPLEFT", 2, -2)
-    innerTopHighlight:SetPoint("TOPRIGHT", tubeRim, "TOPRIGHT", -2, -2)
-    innerTopHighlight:SetHeight(1)
     tubeRim.innerTopHighlight = innerTopHighlight
 
     local innerBottomShade = MakeTexture(tubeRim, "OVERLAY", 0.00, 0.00, 0.00, 0.24)
-    innerBottomShade:SetPoint("BOTTOMLEFT", tubeRim, "BOTTOMLEFT", 2, 2)
-    innerBottomShade:SetPoint("BOTTOMRIGHT", tubeRim, "BOTTOMRIGHT", -2, 2)
-    innerBottomShade:SetHeight(4)
     tubeRim.innerBottomShade = innerBottomShade
 
     tickLayer = CreateFrame("Frame", nil, bar)
@@ -390,7 +424,12 @@ local function CreateBar()
                 local offset = right and -column or column
                 local cut = MakeTexture(endCapTrim, "OVERLAY", 0.006, 0.010, 0.018, 0.99)
                 cut:SetPoint(anchor, endCapTrim, anchor, offset, 0)
-                local edge = MakeTexture(endCapTrim, "OVERLAY", 0.40, 0.47, 0.58, 0.80)
+                local edge
+                if top then
+                    edge = MakeTexture(endCapTrim, "OVERLAY", 0.40, 0.47, 0.58, 0.96)
+                else
+                    edge = MakeTexture(endCapTrim, "OVERLAY", 0.28, 0.34, 0.44, 0.96)
+                end
                 endCapCuts[#endCapCuts + 1] = {
                     cut = cut, edge = edge, column = column, right = right,
                     top = top, host = endCapTrim,
