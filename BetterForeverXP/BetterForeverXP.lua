@@ -210,7 +210,7 @@ local function CreateBar()
     -- pointer is hovering or dragging. No permanent floating W/H/+ buttons.
     -- Top edge grows upward; right edge grows rightward; bottom-right grows down/right.
     local MIN_WIDTH, MAX_WIDTH = 300, 1600
-    local MIN_HEIGHT, MAX_HEIGHT = 10, 40
+    local MIN_HEIGHT, MAX_HEIGHT = 10, 120
     local activeResize
 
     local function FinishResize(handle)
@@ -385,7 +385,12 @@ local function ApplyLayout()
     bar:ClearAllPoints(); bar:SetPoint(db.point, UIParent, db.relativePoint, db.x, db.y)
     -- Never allow the three text regions to overlap. Compact layouts
     -- progressively remove secondary detail as available width shrinks.
+    -- Keep the established text sizes for 10-40 px bars, but let larger
+    -- bars grow their labels rather than leaving 18 px text in a 120 px bar.
     local fontSize = math.max(8, math.min(18, db.height - 4))
+    if db.height > 40 then
+        fontSize = math.min(32, math.floor(18 + (db.height - 40) * 0.175 + 0.5))
+    end
     for _, label in ipairs({ leftText, centerText, rightText }) do
         local fontPath = label:GetFont()
         if fontPath then label:SetFont(fontPath, fontSize, "OUTLINE") end
@@ -607,7 +612,7 @@ local function SetSetting(key, value)
         db.width = math.floor(value + 0.5)
         ApplyLayout(); UpdateBar()
     elseif key == "height" then
-        if type(value) ~= "number" or value < 10 or value > 40 then return false end
+        if type(value) ~= "number" or value < 10 or value > 120 then return false end
         db.height = math.floor(value + 0.5)
         ApplyLayout(); UpdateBar()
     elseif key == "scale" then
@@ -645,7 +650,7 @@ end
 
 local function Help()
     Print("/bfxp lock | unlock | show | hide | reset")
-    Print("/bfxp (open options) • width 300-1600 • height 10-40 • scale 0.5-3")
+    Print("/bfxp (open options) • width 300-1600 • height 10-120 • scale 0.5-3")
     Print("/bfxp format short | commas | exact")
     Print("/bfxp default on|off  (show or hide Blizzard's bar)")
 end
