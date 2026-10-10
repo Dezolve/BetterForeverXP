@@ -128,25 +128,27 @@ local function UpdateResizeHandles()
     end
 end
 
--- Fix the current top-left corner in screen space before resizing, so
--- increasing dimensions grows only right/down. GetLeft/GetTop AND SetPoint
--- offsets are in the *bar's* effective units. UIParent coordinates must be
--- converted into those units before taking the difference.
-local function AnchorForResizing()
+-- On drag start, pin the opposite edge before changing dimensions.
+-- Right-edge drags keep the top-left fixed; top-edge/corner drags keep the
+-- bottom-left fixed so the top follows the pointer without jumping.
+local function AnchorForResizing(mode)
     local parentScale = UIParent:GetEffectiveScale()
     local frameScale = bar:GetEffectiveScale()
     if not parentScale or parentScale <= 0 or not frameScale or frameScale <= 0 then
         return false
     end
-    local left, top = bar:GetLeft(), bar:GetTop()
-    local parentLeft, parentTop = UIParent:GetLeft(), UIParent:GetTop()
-    if not left or not top or not parentLeft or not parentTop then return false end
+    local point = mode == "width" and "TOPLEFT" or "BOTTOMLEFT"
+    local left = bar:GetLeft()
+    local barY = mode == "width" and bar:GetTop() or bar:GetBottom()
+    local parentLeft = UIParent:GetLeft()
+    local parentY = mode == "width" and UIParent:GetTop() or UIParent:GetBottom()
+    if not left or not barY or not parentLeft or not parentY then return false end
     local ratio = parentScale / frameScale
     local x = left - parentLeft * ratio
-    local y = top - parentTop * ratio
-    db.point, db.relativePoint, db.x, db.y = "TOPLEFT", "TOPLEFT", x, y
+    local y = barY - parentY * ratio
+    db.point, db.relativePoint, db.x, db.y = point, point, x, y
     bar:ClearAllPoints()
-    bar:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
+    bar:SetPoint(point, UIParent, point, x, y)
     return true
 end
 
@@ -203,10 +205,9 @@ local function CreateBar()
     textLayer:SetAllPoints(); textLayer:SetFrameLevel(bar:GetFrameLevel() + 10); textLayer:EnableMouse(false)
     leftText, centerText, rightText = MakeLabel(textLayer, "LEFT"), MakeLabel(textLayer, "CENTER"), MakeLabel(textLayer, "RIGHT")
 
-    -- Three intentional resize targets:
-    -- W changes width, H changes height, corner changes both. Their mouse
-    -- movements are measured in screen pixels and converted to bar units,
-    -- so each handle follows the cursor at any UI scale.
+    -- Invisible edge hit zones, with subtle affordances shown only while the
+    -- pointer is hovering or dragging. No permanent floating W/H/+ buttons.
+    -- Top edge grows upward; right edge grows rightward; top-right does both.
     local MIN_WIDTH, MAX_WIDTH = 300, 1600
     local MIN_HEIGHT, MAX_HEIGHT = 10, 40
     local activeResize
@@ -215,12 +216,15 @@ local function CreateBar()
         if not activeResize or activeResize.handle ~= handle then return end
         handle:SetScript("OnUpdate", nil)
         activeResize = nil
+        if not handle:IsMouseOver() and handle.resizeIndicator then
+            handle.resizeIndicator:Hide()
+        end
         if addon.RefreshOptions then addon.RefreshOptions() end
     end
 
     local function BeginResize(handle, mode, button)
         if button ~= "LeftButton" or not db or db.locked then return end
-        if not AnchorForResizing() then return end
+        if not AnchorForResizing(mode) then return end
         local cursorX, cursorY = GetCursorPosition()
         local scale = bar:GetEffectiveScale()
         if not scale or scale <= 0 then scale = 1 end
@@ -228,9 +232,10 @@ local function CreateBar()
             handle = handle, mode = mode, startX = cursorX, startY = cursorY,
             startWidth = db.width, startHeight = db.height, effectiveScale = scale
         }
+        handle.resizeIndicator:Show()
         handle:SetScript("OnUpdate", function(self)
             if not activeResize or activeResize.handle ~= self then return end
-            -- Also finish when the mouse button is released outside the grip.
+            -- Release must finish even when the mouse ends outside the zone.
             if IsMouseButtonDown and not IsMouseButtonDown("LeftButton") then
                 FinishResize(self)
                 return
@@ -240,20 +245,16 @@ local function CreateBar()
             local dy = (my - activeResize.startY) / activeResize.effectiveScale
             local width, height = activeResize.startWidth, activeResize.startHeight
             if mode ~= "height" then
-                -- A rightward drag moves the right edge right by the exact
-                -- cursor distance, irrespective of the bar's prior anchor.
-                local visibleWidth = math.max(MIN_WIDTH,
-                    UIParent:GetWidth() / db.scale - db.x)
+                -- Respect the screen boundary and the supported width range.
+                local available = math.max(MIN_WIDTH, UIParent:GetWidth() / db.scale - db.x)
                 width = math.floor(math.max(MIN_WIDTH,
-                    math.min(MAX_WIDTH, visibleWidth, width + dx)) + 0.5)
+                    math.min(MAX_WIDTH, available, width + dx)) + 0.5)
             end
             if mode ~= "width" then
-                -- Screen-space Y rises upwards. Moving the bottom edge
-                -- down increases the height, while the top-left stays fixed.
-                local visibleHeight = math.max(MIN_HEIGHT,
-                    UIParent:GetHeight() / db.scale + db.y)
+                -- The bottom stays stationary while the top tracks the mouse.
+                local available = math.max(MIN_HEIGHT, UIParent:GetHeight() / db.scale - db.y)
                 height = math.floor(math.max(MIN_HEIGHT,
-                    math.min(MAX_HEIGHT, visibleHeight, height - dy)) + 0.5)
+                    math.min(MAX_HEIGHT, available, height + dy)) + 0.5)
             end
             if width ~= db.width or height ~= db.height then
                 db.width, db.height = width, height
@@ -262,41 +263,53 @@ local function CreateBar()
         end)
     end
 
-    local function AddResizeHandle(mode, label, point, x, y, tooltip)
+    local function AddResizeHandle(mode, point, x, y)
         local handle = CreateFrame("Button", nil, bar)
-        handle:SetSize(23, 23)
         handle:SetPoint(point, bar, point, x, y)
-        handle:SetFrameLevel(bar:GetFrameLevel() + 25)
+        handle:SetFrameLevel(bar:GetFrameLevel() + (mode == "corner" and 30 or 25))
         handle:EnableMouse(true)
-        local background = MakeTexture(handle, "BACKGROUND", 0.02, 0.045, 0.09, 0.93)
-        background:SetAllPoints()
-        AddBorder(handle)
-        local text = handle:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        text:SetAllPoints()
-        text:SetJustifyH("CENTER")
-        text:SetJustifyV("MIDDLE")
-        text:SetText(label)
-        text:SetTextColor(1, 0.76, 0.32)
+        local indicator = CreateFrame("Frame", nil, handle)
+        indicator:SetAllPoints()
+        indicator:EnableMouse(false)
+        local line = MakeTexture(indicator, "OVERLAY", 1, 0.72, 0.35, 0.96)
+        if mode == "height" then
+            line:SetPoint("CENTER"); line:SetSize(28, 2)
+        elseif mode == "width" then
+            line:SetPoint("CENTER"); line:SetSize(2, 10)
+        else
+            line:SetPoint("TOPRIGHT", -2, -2); line:SetSize(12, 2)
+            local vertical = MakeTexture(indicator, "OVERLAY", 1, 0.72, 0.35, 0.96)
+            vertical:SetPoint("TOPRIGHT", -2, -2); vertical:SetSize(2, 12)
+        end
+        indicator:Hide()
+        handle.resizeIndicator = indicator
         handle:SetScript("OnEnter", function(self)
-            GameTooltip:SetOwner(self, "ANCHOR_TOP")
-            GameTooltip:SetText(tooltip, 1, 0.85, 0.55, 1, true)
-            GameTooltip:Show()
+            if db and not db.locked then self.resizeIndicator:Show() end
         end)
-        handle:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        handle:SetScript("OnLeave", function(self)
+            if not activeResize or activeResize.handle ~= self then
+                self.resizeIndicator:Hide()
+            end
+        end)
         handle:SetScript("OnMouseDown", function(self, button)
             BeginResize(self, mode, button)
         end)
         handle:SetScript("OnMouseUp", function(self) FinishResize(self) end)
-        handle:SetScript("OnHide", function(self) FinishResize(self) end)
+        handle:SetScript("OnHide", function(self)
+            FinishResize(self)
+            self.resizeIndicator:Hide()
+        end)
         resizeHandles[mode] = handle
     end
 
-    AddResizeHandle("width", "W", "RIGHT", 14, 0,
-        "Drag horizontally to change width")
-    AddResizeHandle("height", "H", "BOTTOM", 0, -14,
-        "Drag vertically to change height")
-    AddResizeHandle("corner", "+", "BOTTOMRIGHT", 16, -25,
-        "Drag diagonally to resize width and height together")
+    -- Edge zones sit primarily OUTSIDE the slender XP bar so the center
+    -- remains usable for dragging and normal tooltip interactions.
+    AddResizeHandle("width", "RIGHT", 6, 0)
+    AddResizeHandle("height", "TOP", 0, 5)
+    AddResizeHandle("corner", "TOPRIGHT", 6, 6)
+    resizeHandles.width:SetSize(12, math.max(12, db.height))
+    resizeHandles.height:SetSize(math.max(30, db.width - 42), 10)
+    resizeHandles.corner:SetSize(16, 16)
     UpdateResizeHandles()
 
     bar:SetScript("OnDragStart", function(self)
@@ -349,6 +362,8 @@ local function ApplyLayout()
         rightText:SetPoint("RIGHT", textLayer, "RIGHT", -6, 0)
         rightText:SetSize(db.width * 0.42 - 12, db.height)
     end
+    resizeHandles.width:SetHeight(math.max(12, db.height))
+    resizeHandles.height:SetWidth(math.max(30, db.width - 42))
     UpdateResizeHandles()
 
     for index, tick in ipairs(tickMarks) do
@@ -461,7 +476,7 @@ local function ShowDetails()
     if db.locked then
         GameTooltip:AddLine("Shift-drag to move • /bfxp unlock for normal dragging", 0.55, 0.62, 0.72)
     else
-        GameTooltip:AddLine("Drag to move • W: width • H: height • +: both • /bfxp lock", 0.55, 0.62, 0.72)
+        GameTooltip:AddLine("Drag to move • hover top/right/top-right to resize • /bfxp lock", 0.55, 0.62, 0.72)
     end
     GameTooltip:Show()
 end
