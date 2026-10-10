@@ -1,43 +1,42 @@
 # Better Forever XP
 
-**By Dezolve Labs**
+**By Dezolve Labs — World of Warcraft: Forever**
 
-Better Forever XP is a slim, modern experience bar designed for WoW Forever. It keeps the bar itself compact while putting detailed leveling information one hover away.
+A customizable Blizzard-inspired experience tube that keeps your leveling progress visible without crowding the game. Built for **WoW Forever 1.60.1 (interface 16001)**.
 
-## Bar display
+## XP bar
 
-- Current level and percentage
-- Exact XP values with commas plus compact notation, such as `4,500 (4.5K)`
-- Remaining XP
-- Remaining Blizzard-style bars, rounded to the nearest half-bar
-- Twenty subtle 5% divisions
-- Distinct colors for earned XP, rested coverage, and unearned XP
+- 20 visible five-percent segments with full-height brushed-steel dividers and an optional Blizzard-style silver midpoint marker
+- Rounded metallic tube with blue earned XP while rested, purple when not rested, dark-navy rested coverage, and a dark empty track
+- **Three text modes:** Tooltip only (clean default), Text on hover, or Always visible
+- Current XP, remaining XP, completion percentage, and bars left with compact or exact number formatting
+- Responsive text that stays within the bar; small percentages show two decimal places
 
-## Hover details
+## Detailed XP tooltip
 
-The tooltip is divided into Progress, Bonuses & Ready Quests, and Leveling Pace sections. It includes:
+Hover over the bar to see:
 
-- Current, remaining, and percentage progress
-- Bars left
-- Rested XP, rested percentage, and rested coverage in bars
-- XP from completed quests and projected progress after turning them in
-- Time spent on the current level
-- Session time and XP
-- XP per hour and estimated time to level
+- Current level, total/current/remaining XP, and bars left
+- Rested XP and remaining rested coverage
+- XP from completed quests, projected progress after turn-ins, and overflow into the next level where its XP curve is known
+- Session XP, XP/hour, time spent leveling, and estimated time to level
 
-Session rate data survives `/reload` and resets on a fresh character login.
+Session statistics survive `/reload`, without requiring additional libraries or addons.
 
-## Position and sizing
+## In-game settings
 
-Use `/bfxp unlock` and drag the bar, then `/bfxp lock` when finished. Shift-drag always moves it, even while locked.
+Type **`/bfxp`** or **right-click the XP bar** to open Settings → AddOns. Adjust width (300–1600px), height (10–120px), overall scale (0.5–3×), position, text mode, number format, midpoint marker, lock, and Blizzard bar visibility.
 
-Additional commands:
+Drag the unlocked bar to move it; Shift-drag works while locked. Hover just below the middle or over the right/bottom-right edge to reveal resize handles.
 
+## Useful commands
+
+- `/bfxp` — open settings
+- `/bfxp lock` / `/bfxp unlock` — lock or unlock
+- `/bfxp reset` — reset position and dimensions
 - `/bfxp width 300-1600`
-- `/bfxp height 10-30`
-- `/bfxp scale 0.5-2`
-- `/bfxp reset`
-- `/bfxp show` or `/bfxp hide`
-- `/bfxp default on|off`
+- `/bfxp height 10-120`
+- `/bfxp scale 0.5-3`
+- `/bfxp show` / `/bfxp hide`
 
-No libraries or other addons are required.
+No external dependencies. Compatible with **WoW Forever 1.60.1**.
