@@ -82,8 +82,8 @@ function addon.InitializeOptions()
     -- Two balanced rows avoid pushing the size sliders or reset buttons
     -- below the bottom of the Settings panel.
     AddCheckbox("enabled", "Enable custom XP bar", -72, "Display Better Forever XP when experience is available.")
-    AddCheckbox("showMidpointMarker", "Show 50% stone marker", -72,
-        "Show the carved-stone arrowhead at the halfway point of the XP bar.", 305)
+    AddCheckbox("showMidpointMarker", "Show 50% marker", -72,
+        "Show the classic silver-steel chevron marking the XP bar's halfway point.", 305)
     AddCheckbox("locked", "Lock position and resizing", -105, "Disable edge resizing and accidental movement.")
     AddCheckbox("hideBlizzard", "Hide Blizzard's XP bar", -105,
         "Show or hide Blizzard's XP bar immediately (or after combat).", 305)
