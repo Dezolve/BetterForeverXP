@@ -1,8 +1,14 @@
 name: Publish Better Forever XP to CurseForge
 
-# Manual-only and main-branch-only on purpose. A validation push or draft PR
-# must NEVER ship an unreviewed addon to an existing CurseForge listing.
+# Manual releases stay supported. A tightly-scoped one-time main-branch
+# merge with a specific release commit title can also publish 2.5.0 now.
+# Ordinary pushes and draft PRs cannot trigger a CurseForge upload.
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - CURSEFORGE_RELEASE_NOTES.md
   workflow_dispatch:
     inputs:
       version:
@@ -33,7 +39,11 @@ concurrency:
 jobs:
   publish:
     name: Validate, package and publish
-    if: github.ref == 'refs/heads/main'
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' &&
+       startsWith(github.event.head_commit.message, 'release: BetterForeverXP 2.5.0 CurseForge')))
     runs-on: ubuntu-latest
     env:
       CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_API_TOKEN }}
@@ -41,7 +51,7 @@ jobs:
       - name: Require explicit publishing confirmation and token
         shell: bash
         env:
-          CONFIRMATION: ${{ inputs.confirmation }}
+          CONFIRMATION: ${{ github.event_name == 'push' && 'PUBLISH' || inputs.confirmation }}
         run: |
           if [ "$CONFIRMATION" != "PUBLISH" ]; then
             echo "::error::Enter PUBLISH to confirm an upload to the public CurseForge project."
@@ -59,7 +69,7 @@ jobs:
         id: release_info
         shell: pwsh
         env:
-          REQUESTED_VERSION: ${{ inputs.version }}
+          REQUESTED_VERSION: ${{ github.event_name == 'push' && '2.5.0' || inputs.version }}
         run: |
           $ErrorActionPreference = 'Stop'
           $toc = Get-Content -LiteralPath 'BetterForeverXP/BetterForeverXP.toc' -Raw
@@ -108,7 +118,7 @@ jobs:
           game_endpoint: wow
           game_versions: "1.60.1"
           file_path: ${{ steps.release_info.outputs.zip_path }}
-          release_type: ${{ inputs.release_type }}
-          display_name: Better Forever XP ${{ inputs.version }}
+          release_type: ${{ github.event_name == 'push' && 'release' || inputs.release_type }}
+          display_name: Better Forever XP ${{ github.event_name == 'push' && '2.5.0' || inputs.version }}
           changelog: ${{ steps.release_info.outputs.changelog }}
           changelog_type: markdown
