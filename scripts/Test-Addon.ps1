@@ -56,6 +56,12 @@ if ($failures.Count -eq 0) {
     Assert-Condition ($lua -match 'handle:SetScript\("OnMouseUp", function\(self, button\)') 'Resize zones must also support right click.'
     Assert-Condition ($lua -match 'if addon[.]OpenOptions then addon[.]OpenOptions\(\) end') 'Right click should open existing settings.'
     Assert-Condition ($lua -match 'Right-click for options') 'Tooltip should advertise right-click settings.'
+    Assert-Condition ($lua -match 'if rested > 0 then\s+fill:SetStatusBarColor\(0[.]22, 0[.]48, 1[.]00, 1[.]00\)') 'Earned XP must be blue when rested XP remains.'
+    Assert-Condition ($lua -match 'else\s+fill:SetStatusBarColor\(0[.]48, 0[.]19, 0[.]61, 1[.]00\)') 'Earned XP must turn purple when rested XP is zero.'
+    Assert-Condition ($lua -match 'fillSheen:SetColorTexture\(0[.]78, 0[.]56, 0[.]88, 0[.]16\)') 'Unrested highlight must be tinted purple rather than blue.'
+    Assert-Condition ($lua -match 'fillSheen = fill:CreateTexture') 'Earned XP highlight should be dynamically recolorable.'
+    Assert-Condition ($lua -match 'eventFrame:RegisterEvent\("PLAYER_LEVEL_UP"\); eventFrame:RegisterEvent\("UPDATE_EXHAUSTION"\)') 'The XP bar must refresh when rested state changes.'
+    Assert-Condition ($lua -match 'restedFill:SetShown\(rested > 0\)') 'Rested coverage must disappear when rested XP reaches zero.'
 
     Assert-Condition ($lua -match 'local nextLevelXP = xpMax > 0 and math[.]max\(0, xp [+] questXP - xpMax\) or 0') 'Next-level carryover must be the positive excess XP beyond the current level cap.'
     Assert-Condition ($lua -match 'local projectedXP = math[.]min\(xpMax, xp [+] questXP\)') 'Existing after-turn-ins progress remains capped at the current level.'
