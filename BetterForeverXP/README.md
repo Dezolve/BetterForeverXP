@@ -87,9 +87,12 @@ Open **Settings → AddOns → Better Forever XP**, type `/bfxp`, or **right-cli
 - Toggle the custom bar, the decorative 50% metal marker, and Blizzard's XP
   bar; choose the XP number format or reset position and size. **Reset all
   defaults** also restores the marker to visible.
-- The bar changes text density as width shrinks to avoid overlapping labels.
-  Larger white XP labels use a heavier black outline so bright segment dividers
-  cannot disappear into the glyphs; small bars retain a compact outline.
+- Text labels now have genuinely non-overlapping layout regions, and use
+  measured text widths to automatically reduce detail before XP totals grow
+  too long. For example, `47,390 (47.4K) XP left • 20 bars left` can become
+  `47.4K left • 20 bars` when needed. The full exact values remain in the
+  tooltip. Large labels keep their strong black outline and have a faint dark
+  backing only behind the actual visible words, while small bars remain clean.
 - Existing installs keep their saved lock preference. Settings persist through
   relogs and `/reload`.
 - Unchecking **Hide Blizzard's XP bar** restores the native bar immediately;
