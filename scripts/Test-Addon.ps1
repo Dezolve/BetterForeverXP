@@ -59,17 +59,8 @@ if ($failures.Count -eq 0) {
     Assert-Condition ($options -match 'Settings.RegisterCanvasLayoutCategory') 'Options panel must register in native Settings.'
     Assert-Condition ($options -match 'Settings.OpenToCategory') 'Options shortcut must open the Settings category.'
     Assert-Condition ($options -match 'Lock position and scaling') 'Options panel is missing its lock control.'
-    Assert-Condition ($toc -match '(?m)^Options.lua | Where-Object { $_ -eq 0 } | Select-Object -First 1
-    Assert-Condition ($null -eq $nulBytes) 'Lua source contains a NUL byte.'
-}
-
-if ($failures.Count -gt 0) {
-    $failures | ForEach-Object { Write-Error $_ }
-    exit 1
-}
-
-Write-Host 'Better Forever XP validation passed.' -ForegroundColor Green
-) 'Options.lua must be listed in the addon TOC.'
+    Assert-Condition ($toc -match '(?m)^Options[.]lua$') 'Options.lua must be listed in the addon TOC.'
+    Assert-Condition ($options -notmatch '(?i)\\b(TODO|FIXME)\\b') 'Options source contains TODO or FIXME markers.'
     $optionsNulBytes = [System.IO.File]::ReadAllBytes($optionsPath) | Where-Object { $_ -eq 0 } | Select-Object -First 1
     Assert-Condition ($null -eq $optionsNulBytes) 'Options.lua contains a NUL byte.'
 
