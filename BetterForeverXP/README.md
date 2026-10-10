@@ -12,9 +12,11 @@ Earned XP uses a subtle vertical tube gradient: light blue above and deeper
 blue below while rested, switching to light/deep classic purple when the rested
 bonus ends. The remaining rested coverage has a secondary navy gradient;
 unearned XP sits in a softly shaded near-black channel. Dark upper and lower
-tube rims, a thin white inner reflection, bottom shading, and 2px softened
-outside corners add depth without a thick capsule frame. On older clients without gradient support, solid XP colors and
-the bevel highlights are retained.
+tube rims, a thin white inner reflection, and deeper bottom shading add
+visible depth. The ends now use height-aware stepped circular contours,
+with a matching metallic edge; the curve increases up to a restrained 16px
+radius at large bar heights instead of disappearing at 2px. On older clients
+without gradient support, solid XP colors and bevel highlights remain.
 Hover for exact progress, rested XP, completed quest
 XP ready to turn in, session XP, XP/hour, and estimated time to level.
 
@@ -37,12 +39,12 @@ Session XP and its start time survive `/reload`, so XP/hour and ETA do not reset
 while adjusting the UI. A genuine fresh character login starts a new session.
 
 The classic **20 visible 5%-XP segments** remain part of the tube design.
-Each divider now resembles a recessed metallic groove: a strongly darkened
-one-physical-pixel core with a white, vertically fading highlight beside it.
-Both use the same pixel-snapped placement, so they stay together as bar size
-and UI scale change. Separate contrast palettes keep the markers legible on
-earned XP, rested navy, and the empty track; the 50% groove is slightly more
-pronounced beneath the silver Blizzard arrow.
+Each divider now resembles a recessed metallic groove: a black core, a
+silver edge, a **brighter white center**, and pronounced dark caps at the top
+and bottom. Groove ends and center reflections adjust to the configured bar
+height. The columns remain pixel-snapped together at different UI scales,
+and contrast works across blue/purple XP, rested navy, and the empty track.
+The 50% divider remains centered beneath the native silver Blizzard arrow.
 The right-hand text still reports bars remaining, rounded to the nearest
 half-bar, such as `8.5 bars left`.
 
