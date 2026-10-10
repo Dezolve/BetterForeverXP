@@ -16,8 +16,10 @@ tube rims, a thin white inner reflection, and deeper bottom shading add
 visible depth. The ends now use height-aware stepped circular contours,
 with a matching metallic edge; the curve increases up to a restrained 16px
 radius at large bar heights instead of disappearing at 2px. The straight metal
-rails now terminate exactly where the curved cap begins, with no overlapping
-rectangular border or stray black corners. The background and both colored XP
+rails now join the curved cap outline on the immediately adjacent pixel,
+with no overlapping rectangular border or stray black corners. The earned XP
+sheen and lower shadow also extend through the visible rounded fill endcaps;
+a redundant dark top inset stripe has been removed. The background and both colored XP
 fills are now painted inside the same genuinely rounded silhouette: transparent
 outside the corners, with blue/purple earned and navy rested XP continuing into
 the visible endcaps rather than stopping at a squared-off track. The endcaps
@@ -46,14 +48,16 @@ Session XP and its start time survive `/reload`, so XP/hour and ETA do not reset
 while adjusting the UI. A genuine fresh character login starts a new session.
 
 The classic **20 visible 5%-XP segments** remain part of the tube design.
-Each 5% divider is a continuous recessed groove with a black core, silver
-edge, and white center reflection. Removing the separate black end blocks
-prevents dark gaps showing through the marks. All 19 dividers are positioned
+Each 5% divider now has a **3-physical-pixel dark groove with its silver
+reflection and white glint centered within it**, rather than offset to
+one side. Removing separate black end blocks prevents dark gaps showing
+through the marks. All 19 dividers are positioned
 at exact 5% positions across the **entire visible rounded tube**, including
 endcaps; earned and rested progress use the same absolute positions and
 pixel-snapped dividers adapt as the bar changes width/scale. The native
-Blizzard silver arrow now anchors directly to the same pixel-snapped 50%
-divider texture, preventing even small scale-dependent alignment drift.
+Blizzard silver arrow now anchors directly to the **centered white glint**
+of the pixel-snapped 50% divider, preventing an apparent offset between
+the arrow, white reflection and black groove.
 The right-hand text still reports bars remaining, rounded to the nearest
 half-bar, such as `8.5 bars left`.
 
