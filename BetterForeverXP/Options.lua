@@ -85,7 +85,7 @@ function addon.InitializeOptions()
 
     Label(panel, "Bar dimensions", 24, -179, "GameFontNormalLarge")
     AddSlider("width", "Width", -209, 300, 1600, 10, " px")
-    AddSlider("height", "Height", -273, 10, 40, 1, " px")
+    AddSlider("height", "Height", -273, 10, 120, 1, " px")
     AddSlider("scale", "Overall UI scale (including text)", -337, 0.5, 3, 0.05, "x")
 
     Label(panel, "XP number format", 24, -396, "GameFontNormal")
