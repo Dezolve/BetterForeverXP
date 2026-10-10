@@ -6,9 +6,9 @@ By Dezolve Labs
 
 - Adds a built-in Settings → AddOns panel, accessible through `/bfxp`, `/bfxp options`, or right-clicking the XP bar (including while locked or over a resize zone).
 - New installations start unlocked; existing installations retain their previous lock setting.
-- Adds invisible hover-resize zones: **below the bottom edge** adjusts height, **right edge** adjusts width, and **bottom-right corner** adjusts both. Large hit targets make the edges easy to catch.
-- Refines hover affordances: hovering anywhere just below the bar reveals a compact center line; the right edge shows a vertical grip; the bottom-right gold L-grip sits just outside the bar and adapts to bar height. The height hitbox no longer covers the bar and interfere with normal dragging or the XP tooltip. All hide off hover or when locked.
-- Refines the top-center grabber to a standalone warm-gold line with a thin translucent shadow, removing the bulky black plate without changing its full-width hover target or resizing behavior.
+- Adds invisible hover-resize zones: **above and below the bar** adjust height, **right edge** adjusts width, and **bottom-right corner** adjusts both. Large hit targets make the edges easy to catch.
+- Adds two gold WoW-style center chevrons: an upward caret above the bar and a downward V below. Their full-width hit zones stay outside the bar, preserving normal dragging and the XP tooltip. The right-edge vertical grip and external bottom-right L-grip remain unchanged. All hide off hover or when locked.
+- Replaces the straight height grabber with paired gold V-shaped artwork and subtle shadows, without heavy black plates.
 - Keeps direct mouse tracking and fixed opposite edges, and increases the proportional bar/text scale slider maximum from 2× to 3× (default remains 1×).
 - Locking the bar disables edge resizing and disables ordinary dragging; Shift-drag remains available.
 - Adds panel controls for enabled state, bar lock, Blizzard bar visibility, width, height, scale, number format, and resets.
