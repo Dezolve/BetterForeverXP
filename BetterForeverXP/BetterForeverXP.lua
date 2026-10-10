@@ -128,24 +128,28 @@ local function UpdateResizeHandles()
     end
 end
 
--- Resize from the bottom or right while fixing the top-left corner.
--- The height hit zone stays OUTSIDE the bottom edge so the entire bar
--- remains available for movement and the regular XP tooltip.
-local function AnchorForResizing()
+-- Resize handles remain outside the XP bar so its normal hover tooltip,
+-- dragging, and right-click options are never intercepted. Top-edge resizing
+-- anchors bottom-left; bottom/right/corner resizing anchors top-left.
+local function AnchorForResizing(mode)
     local parentScale = UIParent:GetEffectiveScale()
     local frameScale = bar:GetEffectiveScale()
     if not parentScale or parentScale <= 0 or not frameScale or frameScale <= 0 then
         return false
     end
-    local left, top = bar:GetLeft(), bar:GetTop()
-    local parentLeft, parentTop = UIParent:GetLeft(), UIParent:GetTop()
-    if not left or not top or not parentLeft or not parentTop then return false end
+    local topHandle = mode == "heightTop"
+    local point = topHandle and "BOTTOMLEFT" or "TOPLEFT"
+    local left = bar:GetLeft()
+    local barY = topHandle and bar:GetBottom() or bar:GetTop()
+    local parentLeft = UIParent:GetLeft()
+    local parentY = topHandle and UIParent:GetBottom() or UIParent:GetTop()
+    if not left or not barY or not parentLeft or not parentY then return false end
     local ratio = parentScale / frameScale
     local x = left - parentLeft * ratio
-    local y = top - parentTop * ratio
-    db.point, db.relativePoint, db.x, db.y = "TOPLEFT", "TOPLEFT", x, y
+    local y = barY - parentY * ratio
+    db.point, db.relativePoint, db.x, db.y = point, point, x, y
     bar:ClearAllPoints()
-    bar:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
+    bar:SetPoint(point, UIParent, point, x, y)
     return true
 end
 
@@ -204,7 +208,8 @@ local function CreateBar()
 
     -- Invisible edge hit zones, with subtle affordances shown only while the
     -- pointer is hovering or dragging. No permanent floating W/H/+ buttons.
-    -- Bottom edge grows downward; right edge grows rightward; bottom-right grows down/right.
+    -- Chevron handles outside the top and bottom edges resize height in
+    -- their respective directions; right and bottom-right grow outward.
     local MIN_WIDTH, MAX_WIDTH = 300, 1600
     local MIN_HEIGHT, MAX_HEIGHT = 10, 120
     local activeResize
@@ -229,7 +234,7 @@ local function CreateBar()
 
     local function BeginResize(handle, mode, button)
         if button ~= "LeftButton" or not db or db.locked then return end
-        if not AnchorForResizing() then return end
+        if not AnchorForResizing(mode) then return end
         local cursorX, cursorY = GetCursorPosition()
         local scale = bar:GetEffectiveScale()
         if not scale or scale <= 0 then scale = 1 end
@@ -249,19 +254,21 @@ local function CreateBar()
             local dx = (mx - activeResize.startX) / activeResize.effectiveScale
             local dy = (my - activeResize.startY) / activeResize.effectiveScale
             local width, height = activeResize.startWidth, activeResize.startHeight
-            if mode ~= "height" then
+            if mode ~= "height" and mode ~= "heightTop" then
                 -- Respect the screen boundary and the supported width range.
                 local available = math.max(MIN_WIDTH, UIParent:GetWidth() / db.scale - db.x)
                 width = math.floor(math.max(MIN_WIDTH,
                     math.min(MAX_WIDTH, available, width + dx)) + 0.5)
             end
             if mode ~= "width" then
-                -- Both the bottom edge and bottom-right corner follow the
-                -- cursor downward, growing from a stationary top-left corner.
+                -- Top chevron grows upward with the bottom fixed; bottom
+                -- chevron and corner grow downward with the top fixed.
+                local topHandle = mode == "heightTop"
                 local available = math.max(MIN_HEIGHT,
-                    UIParent:GetHeight() / db.scale + db.y)
+                    UIParent:GetHeight() / db.scale + (topHandle and -db.y or db.y))
+                local delta = topHandle and dy or -dy
                 height = math.floor(math.max(MIN_HEIGHT,
-                    math.min(MAX_HEIGHT, available, height - dy)) + 0.5)
+                    math.min(MAX_HEIGHT, available, height + delta)) + 0.5)
             end
             if width ~= db.width or height ~= db.height then
                 db.width, db.height = width, height
@@ -283,16 +290,27 @@ local function CreateBar()
         local indicator = CreateFrame("Frame", nil, handle)
         indicator:SetAllPoints()
         indicator:EnableMouse(false)
-        if mode == "height" then
-            -- Keep the wide bottom-edge hover area but show only a compact,
-            -- centered gold line with a faint shadow. This handle is below
-            -- the bar and cannot intercept the bar's drag or XP tooltip.
-            local shadow = MakeTexture(indicator, "OVERLAY", 0.02, 0.03, 0.05, 0.35)
-            shadow:SetPoint("CENTER", 0, 0)
-            shadow:SetSize(44, 7)
-            local grip = MakeTexture(indicator, "OVERLAY", 1, 0.82, 0.38, 1)
-            grip:SetPoint("CENTER", 0, 0)
-            grip:SetSize(40, 5)
+        if mode == "height" or mode == "heightTop" then
+            -- WoW-inspired paired gold chevrons. The artwork stays centered
+            -- while the transparent full-width hit zone is off the bar.
+            -- A V below indicates downward growth; an inverted V above
+            -- indicates upward growth. Both use a subtle dark stroke.
+            local topHandle = mode == "heightTop"
+            local leftAngle = topHandle and math.rad(45) or math.rad(-45)
+            local rightAngle = -leftAngle
+            for _, segment in ipairs({
+                { x = -5, angle = leftAngle },
+                { x = 5, angle = rightAngle },
+            }) do
+                local shadow = MakeTexture(indicator, "OVERLAY", 0.02, 0.03, 0.05, 0.75)
+                shadow:SetPoint("CENTER", indicator, "CENTER", segment.x, 0)
+                shadow:SetSize(18, 6)
+                shadow:SetRotation(segment.angle)
+                local gold = MakeTexture(indicator, "OVERLAY", 1, 0.82, 0.38, 1)
+                gold:SetPoint("CENTER", indicator, "CENTER", segment.x, 0)
+                gold:SetSize(16, 3)
+                gold:SetRotation(segment.angle)
+            end
         elseif mode == "width" then
             -- A proper vertical edge highlight, with a thicker central grip.
             local backing = MakeTexture(indicator, "OVERLAY", 0.03, 0.06, 0.10, 0.85)
@@ -356,13 +374,15 @@ local function CreateBar()
     -- preserving the bar body for movement and XP tooltip interactions.
     -- Bottom-right corner has a higher frame level than the width zone.
     AddResizeHandle("width", "RIGHT", 10, 0)
-    -- The 24px-high hitbox and its 2px insets end at the bottom border.
-    -- Nothing overlaps the XP bar's draggable and tooltip-bearing body.
-    AddResizeHandle("height", "BOTTOM", 0, -14)
+    -- Two entirely EXTERNAL 24px hit zones. With +/-16px offsets and
+    -- 2px hit insets, neither reaches the XP bar's actual mouse region.
+    AddResizeHandle("heightTop", "TOP", 0, 16)
+    AddResizeHandle("height", "BOTTOM", 0, -16)
     AddResizeHandle("corner", "BOTTOMRIGHT", 12, -10)
     resizeHandles.width:SetSize(24, math.max(28, db.height + 12))
-    -- Hover anywhere just BELOW the bar to reveal the centered grip.
-    -- The visual stays compact; the invisible target spans the bar width.
+    -- Hover anywhere just above/below the bar; only a small chevron shows
+    -- at its midpoint, leaving the bar itself draggable and hoverable.
+    resizeHandles.heightTop:SetSize(db.width, 24)
     resizeHandles.height:SetSize(db.width, 24)
     resizeHandles.corner:SetSize(30, 30)
     UpdateResizeHandles()
@@ -426,6 +446,7 @@ local function ApplyLayout()
         rightText:SetSize(db.width * 0.42 - 12, db.height)
     end
     resizeHandles.width:SetHeight(math.max(28, db.height + 12))
+    resizeHandles.heightTop:SetWidth(db.width)
     resizeHandles.height:SetWidth(db.width)
     -- Keep the original external corner-grab position and L shape, but
     -- resize the ARTWORK when the bar gets thin. This avoids a huge corner
@@ -550,7 +571,7 @@ local function ShowDetails()
     if db.locked then
         GameTooltip:AddLine("Right-click for options • Shift-drag to move • /bfxp unlock", 0.55, 0.62, 0.72)
     else
-        GameTooltip:AddLine("Right-click for options • drag to move • resize below/right edge", 0.55, 0.62, 0.72)
+        GameTooltip:AddLine("Right-click for options • drag to move • resize above/below/right", 0.55, 0.62, 0.72)
     end
     GameTooltip:Show()
 end
