@@ -51,8 +51,9 @@ edge, and white center reflection. Removing the separate black end blocks
 prevents dark gaps showing through the marks. All 19 dividers are positioned
 at exact 5% positions across the **entire visible rounded tube**, including
 endcaps; earned and rested progress use the same absolute positions and
-pixel-snapped dividers adapt as the bar changes width/scale. The 50% divider remains centered
-beneath the native silver Blizzard arrow.
+pixel-snapped dividers adapt as the bar changes width/scale. The native
+Blizzard silver arrow now anchors directly to the same pixel-snapped 50%
+divider texture, preventing even small scale-dependent alignment drift.
 The right-hand text still reports bars remaining, rounded to the nearest
 half-bar, such as `8.5 bars left`.
 
@@ -84,9 +85,13 @@ Open **Settings → AddOns → Better Forever XP**, type `/bfxp`, or **right-cli
   Width/height change the layout; scale proportionally grows
   or shrinks the entire presentation. Larger scales can exceed your screen
   width; use `/bfxp reset` to restore the defaults if needed.
+- **Show XP text only on hover** is enabled by default: the blue/purple XP tube,
+  20 divisions and silver midpoint marker stay unobstructed until you move the
+  pointer over the bar. Hover reveals concise values and the detailed tooltip.
+  Uncheck it for persistent text. This setting survives `/reload`; **Reset all
+  defaults** restores hover-only mode.
 - Toggle the custom bar, the decorative 50% metal marker, and Blizzard's XP
-  bar; choose the XP number format or reset position and size. **Reset all
-  defaults** also restores the marker to visible.
+  bar; choose the XP number format or reset position and size.
 - Text labels now have genuinely non-overlapping layout regions, and use
   measured text widths to automatically reduce detail before XP totals grow
   too long. For example, `47,390 (47.4K) XP left • 20 bars left` can become
