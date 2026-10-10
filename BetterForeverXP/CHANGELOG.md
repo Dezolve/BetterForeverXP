@@ -7,7 +7,7 @@ By Dezolve Labs
 - Adds a built-in Settings → AddOns panel, accessible through `/bfxp`, `/bfxp options`, or right-clicking the XP bar (including while locked or over a resize zone).
 - New installations start unlocked; existing installations retain their previous lock setting.
 - Adds invisible hover-resize zones: **below the bottom edge** adjusts height, **right edge** adjusts width, and **bottom-right corner** adjusts both. Large hit targets make the edges easy to catch.
-- Adds a pair of permanent WoW Classic-inspired stone chevron notches just outside the top and bottom at the horizontal 50% mark. Purely decorative; they do not intercept dragging, tooltips, right-clicks, or resizing.
+- Adds one permanent, solid carved-stone notch at the top border's 50% point, replacing the two floating chevrons. The beveled chip is decorative and mouse-transparent; the XP tooltip, dragging, right-click options, and bottom-only height resizing are preserved.
 - Refines hover affordances: hovering anywhere just below the bar reveals a compact center line; the right edge shows a vertical grip; the bottom-right gold L-grip sits just outside the bar and adapts to bar height. The height hitbox no longer covers the bar and interfere with normal dragging or the XP tooltip. All hide off hover or when locked.
 - Refines the top-center grabber to a standalone warm-gold line with a thin translucent shadow, removing the bulky black plate without changing its full-width hover target or resizing behavior.
 - Keeps direct mouse tracking and fixed opposite edges, and increases the proportional bar/text scale slider maximum from 2× to 3× (default remains 1×).
