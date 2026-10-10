@@ -28,9 +28,10 @@ top sheen and bottom shading now carry through the rounded caps. The tube's back
 now extend through genuinely curved endcaps rather than a square hidden track,
 and dividers/XP fill boundaries now agree at exact percentages across the
 entire visible tube width.
-Each divider now uses a dark gunmetal 3-pixel groove with a **full-height,
-muted steel-silver reflection** centered inside it, without separate offset
-bars. The 50% Blizzard chip gets a subtle cool-steel tint to match. Markers remain aligned
+Each divider keeps its **full-height muted steel-silver reflection** centered
+inside a gunmetal groove. Thin bars (10–24px) use a lighter 2-physical-pixel
+groove, while taller bars retain the original 3px treatment, without
+changing the divider positions or creating offset bars. The 50% Blizzard chip gets a subtle cool-steel tint to match. Markers remain aligned
 to physical pixels at different bar sizes and scales. The Blizzard silver arrow is anchored directly to the white center of
 the 50% groove. XP remains blue while rested and purple when unrested;
 the rested extension stays dark navy. Its blue earned fill now uses a
