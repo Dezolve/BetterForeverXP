@@ -250,17 +250,19 @@ local function CreateBar()
 
         -- A solid steel point reaches through the top border without
         -- covering the XP text or capturing its mouse events.
-        local tipShadow = MakeTexture(midpointMarker, "BACKGROUND", 0.01, 0.02, 0.03, 0.82)
-        tipShadow:SetPoint("CENTER", bar, "TOP", 0, -1.8)
-        tipShadow:SetSize(5, 3)
+        -- Softer, shorter shadow keeps a dark spike from protruding below
+        -- the polished tip at normal WoW UI scale.
+        local tipShadow = MakeTexture(midpointMarker, "BACKGROUND", 0.01, 0.02, 0.03, 0.45)
+        tipShadow:SetPoint("CENTER", bar, "TOP", 0, -1.1)
+        tipShadow:SetSize(3.2, 1.4)
 
-        local tip = MakeTexture(midpointMarker, "ARTWORK", 0.64, 0.69, 0.75, 1)
-        tip:SetPoint("CENTER", bar, "TOP", 0, -1.2)
-        tip:SetSize(4, 3)
+        local tip = MakeTexture(midpointMarker, "ARTWORK", 0.68, 0.73, 0.79, 1)
+        tip:SetPoint("CENTER", bar, "TOP", 0, -1.0)
+        tip:SetSize(3.4, 2.4)
 
-        local tipHighlight = MakeTexture(midpointMarker, "OVERLAY", 0.90, 0.92, 0.95, 0.75)
-        tipHighlight:SetPoint("CENTER", bar, "TOP", 0, -0.8)
-        tipHighlight:SetSize(2.5, 0.8)
+        local tipHighlight = MakeTexture(midpointMarker, "OVERLAY", 0.94, 0.95, 0.97, 0.72)
+        tipHighlight:SetPoint("CENTER", bar, "TOP", 0, -0.55)
+        tipHighlight:SetSize(2.0, 0.7)
     end
     AddMetalMidpointMarker()
     midpointMarker:SetShown(db.showMidpointMarker)
