@@ -9,9 +9,9 @@ details one hover away. It shows exact and abbreviated XP values, rested XP,
 completed-quest XP, session pace, time to level, and progress in Blizzard-style
 five-percent bars. It has no external dependencies.
 
-A small carved-stone arrowhead marks the 50% position along the top border
-without covering labels or capturing mouse input. It is on by default and
-can be hidden with **Show 50% stone marker** in the Options panel.
+A small silver-and-dark-steel WoW Classic-style V arrow marks 50% along the
+top border without covering labels or capturing mouse input. It is on by default
+and can be hidden with **Show 50% marker** in the Options panel.
 
 ## Install
 
