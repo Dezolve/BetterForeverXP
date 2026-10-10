@@ -213,6 +213,14 @@ local function CreateBar()
     local MIN_HEIGHT, MAX_HEIGHT = 10, 120
     local activeResize
 
+    -- Right-click from the bar body or its hover-resize hit zones opens the
+    -- existing Settings panel, including when the bar is locked.
+    local function OpenBarOptions(button)
+        if button ~= "RightButton" then return end
+        if GameTooltip:GetOwner() == bar then GameTooltip:Hide() end
+        if addon.OpenOptions then addon.OpenOptions() end
+    end
+
     local function FinishResize(handle)
         if not activeResize or activeResize.handle ~= handle then return end
         handle:SetScript("OnUpdate", nil)
@@ -339,7 +347,10 @@ local function CreateBar()
         handle:SetScript("OnMouseDown", function(self, button)
             BeginResize(self, mode, button)
         end)
-        handle:SetScript("OnMouseUp", function(self) FinishResize(self) end)
+        handle:SetScript("OnMouseUp", function(self, button)
+            if button == "RightButton" then OpenBarOptions(button)
+            else FinishResize(self) end
+        end)
         handle:SetScript("OnHide", function(self)
             FinishResize(self)
             self.resizeIndicator:Hide()
@@ -360,6 +371,9 @@ local function CreateBar()
     resizeHandles.corner:SetSize(30, 30)
     UpdateResizeHandles()
 
+    bar:SetScript("OnMouseUp", function(_, button)
+        OpenBarOptions(button)
+    end)
     bar:SetScript("OnDragStart", function(self)
         -- Shift-drag is an escape hatch that always works, even after the bar
         -- has been locked to prevent accidental movement.
@@ -538,9 +552,9 @@ local function ShowDetails()
     GameTooltip:AddDoubleLine("Estimated level", rate > 0 and FormatTime(remaining / rate * 3600) or "Waiting for XP gain", 0.72, 0.77, 0.86, 0.55, 1, 0.64)
     GameTooltip:AddLine(" ")
     if db.locked then
-        GameTooltip:AddLine("Shift-drag to move • /bfxp unlock for normal dragging", 0.55, 0.62, 0.72)
+        GameTooltip:AddLine("Right-click for options • Shift-drag to move • /bfxp unlock", 0.55, 0.62, 0.72)
     else
-        GameTooltip:AddLine("Drag to move • hover top/right/bottom-right to resize • /bfxp lock", 0.55, 0.62, 0.72)
+        GameTooltip:AddLine("Right-click for options • drag to move • hover edges to resize", 0.55, 0.62, 0.72)
     end
     GameTooltip:Show()
 end
