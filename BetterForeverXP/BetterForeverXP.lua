@@ -197,37 +197,30 @@ local function CreateBar()
     restedEndMarker:SetColorTexture(0.78, 0.67, 0.43, 0.96)
     restedEndMarker:SetWidth(2)
 
-    -- Decorative 50% markers, inspired by carved stone UI accents in
-    -- classic WoW. A small downward notch sits ABOVE the midpoint, and
-    -- an upward notch sits BELOW it; neither covers the XP labels.
-    -- Textures cannot capture mouse input, so normal dragging, tooltip,
-    -- right-click options, and the existing bottom resize strip all work.
-    local function AddStoneMidpointNotch(edge)
-        local top = edge == "TOP"
-        local y = top and 7 or -7
-        local angle = math.pi / 4
-        for _, arm in ipairs({
-            { x = -3.5, rotation = top and -angle or angle },
-            { x = 3.5, rotation = top and angle or -angle },
-        }) do
-            local shadow = MakeTexture(tickLayer, "OVERLAY", 0.015, 0.023, 0.035, 0.85)
-            shadow:SetSize(11, 5)
-            shadow:SetPoint("CENTER", bar, edge, arm.x, y - 0.7)
-            shadow:SetRotation(arm.rotation)
+    -- One permanent, carved-stone chip at the 50% mark, attached to the
+    -- TOP border. A solid tapered arrowhead reads more like classic WoW
+    -- ornamentation than floating V-shaped resize handles. Its tip only
+    -- crosses the border by 2px, leaving XP text clear even at min height.
+    -- All parts are textures in a mouse-disabled layer: no input capture.
+    local function AddStoneMidpointMarker()
+        local widths = {18, 18, 16, 14, 12, 10, 8, 6, 4}
+        for index, width in ipairs(widths) do
+            local y = 8 - index -- 7px above the top edge, tapering into it
+            local shadow = MakeTexture(tickLayer, "OVERLAY", 0.025, 0.03, 0.045, 0.9)
+            shadow:SetPoint("CENTER", bar, "TOP", 0, y - 0.6)
+            shadow:SetSize(width + 2, 1.9)
 
-            local stone = MakeTexture(tickLayer, "OVERLAY", 0.38, 0.43, 0.49, 1)
-            stone:SetSize(10, 3)
-            stone:SetPoint("CENTER", bar, edge, arm.x, y)
-            stone:SetRotation(arm.rotation)
-
-            local bevel = MakeTexture(tickLayer, "OVERLAY", 0.76, 0.78, 0.74, 0.9)
-            bevel:SetSize(8, 1)
-            bevel:SetPoint("CENTER", bar, edge, arm.x, y + 0.5)
-            bevel:SetRotation(arm.rotation)
+            local shade = 0.45 - (index - 1) * 0.022
+            local stone = MakeTexture(tickLayer, "OVERLAY", shade * 0.9, shade, shade * 1.08, 1)
+            stone:SetPoint("CENTER", bar, "TOP", 0, y)
+            stone:SetSize(width, 1.45)
         end
+        -- A narrow aged-metal highlight gives the chip a carved rim.
+        local bevel = MakeTexture(tickLayer, "OVERLAY", 0.7, 0.66, 0.54, 0.85)
+        bevel:SetPoint("CENTER", bar, "TOP", 0, 7.5)
+        bevel:SetSize(16, 1)
     end
-    AddStoneMidpointNotch("TOP")
-    AddStoneMidpointNotch("BOTTOM")
+    AddStoneMidpointMarker()
 
     -- A separate child frame keeps every label above both status-bar fills.
     textLayer = CreateFrame("Frame", nil, bar)
