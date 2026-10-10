@@ -16,7 +16,7 @@ local restedEndMarker
 local midpointMarker
 local textLayer
 local tickLayer, tickMarks = nil, {}
-local tubeRim, endCapCuts = nil, {}
+local tubeRim, tubeBackground, endCapCuts, capPaints = nil, nil, {}, {}
 local leftText, centerText, rightText
 local eventFrame = CreateFrame("Frame")
 local sessionStart, sessionXP = GetTime(), 0
@@ -162,23 +162,45 @@ local function ApplyBeveledTick(tick, region)
     -- near-black sockets at both ends of every recessed 5% groove.
     tick.glint:SetColorTexture(1, 1, 1,
         tick.isCenter and 0.82 or (region == "earned" and 0.64 or 0.76))
-    tick.topNotch:SetColorTexture(0.0, 0.0, 0.0, 0.93)
-    tick.bottomNotch:SetColorTexture(0.0, 0.0, 0.0, 0.96)
 end
 
--- Rounded visual endcaps are built from small, resizable columns so their
--- curvature remains proportionate as the bar height changes (10-120 px).
--- This also retains a reliable rectangular mouse hitbox and does not require
--- undocumented texture assets or clipping APIs on the Classic beta.
+-- The visible rounded tube is a continuous center track with two shaped
+-- endcaps. All fills, the 5% divisions and the steel frame use this geometry.
 local MAX_CORNER_RADIUS = 16
 
-local function UpdateTubeCaps(height, width)
+local function TubeGeometry(height, width)
     local radius = math.min(MAX_CORNER_RADIUS, math.max(3, math.floor(height * 0.44 + 0.5)))
+    return radius, radius, math.max(1, width - radius * 2)
+end
 
-    -- Use the SAME circular profile to position the curved ends and their
-    -- straight top/bottom rails. Previously AddBorder() painted a second
-    -- rectangular outline through the rounded corners, causing misaligned
-    -- black segments and stray horizontal protrusions.
+local capColors = {
+    blue = {
+        bottom = {0.12, 0.31, 0.72}, top = {0.41, 0.66, 1.00}, flat = {0.22, 0.48, 1.00},
+    },
+    purple = {
+        bottom = {0.29, 0.10, 0.40}, top = {0.64, 0.36, 0.77}, flat = {0.48, 0.19, 0.61},
+    },
+    rested = {
+        bottom = {0.013, 0.042, 0.105}, top = {0.085, 0.17, 0.31}, flat = {0.025, 0.075, 0.18},
+    },
+}
+
+local function SetCapPaint(cap, region)
+    if cap.region == region then return end
+    cap.region = region
+    if not region then
+        cap.paint:Hide()
+        return
+    end
+    local colors = capColors[region]
+    if not ApplyVerticalGradient(cap.paint, colors.bottom, colors.top) then
+        cap.paint:SetColorTexture(colors.flat[1], colors.flat[2], colors.flat[3], 1)
+    end
+    cap.paint:Show()
+end
+
+local function UpdateTubeCaps(height, width)
+    local radius, visualLeft, visualWidth = TubeGeometry(height, width)
     local cuts = {}
     local railInset = radius
     for i = 0, MAX_CORNER_RADIUS - 1 do
@@ -195,26 +217,52 @@ local function UpdateTubeCaps(height, width)
         end
     end
 
+    -- The track background is NOT a rectangle hiding behind opaque black
+    -- corners. Its center is rectangular and only the actual visible pixels
+    -- of each rounded end are painted. Outside those columns is transparent.
+    tubeBackground:ClearAllPoints()
+    tubeBackground:SetPoint("TOPLEFT", bar, "TOPLEFT", visualLeft, 0)
+    tubeBackground:SetPoint("BOTTOMRIGHT", bar, "BOTTOMLEFT", visualLeft + visualWidth, 0)
+    restedFill:ClearAllPoints()
+    restedFill:SetPoint("TOPLEFT", bar, "TOPLEFT", visualLeft, -1)
+    restedFill:SetPoint("BOTTOMRIGHT", bar, "BOTTOMLEFT", visualLeft + visualWidth, 1)
+
+    for _, cap in ipairs(capPaints) do
+        local trim = cuts[cap.column]
+        if cap.column < radius then
+            for _, texture in ipairs({cap.background, cap.paint}) do
+                texture:ClearAllPoints()
+                if cap.right then
+                    texture:SetPoint("TOPRIGHT", bar, "TOPRIGHT", -cap.column, -trim)
+                else
+                    texture:SetPoint("TOPLEFT", bar, "TOPLEFT", cap.column, -trim)
+                end
+                texture:SetSize(1, math.max(1, height - 2 * trim))
+            end
+            cap.background:Show()
+            cap.paint:SetShown(cap.region ~= nil)
+        else
+            cap.background:Hide()
+            cap.paint:Hide()
+        end
+    end
+
     local outerTrim = cuts[0]
     for _, cap in ipairs(endCapCuts) do
-        local i = cap.column
-        local trimHeight = cuts[i]
-        if i < radius and trimHeight > 0 then
-            cap.cut:SetSize(1, trimHeight)
-            cap.cut:Show()
+        local trim = cuts[cap.column]
+        if cap.column < radius and trim > 0 then
             cap.edge:Show()
             cap.edge:SetSize(1, 1)
             cap.edge:ClearAllPoints()
-            local offset = cap.right and -i or i
+            local offset = cap.right and -cap.column or cap.column
             if cap.top then
                 local anchor = cap.right and "TOPRIGHT" or "TOPLEFT"
-                cap.edge:SetPoint(anchor, cap.host, anchor, offset, -trimHeight)
+                cap.edge:SetPoint(anchor, cap.host, anchor, offset, -trim)
             else
                 local anchor = cap.right and "BOTTOMRIGHT" or "BOTTOMLEFT"
-                cap.edge:SetPoint(anchor, cap.host, anchor, offset, trimHeight)
+                cap.edge:SetPoint(anchor, cap.host, anchor, offset, trim)
             end
         else
-            cap.cut:Hide()
             cap.edge:Hide()
         end
     end
@@ -229,25 +277,18 @@ local function UpdateTubeCaps(height, width)
             texture:SetPoint("BOTTOMRIGHT", tubeRim, "BOTTOMRIGHT", -inset, y)
         end
     end
-
-    -- The outer steel rail begins exactly where the curved pixel contour
-    -- reaches the straight top/bottom edge; there is no second square border.
     SetHorizontalRail(tubeRim.topEdge, true, railInset, 0)
     SetHorizontalRail(tubeRim.bottomEdge, false, railInset, 0)
     SetHorizontalRail(tubeRim.topInsetShade, true, railInset + 1, -1)
     SetHorizontalRail(tubeRim.innerTopHighlight, true, railInset + 2, -2)
     SetHorizontalRail(tubeRim.innerBottomShade, false, railInset + 2, 2)
 
-    -- Join the top and bottom curves with only the straight center portions
-    -- of the side rails, so no full-height rectangle leaks into the caps.
     for _, side in ipairs({{tubeRim.leftEdge, "LEFT"}, {tubeRim.rightEdge, "RIGHT"}}) do
         local edge, align = side[1], side[2]
         edge:ClearAllPoints()
         edge:SetPoint("TOP" .. align, tubeRim, "TOP" .. align, 0, -outerTrim - 1)
         edge:SetPoint("BOTTOM" .. align, tubeRim, "BOTTOM" .. align, 0, outerTrim + 1)
     end
-    -- Thin outer steel edge + restrained interior black bevel work at 10px
-    -- without becoming a dark slab at 80-120px.
     tubeRim.topEdge:SetHeight(1)
     tubeRim.bottomEdge:SetHeight(1)
     tubeRim.topInsetShade:SetHeight(math.max(1, math.min(3, math.floor(height * 0.08 + 0.5))))
@@ -305,14 +346,14 @@ local function CreateBar()
 
     -- A shallow vertical gradient gives the empty track some depth while
     -- keeping its original dark, readable appearance.
-    local background = MakeTexture(bar, "BACKGROUND", 0.012, 0.017, 0.025, 0.97)
-    background:SetAllPoints()
-    ApplyVerticalGradient(background,
+    tubeBackground = MakeTexture(bar, "BACKGROUND", 0.012, 0.017, 0.025, 0.97)
+    ApplyVerticalGradient(tubeBackground,
         {0.006, 0.012, 0.022, 0.98}, {0.055, 0.077, 0.12, 0.98})
-    -- The rounded tube draws one unified outline on tubeRim/endCapTrim.
+    -- The rounded track has no full-width background to leave square corners.
 
     restedFill = CreateFrame("StatusBar", nil, bar)
-    restedFill:SetPoint("TOPLEFT", 1, -1); restedFill:SetPoint("BOTTOMRIGHT", -1, 1)
+    -- Its horizontal anchors are assigned from TubeGeometry at layout time.
+    -- The matching cap strips extend the earned/rested fill to the very ends.
     restedFill:SetStatusBarTexture("Interface\\Buttons\\WHITE8X8")
     restedFill:SetFrameLevel(bar:GetFrameLevel() + 1)
     -- Blizzard-style hierarchy: earned XP is blue while rested, purple
@@ -349,6 +390,26 @@ local function CreateBar()
     spark = fill:CreateTexture(nil, "OVERLAY")
     spark:SetColorTexture(0.78, 0.67, 0.43, 0.98); spark:SetWidth(2)
     spark:SetPoint("TOP"); spark:SetPoint("BOTTOM")
+
+    -- Complete both rounded ends with genuinely shaped track and fill
+    -- columns. No opaque corner covers or unsupported alpha-mask APIs.
+    local capFillLayer = CreateFrame("Frame", nil, bar)
+    capFillLayer:SetAllPoints(bar)
+    capFillLayer:SetFrameLevel(bar:GetFrameLevel() + 3)
+    capFillLayer:EnableMouse(false)
+    for _, right in ipairs({false, true}) do
+        for column = 0, MAX_CORNER_RADIUS - 1 do
+            local backgroundCap = MakeTexture(bar, "BACKGROUND", 0.012, 0.017, 0.025, 0.97)
+            ApplyVerticalGradient(backgroundCap,
+                {0.006, 0.012, 0.022, 0.98}, {0.055, 0.077, 0.12, 0.98})
+            local paint = MakeTexture(capFillLayer, "ARTWORK", 0.22, 0.48, 1.00, 1)
+            paint:Hide()
+            capPaints[#capPaints + 1] = {
+                background = backgroundCap, paint = paint,
+                right = right, column = column,
+            }
+        end
+    end
 
     -- Add a restrained metal tube frame above the status-bar fills. Using a
     -- separate mouse-transparent frame keeps these lines visible on earned,
@@ -394,36 +455,24 @@ local function CreateBar()
         rim:SetPoint("BOTTOMLEFT", core, "BOTTOMRIGHT", 0, 0)
         local glint = MakeTexture(tickLayer, "OVERLAY", 1, 1, 1, 0.68)
         glint:SetPoint("CENTER", rim, "CENTER", 0, 0)
-        local topNotch = MakeTexture(tickLayer, "OVERLAY", 0, 0, 0, 0.94)
-        topNotch:SetPoint("TOP", core, "TOP")
-        local bottomNotch = MakeTexture(tickLayer, "OVERLAY", 0, 0, 0, 0.96)
-        bottomNotch:SetPoint("BOTTOM", core, "BOTTOM")
         if index == 10 then
             core:SetPoint("TOP", tickLayer, "TOP", 0, -1)
             core:SetPoint("BOTTOM", tickLayer, "BOTTOM", 0, 1)
         end
         tickMarks[index] = {
             core = core, rim = rim, glint = glint,
-            topNotch = topNotch, bottomNotch = bottomNotch,
             isCenter = index == 10,
         }
     end
-    -- The old fixed 2px squares were invisible at high bar heights.
-    -- Shape the ends with a stepped circular contour and a metallic rim.
-    -- These art-only caps are above fills/grooves but below readable text.
+    -- Draw only the curved metallic contour over each genuinely shaped end.
+    -- No cap.cut overlays: the empty rounded corners stay transparent.
     local endCapTrim = CreateFrame("Frame", nil, bar)
     endCapTrim:SetAllPoints(bar)
     endCapTrim:SetFrameLevel(bar:GetFrameLevel() + 7)
     endCapTrim:EnableMouse(false)
     for _, right in ipairs({false, true}) do
         for _, top in ipairs({false, true}) do
-            local anchor
-            if top then anchor = right and "TOPRIGHT" or "TOPLEFT"
-            else anchor = right and "BOTTOMRIGHT" or "BOTTOMLEFT" end
             for column = 0, MAX_CORNER_RADIUS - 1 do
-                local offset = right and -column or column
-                local cut = MakeTexture(endCapTrim, "OVERLAY", 0.006, 0.010, 0.018, 0.99)
-                cut:SetPoint(anchor, endCapTrim, anchor, offset, 0)
                 local edge
                 if top then
                     edge = MakeTexture(endCapTrim, "OVERLAY", 0.40, 0.47, 0.58, 0.96)
@@ -431,7 +480,7 @@ local function CreateBar()
                     edge = MakeTexture(endCapTrim, "OVERLAY", 0.28, 0.34, 0.44, 0.96)
                 end
                 endCapCuts[#endCapCuts + 1] = {
-                    cut = cut, edge = edge, column = column, right = right,
+                    edge = edge, column = column, right = right,
                     top = top, host = endCapTrim,
                 }
             end
@@ -721,19 +770,17 @@ local function ApplyLayout()
     local effectiveScale = tickLayer:GetEffectiveScale()
     if not effectiveScale or effectiveScale <= 0 then effectiveScale = 1 end
     local pixel = 1 / effectiveScale
+    local _, visualLeft, visualWidth = TubeGeometry(db.height, db.width)
     for index, tick in ipairs(tickMarks) do
         tick.core:SetWidth(pixel)
         tick.rim:SetWidth(pixel)
         tick.glint:SetWidth(pixel)
-        tick.topNotch:SetWidth(pixel)
-        tick.bottomNotch:SetWidth(pixel)
+        -- A single continuous groove, with a central white reflection.
+        -- Removing stacked black end-blocks eliminates the dark gaps.
         local grooveHeight = math.max(2, db.height - 2)
-        local notchHeight = math.max(1, math.min(5, math.floor(grooveHeight * 0.13 + 0.5)))
-        tick.topNotch:SetHeight(notchHeight)
-        tick.bottomNotch:SetHeight(notchHeight)
-        tick.glint:SetHeight(math.max(1, grooveHeight - notchHeight * 2 - 2))
+        tick.glint:SetHeight(math.max(1, math.floor(grooveHeight * 0.65 + 0.5)))
         if index ~= 10 then
-            local x = math.floor(db.width * index / 20 * effectiveScale + 0.5) * pixel
+            local x = math.floor((visualLeft + visualWidth * index / 20) * effectiveScale + 0.5) * pixel
             tick.core:ClearAllPoints()
             tick.core:SetPoint("TOP", tickLayer, "TOPLEFT", x, -1)
             tick.core:SetPoint("BOTTOM", tickLayer, "BOTTOMLEFT", x, 1)
@@ -954,7 +1001,7 @@ local function UpdateBar()
     end
     local remaining, percent = math.max(0, xpMax - xp), xp / xpMax * 100
     local barsLeft = remaining / xpMax * 20
-    local innerWidth = math.max(1, db.width - 2)
+    local _, _, innerWidth = TubeGeometry(db.height, db.width)
     local earnedWidth = innerWidth * xp / xpMax
     local restedAmount = math.min(rested, remaining)
     local restedWidth = innerWidth * restedAmount / xpMax
@@ -964,6 +1011,21 @@ local function UpdateBar()
     restedEndMarker:SetPoint("TOP", restedFill, "TOPLEFT", earnedWidth + restedWidth, 0)
     restedEndMarker:SetPoint("BOTTOM", restedFill, "BOTTOMLEFT", earnedWidth + restedWidth, 0)
     restedEndMarker:SetShown(restedWidth >= 2)
+    -- Paint the curved ends with the SAME status colors as the inner tube:
+    -- left end follows the first earned/rested pixel; the right end only
+    -- colors in when progress (earned or rested) reaches the tube's end.
+    local earnedCapColor = rested > 0 and "blue" or "purple"
+    for _, cap in ipairs(capPaints) do
+        local region
+        if cap.right then
+            if xp >= xpMax then region = earnedCapColor
+            elseif xp + rested >= xpMax and rested > 0 then region = "rested" end
+        else
+            if xp > 0 then region = earnedCapColor
+            elseif rested > 0 then region = "rested" end
+        end
+        SetCapPaint(cap, region)
+    end
     -- Recolor only when a tick crosses an earned/rested/empty boundary.
     -- Each region gets its own low-contrast metallic groove gradient.
     for index, tick in ipairs(tickMarks) do
