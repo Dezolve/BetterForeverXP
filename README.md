@@ -7,7 +7,10 @@ A slim, standalone experience bar for WoW Forever, by Dezolve Labs.
 Better Forever XP keeps the always-visible interface compact and puts the
 details one hover away. It shows exact and abbreviated XP values, rested XP,
 completed-quest XP, session pace, time to level, and progress in Blizzard-style
-five-percent bars. It has no external dependencies.
+five-percent bars. Under **After turn-ins**, its hover tooltip shows how much
+ready-quest XP would spill into the next level (0 XP until the level threshold
+is reached). This is shown as raw XP, not a next-level percent. The addon has
+no external dependencies.
 
 A small silver-and-dark-steel WoW Classic-style V arrow marks 50% along the
 top border without covering labels or capturing mouse input. It is on by default
