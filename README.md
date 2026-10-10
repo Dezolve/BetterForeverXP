@@ -9,6 +9,9 @@ details one hover away. It shows exact and abbreviated XP values, rested XP,
 completed-quest XP, session pace, time to level, and progress in Blizzard-style
 five-percent bars. It has no external dependencies.
 
+Small stone-carved arrows permanently mark the bar's 50% position above and
+below the XP track, without covering labels or capturing mouse input.
+
 ## Install
 
 1. Download the latest `BetterForeverXP-<version>.zip` from GitHub Releases.
@@ -23,12 +26,12 @@ This addon targets the WoW Forever beta client interface listed in
 
 Type **`/bfxp`** or **right-click the XP bar** to open its Options panel under **Settings → AddOns**. Right-click also works when locked.
 The XP bar starts **unlocked on new installations**. Drag its body to move it.
-Hover **just above or below the bar**, anywhere along its width, to reveal
-small gold chevrons at the midpoint. The upper caret resizes height upward;
-the lower V resizes downward. Both hover strips sit entirely outside the
-bar to preserve normal dragging, right-click settings, and the XP tooltip.
-Hover the **right edge** for width, or the external **bottom-right corner**
-for both dimensions. The corner's artwork shrinks with thin bars. The
+Hover **just below the bottom edge**, anywhere along the bar, to reveal the
+compact centered height grip; drag it downward to increase thickness. The
+height hover strip sits entirely outside the bar, leaving normal dragging and
+the XP tooltip unobstructed. Hover the **right edge** to resize width, or the
+**bottom-right corner** to resize both. The corner grip sits outside the bar
+for easy grabbing, and its artwork shrinks with thin bars. The
 separate scale slider adjusts the entire bar and its text up to 3×.
 At large scales the bar may exceed the screen width; `/bfxp reset` restores
 its default size and position.
