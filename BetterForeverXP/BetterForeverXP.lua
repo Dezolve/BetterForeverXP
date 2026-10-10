@@ -200,12 +200,16 @@ local function CreateBar()
 
     -- The 50% stone ornament gets its own mouse-transparent frame so players
     -- can hide every layer of the chip without affecting XP ticks or text.
-    midpointMarker = CreateFrame("Frame", nil, tickLayer)
-    midpointMarker:SetAllPoints(bar)
+    -- Dedicated marker frame includes the part ABOVE the XP bar: a frame
+    -- bounded to the bar itself can clip the colored stone/bevel there.
+    -- Keep it mouse-transparent and separate from the text/resize layers.
+    midpointMarker = CreateFrame("Frame", nil, bar)
+    midpointMarker:SetSize(32, 18)
+    midpointMarker:SetPoint("BOTTOM", bar, "TOP", 0, -4)
     midpointMarker:SetFrameLevel(tickLayer:GetFrameLevel() + 1)
     midpointMarker:EnableMouse(false)
-    -- Slate stone inside aged bronze. Lower it 1.5px to visually join the
-    -- top border while keeping the label area clear at short bar heights.
+    -- Slate stone inside aged bronze. Keep the previously lowered 1.5px
+    -- position, now with all of the ornament inside its rendering bounds.
     local function AddStoneMidpointMarker()
         local widths = {20, 20, 18, 16, 14, 12, 10, 8, 6, 4}
         for index, width in ipairs(widths) do
@@ -213,12 +217,12 @@ local function CreateBar()
 
             -- Recessed shadow: creates the look of a metal fitting mounted
             -- directly to the XP bar instead of floating over the terrain.
-            local shadow = MakeTexture(midpointMarker, "OVERLAY", 0.015, 0.022, 0.035, 0.8)
+            local shadow = MakeTexture(midpointMarker, "BACKGROUND", 0.015, 0.022, 0.035, 0.66)
             shadow:SetPoint("CENTER", bar, "TOP", 0, y - 0.8)
             shadow:SetSize(width + 2, 1.8)
 
             -- Warm, desaturated bronze silhouette follows the tapered tip.
-            local rim = MakeTexture(midpointMarker, "OVERLAY", 0.52, 0.40, 0.23, 1)
+            local rim = MakeTexture(midpointMarker, "BORDER", 0.58, 0.46, 0.29, 1)
             rim:SetPoint("CENTER", bar, "TOP", 0, y)
             rim:SetSize(width, 1.5)
 
@@ -226,7 +230,7 @@ local function CreateBar()
             -- on each side. The final tip stays solid bronze.
             if index > 1 and index < #widths then
                 local shade = 0.40 - (index - 2) * 0.018
-                local stone = MakeTexture(midpointMarker, "OVERLAY", shade * 0.85, shade, shade * 1.08, 1)
+                local stone = MakeTexture(midpointMarker, "ARTWORK", shade * 0.97, shade * 1.05, shade * 1.11, 1)
                 stone:SetPoint("CENTER", bar, "TOP", 0, y + 0.05)
                 stone:SetSize(width - 3, 1.15)
 
@@ -244,7 +248,7 @@ local function CreateBar()
         local bevel = MakeTexture(midpointMarker, "OVERLAY", 0.81, 0.70, 0.48, 0.95)
         bevel:SetPoint("CENTER", bar, "TOP", 0, 6.9)
         bevel:SetSize(17, 1.1)
-        local seam = MakeTexture(midpointMarker, "OVERLAY", 0.04, 0.055, 0.08, 0.8)
+        local seam = MakeTexture(midpointMarker, "BACKGROUND", 0.04, 0.055, 0.08, 0.8)
         seam:SetPoint("CENTER", bar, "TOP", 0, -2)
         seam:SetSize(7, 0.8)
     end
