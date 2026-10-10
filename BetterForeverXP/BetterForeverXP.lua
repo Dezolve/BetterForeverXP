@@ -311,19 +311,22 @@ local function CreateBar()
             grip:SetPoint("CENTER", 0, 0)
             grip:SetSize(4, 24)
         else
-            -- The hit zone stays 30px, but its glyph sits INSIDE the bar's
-            -- bottom-right corner. Its size follows bar height, preventing
-            -- a tiny/scaled-down XP bar from wearing a huge floating L.
-            indicator:ClearAllPoints()
-            indicator:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", -1, 1)
-            local backing = MakeTexture(indicator, "OVERLAY", 0.025, 0.045, 0.075, 0.82)
-            backing:SetAllPoints()
-            local horizontal = MakeTexture(indicator, "OVERLAY", 1, 0.82, 0.38, 1)
-            horizontal:SetPoint("BOTTOMRIGHT", -2, 2)
-            local vertical = MakeTexture(indicator, "OVERLAY", 1, 0.82, 0.38, 1)
-            vertical:SetPoint("BOTTOMRIGHT", -2, 2)
+            -- Put the corner artwork back on its easy-to-grab, outside
+            -- bottom-right handle. Scale only the visible glyph/plate with
+            -- bar height; the 30px invisible hit target never shrinks.
+            local backing = MakeTexture(indicator, "OVERLAY", 0.025, 0.045, 0.075, 0.90)
+            backing:SetPoint("BOTTOMRIGHT", indicator, "BOTTOMRIGHT", -1, 1)
+            local horizontal = MakeTexture(indicator, "OVERLAY", 1, 0.78, 0.30, 1)
+            horizontal:SetPoint("BOTTOMRIGHT", backing, "BOTTOMRIGHT", -3, 3)
+            local vertical = MakeTexture(indicator, "OVERLAY", 1, 0.78, 0.30, 1)
+            vertical:SetPoint("BOTTOMRIGHT", backing, "BOTTOMRIGHT", -3, 3)
+            local detailH = MakeTexture(indicator, "OVERLAY", 1, 0.87, 0.53, 1)
+            detailH:SetPoint("BOTTOMRIGHT", backing, "BOTTOMRIGHT", -9, 10)
+            local detailV = MakeTexture(indicator, "OVERLAY", 1, 0.87, 0.53, 1)
+            detailV:SetPoint("BOTTOMRIGHT", backing, "BOTTOMRIGHT", -10, 9)
             handle.resizeCornerVisuals = {
-                horizontal = horizontal, vertical = vertical,
+                backing = backing, horizontal = horizontal, vertical = vertical,
+                detailH = detailH, detailV = detailV,
             }
         end
         indicator:Hide()
@@ -354,7 +357,9 @@ local function CreateBar()
     AddResizeHandle("height", "TOP", 0, 9)
     AddResizeHandle("corner", "BOTTOMRIGHT", 12, -10)
     resizeHandles.width:SetSize(24, math.max(28, db.height + 12))
-    resizeHandles.height:SetSize(88, 24)
+    -- Hover anywhere along the TOP edge to reveal the centered grip.
+    -- The visible tab stays compact; only this invisible target is wide.
+    resizeHandles.height:SetSize(db.width, 24)
     resizeHandles.corner:SetSize(30, 30)
     UpdateResizeHandles()
 
@@ -409,14 +414,18 @@ local function ApplyLayout()
         rightText:SetSize(db.width * 0.42 - 12, db.height)
     end
     resizeHandles.width:SetHeight(math.max(28, db.height + 12))
-    -- The corner glyph shrinks alongside the bar, but its invisible
-    -- hit target remains large enough to grab at low UI scale.
+    resizeHandles.height:SetWidth(db.width)
+    -- Keep the original external corner-grab position and L shape, but
+    -- resize the ARTWORK when the bar gets thin. This avoids a huge corner
+    -- icon on a 10px bar without sacrificing the generous 30px hit area.
     local corner = resizeHandles.corner
-    local glyphLength = math.max(7, math.min(14, db.height - 2))
-    local stroke = db.height <= 12 and 1.5 or 2.5
-    corner.resizeIndicator:SetSize(glyphLength + 4, glyphLength + 4)
+    local glyphLength = math.max(12, math.min(24, db.height * 1.5))
+    local stroke = db.height <= 12 and 2 or 4
+    corner.resizeCornerVisuals.backing:SetSize(glyphLength + 6, glyphLength + 6)
     corner.resizeCornerVisuals.horizontal:SetSize(glyphLength, stroke)
     corner.resizeCornerVisuals.vertical:SetSize(stroke, glyphLength)
+    corner.resizeCornerVisuals.detailH:SetSize(glyphLength * 0.5, math.max(2, stroke - 1))
+    corner.resizeCornerVisuals.detailV:SetSize(math.max(2, stroke - 1), glyphLength * 0.5)
     UpdateResizeHandles()
 
     for index, tick in ipairs(tickMarks) do
