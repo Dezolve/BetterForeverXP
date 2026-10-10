@@ -186,6 +186,8 @@ local function CreateBar()
     resizeHandle:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
     resizeHandle:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
     resizeHandle:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
+    local normalTexture = resizeHandle:GetNormalTexture()
+    if normalTexture then normalTexture:SetVertexColor(0.95, 0.76, 0.40) end
     local startX, startY, startScale
     local function StopScaling(self)
         self:SetScript("OnUpdate", nil)
@@ -206,7 +208,7 @@ local function CreateBar()
             if not parentScale or parentScale <= 0 then parentScale = 1 end
             local dx = (cursorX - startX) / parentScale
             local dy = (cursorY - startY) / parentScale
-            local proposed = startScale + (dx + dy) / (db.width + db.height)
+            local proposed = startScale + (dx - dy) / (db.width + db.height)
             db.scale = math.max(0.5, math.min(2, math.floor(proposed * 100 + 0.5) / 100))
             bar:SetScale(db.scale)
         end)
