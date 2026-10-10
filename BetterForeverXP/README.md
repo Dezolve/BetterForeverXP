@@ -34,12 +34,13 @@ Open **Settings → AddOns → Better Forever XP**, type `/bfxp`, or **right-cli
 
 - New installs start unlocked. Drag the bar body to move it, or hover over it
   to view the XP details. Resize zones are invisible until hovered:
-  **below the bottom edge** changes height, **right edge** changes width,
+  **above or below the bar** changes height, **right edge** changes width,
   and **bottom-right corner** changes both independently. Hovering anywhere
-  along the strip immediately below the bar reveals a compact centered gold
-  grip. This strip stays outside the bar so it does not block moving the bar
-  or its XP tooltip. The right edge has a narrow gold grip; the bottom-right
-  corner has an external gold L-shaped grip that scales down on thin bars.
+  along the strips above/below the bar reveals a small gold chevron at the
+  midpoint: the upper caret grows height upward, and the lower V grows
+  downward. Both hover zones remain entirely outside the bar, preserving
+  normal moving, right-click settings, and the XP tooltip. The right edge has
+  a narrow gold grip; the bottom-right corner keeps its external gold L grip.
   Click targets remain generous; hints hide off hover.
 - Lock the bar in Settings or via `/bfxp lock`. This disables all resize zones and
   prevents ordinary dragging. Shift-drag remains an intentional move shortcut.
