@@ -617,6 +617,10 @@ local function ShowDetails()
     local questPercent = xpMax > 0 and questXP / xpMax * 100 or 0
     local projectedXP = math.min(xpMax, xp + questXP)
     local projectedPercent = xpMax > 0 and projectedXP / xpMax * 100 or 0
+    -- XP beyond the current level threshold carries forward when ready
+    -- quests are turned in. Don't claim a next-level percentage: the XP
+    -- requirement of the next level is not known from UnitXPMax("player").
+    local nextLevelXP = xpMax > 0 and math.max(0, xp + questXP - xpMax) or 0
     local restedPercent = xpMax > 0 and rested / xpMax * 100 or 0
     local restedBars = xpMax > 0 and rested / xpMax * 20 or 0
     local barsLeft = xpMax > 0 and remaining / xpMax * 20 or 0
@@ -641,6 +645,7 @@ local function ShowDetails()
     GameTooltip:AddDoubleLine("Rested coverage", string.format("%.1f bars", restedBars), 0.72, 0.77, 0.86, 0.42, 0.78, 1)
     GameTooltip:AddDoubleLine("Completed quests", Commas(questXP) .. string.format(" XP  (+%.1f%%)", questPercent), 0.72, 0.77, 0.86, 1, 0.78, 0.32)
     GameTooltip:AddDoubleLine("After turn-ins", Commas(projectedXP) .. " / " .. Commas(xpMax) .. string.format("  (%.1f%%)", projectedPercent), 0.72, 0.77, 0.86, 1, 0.88, 0.48)
+    GameTooltip:AddDoubleLine("XP into next level", Commas(nextLevelXP) .. " XP", 0.72, 0.77, 0.86, 0.55, 1, 0.64)
 
     AddSection("Leveling Pace", 0.55, 1, 0.64)
     GameTooltip:AddDoubleLine("Time this level", FormatTime(charDB and charDB.levelSeconds or 0), 0.72, 0.77, 0.86, 1, 1, 1)
