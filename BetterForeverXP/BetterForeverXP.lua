@@ -5,8 +5,8 @@ local defaults = {
     point = "BOTTOM", relativePoint = "BOTTOM", x = 0, y = 155,
     width = 1100, height = 16, scale = 1,
     numberFormat = "short", hideBlizzard = true, showMidpointMarker = true,
-    hoverTextOnly = true,
-    version = 6,
+    showBarText = false,
+    version = 7,
 }
 
 local db
@@ -57,6 +57,13 @@ local function Short(value)
     if scaled >= 100 then return string.format("%.0f%s", scaled, suffix) end
     local text = string.format("%.1f", scaled):gsub("(%..-)0+$", "%1"):gsub("%.$", "")
     return text .. suffix
+end
+
+-- Show additional precision for small progress, without implying 0 XP
+-- when a character has just gained experience on a new level.
+local function FormatProgressPercent(percent)
+    if percent > 0 and percent < 0.005 then return "<0.01%" end
+    return string.format(percent > 0 and percent < 1 and "%.2f%%" or "%.1f%%", percent)
 end
 
 local function FormatNumber(value)
@@ -365,12 +372,11 @@ local function SetFittingLabel(label, candidates)
     label:SetText("")
 end
 
--- The bar itself is the default information display; detailed labels
--- appear on hover. Users who prefer permanent text can disable this option.
--- The tooltip still contains the full, exact XP values in either mode.
+-- Keep the 20-segment tube readable at rest AND on hover. The tooltip
+-- provides all exact values; permanent bar labels are explicitly opt-in.
 local function UpdateTextVisibility()
     if textLayer then
-        textLayer:SetShown(not db.hoverTextOnly or tooltipVisible)
+        textLayer:SetShown(db.showBarText)
     end
 end
 
@@ -802,13 +808,10 @@ local function CreateBar()
     end)
     bar:SetScript("OnEnter", function()
         tooltipVisible = true
-        UpdateTextVisibility()
-        UpdateTextScrims()
         if bar.ShowDetails then bar:ShowDetails() end
     end)
     bar:SetScript("OnLeave", function()
         tooltipVisible = false
-        UpdateTextVisibility()
         if GameTooltip:GetOwner() == bar then GameTooltip:Hide() end
     end)
 end
@@ -1063,7 +1066,7 @@ local function ShowDetails()
 
     AddSection("Progress", 0.45, 0.84, 1)
     GameTooltip:AddDoubleLine("Current XP", Commas(xp) .. " / " .. Commas(xpMax), 0.72, 0.77, 0.86, 1, 1, 1)
-    GameTooltip:AddDoubleLine("Complete", xpMax > 0 and string.format("%.2f%%", xp / xpMax * 100) or "—", 0.72, 0.77, 0.86, 1, 1, 1)
+    GameTooltip:AddDoubleLine("Complete", xpMax > 0 and FormatProgressPercent(xp / xpMax * 100) or "—", 0.72, 0.77, 0.86, 1, 1, 1)
     GameTooltip:AddDoubleLine("Remaining", Commas(remaining), 0.72, 0.77, 0.86, 1, 0.82, 0.42)
     GameTooltip:AddDoubleLine("Bars left", FormatBars(barsLeft), 0.72, 0.77, 0.86, 1, 0.82, 0.42)
 
@@ -1164,7 +1167,7 @@ local function UpdateBar()
     if leftText:IsShown() then
         SetFittingLabel(leftText, {"Level " .. level, "Lv " .. level, tostring(level)})
     end
-    local pct = string.format("%.1f%%", percent)
+    local pct = FormatProgressPercent(percent)
     if db.width < 530 then
         SetFittingLabel(centerText, {
             pct .. "  •  " .. Short(remaining) .. " left",
@@ -1235,13 +1238,13 @@ local function SetSetting(key, value)
         if type(value) ~= "number" or value < 0.5 or value > 3 then return false end
         db.scale = math.floor(value * 100 + 0.5) / 100
         ApplyLayout()
-    elseif key == "locked" or key == "enabled" or key == "hideBlizzard" or key == "showMidpointMarker" or key == "hoverTextOnly" then
+    elseif key == "locked" or key == "enabled" or key == "hideBlizzard" or key == "showMidpointMarker" or key == "showBarText" then
         if type(value) ~= "boolean" then return false end
         db[key] = value
         if key == "locked" then UpdateResizeHandles()
         elseif key == "enabled" then UpdateBar()
         elseif key == "showMidpointMarker" then midpointMarker:SetShown(value)
-        elseif key == "hoverTextOnly" then UpdateTextVisibility(); UpdateTextScrims()
+        elseif key == "showBarText" then UpdateTextVisibility(); UpdateTextScrims()
         else ApplyDefaultBarVisibility() end
     elseif key == "numberFormat" then
         if value ~= "short" and value ~= "commas" and value ~= "exact" then return false end
@@ -1262,7 +1265,7 @@ addon.ResetAll = function()
     db.enabled, db.locked = defaults.enabled, defaults.locked
     db.numberFormat, db.hideBlizzard = defaults.numberFormat, defaults.hideBlizzard
     db.showMidpointMarker = defaults.showMidpointMarker
-    db.hoverTextOnly = defaults.hoverTextOnly
+    db.showBarText = defaults.showBarText
     ResetPosition()
     UpdateResizeHandles(); ApplyDefaultBarVisibility(); UpdateBar()
     if addon.RefreshOptions then addon.RefreshOptions() end
@@ -1306,6 +1309,11 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
         if arg1 ~= ADDON_NAME then return end
         BetterForeverXPDB = BetterForeverXPDB or {}
         local oldVersion = BetterForeverXPDB.version or 0
+        -- Migrate the previous "text on hover" preference without changing
+        -- anyone's explicit choice to keep bar labels permanently visible.
+        if BetterForeverXPDB.showBarText == nil and BetterForeverXPDB.hoverTextOnly ~= nil then
+            BetterForeverXPDB.showBarText = not BetterForeverXPDB.hoverTextOnly
+        end
         MergeDefaults(BetterForeverXPDB, defaults); db = BetterForeverXPDB
         BetterForeverXPCharDB = BetterForeverXPCharDB or {}
         charDB = BetterForeverXPCharDB
@@ -1333,7 +1341,7 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
             if db.width == 820 then db.width = 1000 end
         end
         if oldVersion < 5 and db.width == 1000 then db.width = 1100 end
-        db.version = 6
+        db.version = 7
         CreateBar(); bar.ShowDetails = ShowDetails; ApplyLayout(); ApplyDefaultBarVisibility()
         if addon.InitializeOptions then addon.InitializeOptions() end
         lastXP, lastXPMax = UnitXP("player"), UnitXPMax("player")
