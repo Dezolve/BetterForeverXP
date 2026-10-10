@@ -28,13 +28,33 @@ The track has 20 subtle divisions (5% each), and the right-hand text shows how
 many Blizzard-style bars remain, rounded to the nearest half-bar, such as
 `8.5 bars left`.
 
+## Customization
+
+Open **Settings → AddOns → Better Forever XP** or type `/bfxp`.
+
+- New installs start unlocked. Drag the bar to move it, or drag its bottom-right
+  corner arrow to uniformly scale its width, height, and text.
+- Lock the bar in Settings or via `/bfxp lock`. This hides the scale grabber and
+  prevents ordinary dragging. Shift-drag remains an intentional move shortcut.
+- Set width (300–1600), height (10–40), and overall scale (0.5–2) independently
+  using sliders. Width/height change the layout; scale proportionally grows
+  or shrinks the entire presentation.
+- Toggle the custom bar and Blizzard's own XP bar, choose the XP number
+  format, or reset position and size.
+- The bar changes text density as width shrinks to avoid overlapping labels.
+- Existing installs keep their saved lock preference. Settings persist through
+  relogs and `/reload`.
+- Re-enabling Blizzard's native bar may require `/reload`.
+
 ## Commands
+
+* `/bfxp` or `/bfxp options` to open the Settings panel
 
 * `/bfxp lock` or `/bfxp unlock` (drag while unlocked; Shift-drag always works)
 * `/bfxp show` or `/bfxp hide`
 * `/bfxp reset`
 * `/bfxp width 300-1600`
-* `/bfxp height 10-30`
+* `/bfxp height 10-40`
 * `/bfxp scale 0.5-2`
 * `/bfxp format short|commas|exact`
 * `/bfxp default on|off` to show or hide Blizzard's default tracking bar
