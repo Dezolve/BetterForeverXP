@@ -1,0 +1,114 @@
+name: Publish Better Forever XP to CurseForge
+
+# Manual-only and main-branch-only on purpose. A validation push or draft PR
+# must NEVER ship an unreviewed addon to an existing CurseForge listing.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version from BetterForeverXP.toc (for example 2.5.0)"
+        required: true
+        type: string
+        default: "2.5.0"
+      release_type:
+        description: "CurseForge channel"
+        required: true
+        type: choice
+        options:
+          - release
+          - beta
+        default: release
+      confirmation:
+        description: "Type PUBLISH to confirm the live upload"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: curseforge-better-forever-xp
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Validate, package and publish
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_API_TOKEN }}
+    steps:
+      - name: Require explicit publishing confirmation and token
+        shell: bash
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          if [ "$CONFIRMATION" != "PUBLISH" ]; then
+            echo "::error::Enter PUBLISH to confirm an upload to the public CurseForge project."
+            exit 1
+          fi
+          if [ -z "$CURSEFORGE_TOKEN" ]; then
+            echo "::error::Set CURSEFORGE_API_TOKEN as a GitHub Actions repository secret before publishing."
+            exit 1
+          fi
+
+      - name: Check out reviewed main branch
+        uses: actions/checkout@v4
+
+      - name: Validate expected version and target game
+        id: release_info
+        shell: pwsh
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $toc = Get-Content -LiteralPath 'BetterForeverXP/BetterForeverXP.toc' -Raw
+          $match = [regex]::Match($toc, '(?m)^## Version:\s*(\S+)\s*$')
+          if (-not $match.Success) { throw 'Missing version in BetterForeverXP.toc' }
+          $version = $match.Groups[1].Value
+          if ($version -ne $env:REQUESTED_VERSION) {
+            throw "Requested $($env:REQUESTED_VERSION), but reviewed source version is $version."
+          }
+          if ($toc -notmatch '(?m)^## Interface:\s*16001\s*$') {
+            throw 'Publishing target requires the WoW Forever Interface 16001 TOC.'
+          }
+          $zip = "dist/BetterForeverXP-$version.zip"
+          "zip_path=$zip" >> $env:GITHUB_OUTPUT
+          "changelog<<END_CHANGELOG" >> $env:GITHUB_OUTPUT
+          Get-Content -LiteralPath 'CURSEFORGE_RELEASE_NOTES.md' -Encoding UTF8 >> $env:GITHUB_OUTPUT
+          "END_CHANGELOG" >> $env:GITHUB_OUTPUT
+
+      - name: Validate Lua syntax
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.4
+          luac -p BetterForeverXP/BetterForeverXP.lua
+          luac -p BetterForeverXP/Options.lua
+
+      - name: Test and package addon
+        shell: pwsh
+        run: ./scripts/Package-Addon.ps1
+
+      - name: Confirm upload ZIP exists
+        shell: pwsh
+        env:
+          ZIP_PATH: ${{ steps.release_info.outputs.zip_path }}
+        run: |
+          if (-not (Test-Path -LiteralPath $env:ZIP_PATH -PathType Leaf)) {
+            throw "CurseForge release ZIP missing: $($env:ZIP_PATH)"
+          }
+          Write-Host "Ready to upload $($env:ZIP_PATH) to CurseForge project 1731462 (Forever 1.60.1)."
+
+      - name: Upload to CurseForge
+        uses: itsmeow/curseforge-upload@v3.1.2
+        with:
+          token: ${{ secrets.CURSEFORGE_API_TOKEN }}
+          project_id: "1731462"
+          game_endpoint: wow
+          game_versions: "1.60.1"
+          file_path: ${{ steps.release_info.outputs.zip_path }}
+          release_type: ${{ inputs.release_type }}
+          display_name: Better Forever XP ${{ inputs.version }}
+          changelog: ${{ steps.release_info.outputs.changelog }}
+          changelog_type: markdown
