@@ -117,6 +117,48 @@ local function ApplyTubeStatusColor(statusBar, bottom, top, flat)
     end
 end
 
+-- A shallow recessed groove in the tube: the dark one-pixel core has
+-- top-to-bottom shading, and an adjacent faint highlight catches the upper
+-- curve. Palettes stay low-contrast so twenty segments don't dominate text.
+local tickPalettes = {
+    earned = {
+        coreBottom = {0.005, 0.016, 0.045, 0.77}, coreTop = {0.055, 0.13, 0.24, 0.50},
+        rimBottom = {0.28, 0.44, 0.65, 0.06}, rimTop = {0.83, 0.91, 1.00, 0.25},
+        coreFlat = {0.012, 0.035, 0.075, 0.59}, rimFlat = {0.61, 0.76, 0.96, 0.14},
+    },
+    rested = {
+        coreBottom = {0.010, 0.029, 0.064, 0.83}, coreTop = {0.070, 0.12, 0.20, 0.53},
+        rimBottom = {0.24, 0.42, 0.63, 0.10}, rimTop = {0.72, 0.84, 0.97, 0.30},
+        coreFlat = {0.020, 0.044, 0.082, 0.65}, rimFlat = {0.58, 0.72, 0.89, 0.16},
+    },
+    empty = {
+        coreBottom = {0.009, 0.017, 0.037, 0.85}, coreTop = {0.06, 0.08, 0.13, 0.60},
+        rimBottom = {0.20, 0.33, 0.48, 0.09}, rimTop = {0.65, 0.77, 0.91, 0.30},
+        coreFlat = {0.028, 0.045, 0.081, 0.70}, rimFlat = {0.50, 0.64, 0.79, 0.17},
+    },
+}
+
+local function ApplyBeveledTick(tick, region)
+    if tick.region == region then return end
+    tick.region = region
+    local palette = tickPalettes[region]
+    -- The center groove is the main landmark underneath Blizzard's silver
+    -- marker; keep it a touch stronger without increasing its physical width.
+    local coreTop, rimTop = palette.coreTop, palette.rimTop
+    if tick.isCenter then
+        coreTop = {coreTop[1], coreTop[2], coreTop[3], math.min(1, coreTop[4] + 0.14)}
+        rimTop = {rimTop[1], rimTop[2], rimTop[3], math.min(1, rimTop[4] + 0.11)}
+    end
+    if not ApplyVerticalGradient(tick.core, palette.coreBottom, coreTop) then
+        local flat = palette.coreFlat
+        tick.core:SetColorTexture(flat[1], flat[2], flat[3], flat[4])
+    end
+    if not ApplyVerticalGradient(tick.rim, palette.rimBottom, rimTop) then
+        local flat = palette.rimFlat
+        tick.rim:SetColorTexture(flat[1], flat[2], flat[3], flat[4])
+    end
+end
+
 local function AddBorder(frame)
     local top = MakeTexture(frame, "BORDER", 0.33, 0.42, 0.55, 0.9)
     top:SetPoint("TOPLEFT"); top:SetPoint("TOPRIGHT"); top:SetHeight(1)
@@ -225,19 +267,19 @@ local function CreateBar()
 
     tickLayer = CreateFrame("Frame", nil, bar)
     tickLayer:SetAllPoints(); tickLayer:SetFrameLevel(bar:GetFrameLevel() + 5); tickLayer:EnableMouse(false)
-    -- Twenty classic 5% XP segments are essential, even with the tube
-    -- gradient. Draw a SINGLE crisp stroke at each division instead of the
-    -- old offset/double-stroke tick pairs. The halfway tick uses a permanent
-    -- CENTER anchor to line up with Blizzard's silver 50% arrow.
+    -- Each of the 19 divisions has a shaded single-pixel groove and a
+    -- separate, faint one-pixel glint at its right edge. Both follow the
+    -- SAME snapped position, so varying bar scales cannot pull them apart.
     for index = 1, 19 do
-        local tick = tickLayer:CreateTexture(nil, "OVERLAY")
-        tick:SetColorTexture(0.015, 0.035, 0.075, 0.55)
-        tick:SetWidth(1)
+        local core = MakeTexture(tickLayer, "OVERLAY", 0.012, 0.035, 0.075, 0.59)
+        local rim = MakeTexture(tickLayer, "OVERLAY", 0.61, 0.76, 0.96, 0.14)
+        rim:SetPoint("TOPLEFT", core, "TOPRIGHT", 0, 0)
+        rim:SetPoint("BOTTOMLEFT", core, "BOTTOMRIGHT", 0, 0)
         if index == 10 then
-            tick:SetPoint("TOP", tickLayer, "TOP", 0, -1)
-            tick:SetPoint("BOTTOM", tickLayer, "BOTTOM", 0, 1)
+            core:SetPoint("TOP", tickLayer, "TOP", 0, -1)
+            core:SetPoint("BOTTOM", tickLayer, "BOTTOM", 0, 1)
         end
-        tickMarks[index] = tick
+        tickMarks[index] = {core = core, rim = rim, isCenter = index == 10}
     end
     -- Tiny 2px inset cuts on the four extremities soften the silhouette,
     -- rather than rounding the whole XP bar into a large capsule.
@@ -528,20 +570,19 @@ local function ApplyLayout()
     corner.resizeCornerVisuals.detailV:SetSize(math.max(2, stroke - 1), glyphLength * 0.5)
     UpdateResizeHandles()
 
-    -- Align every 5% divider to the actual rendered pixel grid after UI
-    -- scaling. This keeps thin ticks crisp and evenly spaced even when the
-    -- bar width or scale changes. Never add a second overlapping center line:
-    -- the 50% divider is already anchored directly to tickLayer's center.
+    -- Pixel-snap only the dark core; the softer highlight stays anchored to
+    -- its edge. Width is exactly one physical pixel for each layer.
     local effectiveScale = tickLayer:GetEffectiveScale()
     if not effectiveScale or effectiveScale <= 0 then effectiveScale = 1 end
     local pixel = 1 / effectiveScale
     for index, tick in ipairs(tickMarks) do
-        tick:SetWidth(pixel)
+        tick.core:SetWidth(pixel)
+        tick.rim:SetWidth(pixel)
         if index ~= 10 then
             local x = math.floor(db.width * index / 20 * effectiveScale + 0.5) * pixel
-            tick:ClearAllPoints()
-            tick:SetPoint("TOP", tickLayer, "TOPLEFT", x, -1)
-            tick:SetPoint("BOTTOM", tickLayer, "BOTTOMLEFT", x, 1)
+            tick.core:ClearAllPoints()
+            tick.core:SetPoint("TOP", tickLayer, "TOPLEFT", x, -1)
+            tick.core:SetPoint("BOTTOM", tickLayer, "BOTTOMLEFT", x, 1)
         end
     end
 end
@@ -769,17 +810,16 @@ local function UpdateBar()
     restedEndMarker:SetPoint("TOP", restedFill, "TOPLEFT", earnedWidth + restedWidth, 0)
     restedEndMarker:SetPoint("BOTTOM", restedFill, "BOTTOMLEFT", earnedWidth + restedWidth, 0)
     restedEndMarker:SetShown(restedWidth >= 2)
-    -- Dark strokes contrast with earned blue/purple. Muted silver-blue strokes
-    -- remain visible across both the darker rested extension and empty track.
-    -- Each tick is still one pixel wide, regardless of bar and UI scale.
+    -- Recolor only when a tick crosses an earned/rested/empty boundary.
+    -- Each region gets its own low-contrast metallic groove gradient.
     for index, tick in ipairs(tickMarks) do
         local division = index / 20
         if division <= xp / xpMax then
-            tick:SetColorTexture(0.01, 0.025, 0.075, 0.55)
+            ApplyBeveledTick(tick, "earned")
         elseif division <= (xp + rested) / xpMax then
-            tick:SetColorTexture(0.52, 0.70, 0.92, 0.25)
+            ApplyBeveledTick(tick, "rested")
         else
-            tick:SetColorTexture(0.48, 0.60, 0.78, 0.25)
+            ApplyBeveledTick(tick, "empty")
         end
     end
     spark:ClearAllPoints(); spark:SetPoint("CENTER", fill, "LEFT", earnedWidth, 0)
