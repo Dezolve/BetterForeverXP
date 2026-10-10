@@ -290,12 +290,12 @@ local function CreateBar()
         indicator:SetAllPoints()
         indicator:EnableMouse(false)
         if mode == "height" then
-            -- Match the right-edge grip: same opaque dark-navy backing and
-            -- warm-gold stroke, rotated horizontally. The full-width top
-            -- hit zone only reveals this compact center tab on hover.
-            local gripBack = MakeTexture(indicator, "OVERLAY", 0.06, 0.09, 0.13, 1)
-            gripBack:SetPoint("CENTER", 0, 0)
-            gripBack:SetSize(58, 20)
+            -- Keep the full-width invisible top hover area, but remove the
+            -- solid dark rectangle around its centered gold resize line.
+            -- A thin translucent shadow preserves contrast over bright XP.
+            local shadow = MakeTexture(indicator, "OVERLAY", 0.02, 0.03, 0.05, 0.35)
+            shadow:SetPoint("CENTER", 0, 0)
+            shadow:SetSize(44, 7)
             local grip = MakeTexture(indicator, "OVERLAY", 1, 0.82, 0.38, 1)
             grip:SetPoint("CENTER", 0, 0)
             grip:SetSize(40, 5)
