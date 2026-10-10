@@ -207,7 +207,7 @@ local function CreateBar()
     midpointMarker:SetFrameLevel(tickLayer:GetFrameLevel() + 1)
     midpointMarker:EnableMouse(false)
 
-    local function AddStoneMidpointMarker()
+    local function AddMetalMidpointMarker()
         -- Two beveled arms form a downward V; no solid dark stone triangle.
         -- Coordinates are relative to the top border. Its point extends
         -- about 2px into the bar; even a 10px-high bar keeps its XP text clear.
@@ -252,7 +252,7 @@ local function CreateBar()
         tip:SetPoint("CENTER", bar, "TOP", 0, -0.8)
         tip:SetSize(3, 2)
     end
-    AddStoneMidpointMarker()
+    AddMetalMidpointMarker()
     midpointMarker:SetShown(db.showMidpointMarker)
 
     -- A separate child frame keeps every label above both status-bar fills.
