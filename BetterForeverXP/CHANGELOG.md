@@ -1,3 +1,19 @@
+# Better Forever XP 2.5.0
+
+By Dezolve Labs
+
+## In-game settings and proportional scaling
+
+- Adds a built-in Settings → AddOns panel, also accessible through `/bfxp` or `/bfxp options`.
+- New installations start unlocked; existing installations retain their previous lock setting.
+- Adds a small bottom-right arrow grabber for live, proportional scaling of the complete bar and its text.
+- Locking the bar hides the grabber and disables ordinary dragging; Shift-drag remains available.
+- Adds panel controls for enabled state, bar lock, Blizzard bar visibility, width, height, scale, number format, and resets.
+- Expands configurable bar height up to 40 pixels.
+- Adapts text layout across narrow, medium, and wide bar widths so labels do not overlap.
+- Connects the number format option to the main bar's visible XP values.
+- Preserves previous XP calculations, tooltip details, session tracking, and slash commands.
+
 # Better Forever XP 2.4.1
 
 By Dezolve Labs
