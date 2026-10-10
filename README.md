@@ -34,7 +34,11 @@ the Blizzard arrow. XP remains blue while rested and purple when unrested;
 the rested extension stays dark navy. Its blue earned fill now uses a
 deeper Blizzard-style cobalt gradient, the rounded ends no longer have a
 mismatched blue stripe, and large white labels have thicker dark outlines
-for contrast over the segment dividers.
+for contrast over the segment dividers. The level, current XP and remaining
+XP labels now have separate non-overlapping regions; they automatically
+shorten to fit their measured font widths at taller sizes. A very subtle
+shadow only behind the actual large-label text reduces interference from
+bright 5% lines. Full exact numbers are always available in the tooltip.
 
 ## Install
 
