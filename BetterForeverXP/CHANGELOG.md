@@ -8,7 +8,7 @@ By Dezolve Labs
 - New installations start unlocked; existing installations retain their previous lock setting.
 - Adds invisible hover-resize zones: **top edge** adjusts height, **right edge** adjusts width, and **bottom-right corner** adjusts both. Large hit targets make the edges easy to catch.
 - Refines hover affordances: hovering anywhere along the top edge reveals a 58×20 center tab; the right edge shows a vertical grip; the bottom-right gold L-grip is restored just outside the bar with its artwork adapting to bar height. All hide off hover or when locked.
-- Aligns the top-center grip with the right and bottom-right controls: matching dark-navy backing and warm-gold highlight, with no pale accent stripe.
+- Refines the top-center grabber to a standalone warm-gold line with a thin translucent shadow, removing the bulky black plate without changing its full-width hover target or resizing behavior.
 - Keeps direct mouse tracking and fixed opposite edges, and increases the proportional bar/text scale slider maximum from 2× to 3× (default remains 1×).
 - Locking the bar disables edge resizing and disables ordinary dragging; Shift-drag remains available.
 - Adds panel controls for enabled state, bar lock, Blizzard bar visibility, width, height, scale, number format, and resets.
