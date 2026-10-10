@@ -10,12 +10,12 @@ local defaults = {
 
 local db
 local charDB
-local bar, fill, restedFill, spark, fillSheen
+local bar, fill, restedFill, spark, fillSheen, fillShade
 local resizeHandles = {}
 local restedEndMarker
 local midpointMarker
 local textLayer
-local tickLayer, tickMarks = nil, {}
+local tickLayer
 local leftText, centerText, rightText
 local eventFrame = CreateFrame("Frame")
 local sessionStart, sessionXP = GetTime(), 0
@@ -99,6 +99,24 @@ local function MakeTexture(parent, layer, r, g, b, a)
     return texture
 end
 
+-- The modern Classic client can shade texture vertices directly. If an older
+-- Forever client lacks SetGradient/CreateColor, retain solid XP fills while
+-- still displaying the subtle top/bottom tube highlights.
+local function ApplyVerticalGradient(texture, bottom, top)
+    if not texture or not texture.SetGradient or not CreateColor then return false end
+    local ok = pcall(texture.SetGradient, texture, "VERTICAL",
+        CreateColor(bottom[1], bottom[2], bottom[3], bottom[4] or 1),
+        CreateColor(top[1], top[2], top[3], top[4] or 1))
+    return ok
+end
+
+local function ApplyTubeStatusColor(statusBar, bottom, top, flat)
+    statusBar:SetStatusBarColor(1, 1, 1, 1)
+    if not ApplyVerticalGradient(statusBar:GetStatusBarTexture(), bottom, top) then
+        statusBar:SetStatusBarColor(flat[1], flat[2], flat[3], 1)
+    end
+end
+
 local function AddBorder(frame)
     local top = MakeTexture(frame, "BORDER", 0.33, 0.42, 0.55, 0.9)
     top:SetPoint("TOPLEFT"); top:SetPoint("TOPRIGHT"); top:SetHeight(1)
@@ -158,8 +176,13 @@ local function CreateBar()
     bar:SetClampedToScreen(true); bar:SetMovable(true); bar:EnableMouse(true)
     bar:RegisterForDrag("LeftButton"); bar:SetFrameStrata("MEDIUM")
 
+    -- A shallow vertical gradient gives the empty track some depth while
+    -- keeping its original dark, readable appearance.
     local background = MakeTexture(bar, "BACKGROUND", 0.012, 0.017, 0.025, 0.97)
-    background:SetAllPoints(); AddBorder(bar)
+    background:SetAllPoints()
+    ApplyVerticalGradient(background,
+        {0.006, 0.012, 0.022, 0.98}, {0.055, 0.077, 0.12, 0.98})
+    AddBorder(bar)
 
     restedFill = CreateFrame("StatusBar", nil, bar)
     restedFill:SetPoint("TOPLEFT", 1, -1); restedFill:SetPoint("BOTTOMRIGHT", -1, 1)
@@ -168,15 +191,33 @@ local function CreateBar()
     -- Blizzard-style hierarchy: earned XP is blue while rested, purple
     -- when not rested; remaining rested coverage is dark navy, and
     -- untouched space is near-black.
-    restedFill:SetStatusBarColor(0.025, 0.075, 0.18, 0.99); restedFill:EnableMouse(false)
+    ApplyTubeStatusColor(restedFill,
+        {0.013, 0.042, 0.105}, {0.085, 0.17, 0.31}, {0.025, 0.075, 0.18})
+    restedFill:EnableMouse(false)
+    local restedSheen = restedFill:CreateTexture(nil, "ARTWORK")
+    restedSheen:SetColorTexture(0.40, 0.58, 0.84, 0.16)
+    restedSheen:SetPoint("TOPLEFT", restedFill:GetStatusBarTexture(), "TOPLEFT")
+    restedSheen:SetPoint("TOPRIGHT", restedFill:GetStatusBarTexture(), "TOPRIGHT")
+    restedSheen:SetHeight(2)
 
     fill = CreateFrame("StatusBar", nil, bar)
     fill:SetAllPoints(restedFill); fill:SetStatusBarTexture("Interface\\Buttons\\WHITE8X8")
     fill:SetFrameLevel(bar:GetFrameLevel() + 2)
-    fill:SetStatusBarColor(0.22, 0.48, 1.00, 1.00); fill:EnableMouse(false)
+    ApplyTubeStatusColor(fill,
+        {0.12, 0.31, 0.72}, {0.41, 0.66, 1.00}, {0.22, 0.48, 1.00})
+    fill:EnableMouse(false)
+    -- Both bevel bands follow the moving status-bar texture, not the whole
+    -- bar frame, so highlights stop precisely where the earned XP stops.
     fillSheen = fill:CreateTexture(nil, "ARTWORK")
-    fillSheen:SetColorTexture(0.55, 0.80, 1, 0.16)
-    fillSheen:SetPoint("TOPLEFT"); fillSheen:SetPoint("TOPRIGHT"); fillSheen:SetHeight(2)
+    fillSheen:SetColorTexture(0.78, 0.90, 1, 0.22)
+    fillSheen:SetPoint("TOPLEFT", fill:GetStatusBarTexture(), "TOPLEFT")
+    fillSheen:SetPoint("TOPRIGHT", fill:GetStatusBarTexture(), "TOPRIGHT")
+    fillSheen:SetHeight(2)
+    fillShade = fill:CreateTexture(nil, "ARTWORK")
+    fillShade:SetColorTexture(0.015, 0.035, 0.075, 0.24)
+    fillShade:SetPoint("BOTTOMLEFT", fill:GetStatusBarTexture(), "BOTTOMLEFT")
+    fillShade:SetPoint("BOTTOMRIGHT", fill:GetStatusBarTexture(), "BOTTOMRIGHT")
+    fillShade:SetHeight(3)
 
     spark = fill:CreateTexture(nil, "OVERLAY")
     spark:SetColorTexture(0.78, 0.67, 0.43, 0.98); spark:SetWidth(2)
@@ -184,17 +225,26 @@ local function CreateBar()
 
     tickLayer = CreateFrame("Frame", nil, bar)
     tickLayer:SetAllPoints(); tickLayer:SetFrameLevel(bar:GetFrameLevel() + 5); tickLayer:EnableMouse(false)
-    for index = 1, 19 do
-        -- A dark stroke reads over earned XP; its faint light edge reads over
-        -- rested and empty sections. Together they remain visible everywhere.
-        local dark = tickLayer:CreateTexture(nil, "OVERLAY")
-        dark:SetColorTexture(0.01, 0.025, 0.07, 0.52)
-        dark:SetWidth(1)
-        local light = tickLayer:CreateTexture(nil, "OVERLAY")
-        light:SetColorTexture(0.72, 0.84, 1, 0.18)
-        light:SetWidth(1)
-        tickMarks[index] = { dark = dark, light = light }
+    -- One permanent 50% divider anchored to the exact middle of the bar.
+    -- Remove the former 19 dynamically spaced 5%-tick textures, which
+    -- distorted at unusual UI scales and cluttered the tube surface.
+    local midpointLine = tickLayer:CreateTexture(nil, "OVERLAY")
+    midpointLine:SetColorTexture(0.02, 0.035, 0.07, 0.62)
+    midpointLine:SetWidth(1)
+    midpointLine:SetPoint("TOP", tickLayer, "TOP", 0, -1)
+    midpointLine:SetPoint("BOTTOM", tickLayer, "BOTTOM", 0, 1)
+    -- Tiny 2px inset cuts on the four extremities soften the silhouette,
+    -- rather than rounding the whole XP bar into a large capsule.
+    local endCapTrim = CreateFrame("Frame", nil, bar)
+    endCapTrim:SetAllPoints()
+    endCapTrim:SetFrameLevel(bar:GetFrameLevel() + 7)
+    endCapTrim:EnableMouse(false)
+    for _, corner in ipairs({"TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT"}) do
+        local trim = MakeTexture(endCapTrim, "OVERLAY", 0.015, 0.025, 0.04, 0.90)
+        trim:SetSize(2, 2)
+        trim:SetPoint(corner, endCapTrim, corner)
     end
+
     restedEndMarker = tickLayer:CreateTexture(nil, "OVERLAY")
     restedEndMarker:SetColorTexture(0.78, 0.67, 0.43, 0.96)
     restedEndMarker:SetWidth(2)
@@ -472,15 +522,8 @@ local function ApplyLayout()
     corner.resizeCornerVisuals.detailV:SetSize(math.max(2, stroke - 1), glyphLength * 0.5)
     UpdateResizeHandles()
 
-    for index, tick in ipairs(tickMarks) do
-        local x = db.width * index / 20
-        tick.dark:ClearAllPoints()
-        tick.dark:SetPoint("TOP", tickLayer, "TOPLEFT", x, -1)
-        tick.dark:SetPoint("BOTTOM", tickLayer, "BOTTOMLEFT", x, 1)
-        tick.light:ClearAllPoints()
-        tick.light:SetPoint("TOP", tickLayer, "TOPLEFT", x + 1, -1)
-        tick.light:SetPoint("BOTTOM", tickLayer, "BOTTOMLEFT", x + 1, 1)
-    end
+    -- The centered 50% line and Blizzard arrow follow the bar anchors;
+    -- neither needs recalculated widths or fractional pixel offsets.
 end
 
 -- Called only when dimensions actually change during a drag. Keep the
@@ -683,15 +726,16 @@ local function UpdateBar()
     if not XPAvailable() then bar:Hide(); return end
     local xp, xpMax = UnitXP("player") or 0, UnitXPMax("player") or 1
     local rested = GetXPExhaustion and (GetXPExhaustion() or 0) or 0
-    -- Match Blizzard's earned XP state color. The status changes between
-    -- blue (rested) and purple (no rested XP), including when the last
-    -- rested point is consumed. Tint the highlight to match the fill.
+    -- Keep Blizzard's blue-when-rested / purple-when-unrested distinction,
+    -- but shade each fill from a lighter upper arc to a darker lower arc.
     if rested > 0 then
-        fill:SetStatusBarColor(0.22, 0.48, 1.00, 1.00)
-        fillSheen:SetColorTexture(0.55, 0.80, 1.00, 0.16)
+        ApplyTubeStatusColor(fill,
+            {0.12, 0.31, 0.72}, {0.41, 0.66, 1.00}, {0.22, 0.48, 1.00})
+        fillSheen:SetColorTexture(0.78, 0.90, 1.00, 0.22)
     else
-        fill:SetStatusBarColor(0.48, 0.19, 0.61, 1.00)
-        fillSheen:SetColorTexture(0.78, 0.56, 0.88, 0.16)
+        ApplyTubeStatusColor(fill,
+            {0.29, 0.10, 0.40}, {0.64, 0.36, 0.77}, {0.48, 0.19, 0.61})
+        fillSheen:SetColorTexture(0.88, 0.74, 0.96, 0.22)
     end
     local remaining, percent = math.max(0, xpMax - xp), xp / xpMax * 100
     local barsLeft = remaining / xpMax * 20
