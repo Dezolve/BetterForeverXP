@@ -7,7 +7,7 @@ By Dezolve Labs
 - Adds a built-in Settings → AddOns panel, also accessible through `/bfxp` or `/bfxp options`.
 - New installations start unlocked; existing installations retain their previous lock setting.
 - Adds invisible hover-resize zones: **top edge** adjusts height, **right edge** adjusts width, and **bottom-right corner** adjusts both. Large hit targets make the edges easy to catch.
-- Makes hover affordances readable: a gold highlight across the top edge, a stronger vertical right-edge grip, and a 24px gold bottom-right corner glyph. All disappear off hover or when locked.
+- Refines hover affordances: a 58×20 compact top-center grab tab with an 88×24 invisible target, a vertical right-edge grip, and a gold bottom-right glyph aligned inside the bar and sized to its height. All disappear off hover or when locked.
 - Keeps direct mouse tracking, fixed opposite edges, and the separate proportional bar/text scale slider.
 - Locking the bar disables edge resizing and disables ordinary dragging; Shift-drag remains available.
 - Adds panel controls for enabled state, bar lock, Blizzard bar visibility, width, height, scale, number format, and resets.
