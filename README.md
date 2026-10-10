@@ -41,7 +41,8 @@ prevent accidental movement. Existing users keep their saved lock preference.
 
 The Height control supports 10–120px, while the overall UI scale is separate.
 The panel also provides separate width, height, scale, 50% marker visibility,
-default-bar visibility, and XP number-format controls. At smaller widths the bar reduces
+default-bar visibility, and XP number-format controls. Unchecking **Hide Blizzard's XP bar**
+restores frames hidden by the addon immediately (or after combat). At smaller widths the bar reduces
 text detail automatically to avoid overlap.
 
 ## Commands
