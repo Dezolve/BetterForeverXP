@@ -21,7 +21,7 @@ This addon targets the WoW Forever beta client interface listed in
 
 ## In-game customization
 
-Type **`/bfxp`** to open the addon's Options panel under **Settings → AddOns**.
+Type **`/bfxp`** or **right-click the XP bar** to open its Options panel under **Settings → AddOns**. Right-click also works when locked.
 The XP bar starts **unlocked on new installations**. Drag its body to move it.
 Hover **anywhere along the top edge** to reveal the compact centered height
 grabber. Hover the **right edge** to resize width, or the **bottom-right corner**
