@@ -4,7 +4,7 @@ By Dezolve Labs
 
 ## In-game settings and proportional scaling
 
-- Adds a built-in Settings → AddOns panel, also accessible through `/bfxp` or `/bfxp options`.
+- Adds a built-in Settings → AddOns panel, accessible through `/bfxp`, `/bfxp options`, or right-clicking the XP bar (including while locked or over a resize zone).
 - New installations start unlocked; existing installations retain their previous lock setting.
 - Adds invisible hover-resize zones: **top edge** adjusts height, **right edge** adjusts width, and **bottom-right corner** adjusts both. Large hit targets make the edges easy to catch.
 - Refines hover affordances: hovering anywhere along the top edge reveals a 58×20 center tab; the right edge shows a vertical grip; the bottom-right gold L-grip is restored just outside the bar with its artwork adapting to bar height. All hide off hover or when locked.
