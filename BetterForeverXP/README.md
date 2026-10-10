@@ -32,9 +32,11 @@ many Blizzard-style bars remain, rounded to the nearest half-bar, such as
 
 Open **Settings → AddOns → Better Forever XP** or type `/bfxp`.
 
-- New installs start unlocked. Drag the bar to move it, or drag its bottom-right
-  corner arrow to uniformly scale its width, height, and text.
-- Lock the bar in Settings or via `/bfxp lock`. This hides all resize grabbers and
+- New installs start unlocked. Drag the bar body to move it. The resize zones
+  are invisible until hovered: **top edge** changes height, **right edge**
+  changes width, and **top-right corner** changes both independently.
+  A subtle golden indicator appears only while hovering or resizing.
+- Lock the bar in Settings or via `/bfxp lock`. This disables all resize zones and
   prevents ordinary dragging. Shift-drag remains an intentional move shortcut.
 - Set width (300–1600), height (10–40), and overall scale (0.5–2) independently
   using sliders. Width/height change the layout; scale proportionally grows
