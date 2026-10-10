@@ -199,66 +199,21 @@ local function CreateBar()
     restedEndMarker:SetColorTexture(0.78, 0.67, 0.43, 0.96)
     restedEndMarker:SetWidth(2)
 
-    -- A compact silver/steel chevron modeled after WoW Classic's native
-    -- halfway arrow. Purely decorative, outside the XP label area, and
-    -- independently hideable without affecting ticks or interactions.
+    -- Use Blizzard's own single-piece, filled silver exhaustion-tick art.
+    -- A native texture has a seamless silhouette at all UI scales; dozens of
+    -- rotated rectangles produced a hollow-looking, misaligned chevron.
+    -- Keep this decorative marker pinned to the exact center of the XP track.
     midpointMarker = CreateFrame("Frame", nil, bar)
-    midpointMarker:SetSize(32, 20)
-    midpointMarker:SetPoint("BOTTOM", bar, "TOP", 0, -5)
+    midpointMarker:SetSize(32, 32)
+    midpointMarker:SetPoint("CENTER", bar, "TOP", 0, -4)
     midpointMarker:SetFrameLevel(tickLayer:GetFrameLevel() + 1)
     midpointMarker:EnableMouse(false)
 
     local function AddMetalMidpointMarker()
-        -- Single symmetric, filled WoW-style chevron at the exact halfway
-        -- tick (the bar's TOP center). All layers are mouse-transparent
-        -- artwork; no separate offset pieces that can look off-center.
-        local arms = {
-            { x = -3.6, angle = -math.pi / 4 },
-            { x =  3.6, angle =  math.pi / 4 },
-        }
-
-        -- Keep the shadow subtle and mirrored behind both metal edges.
-        local shadowLeft = MakeTexture(midpointMarker, "BACKGROUND", 0.01, 0.02, 0.03, 0.35)
-        shadowLeft:SetPoint("CENTER", bar, "TOP", -3.6, 2.1)
-        shadowLeft:SetSize(11.5, 4.6)
-        shadowLeft:SetRotation(-math.pi / 4)
-        local shadowRight = MakeTexture(midpointMarker, "BACKGROUND", 0.01, 0.02, 0.03, 0.35)
-        shadowRight:SetPoint("CENTER", bar, "TOP", 3.6, 2.1)
-        shadowRight:SetSize(11.5, 4.6)
-        shadowRight:SetRotation(math.pi / 4)
-
-        for _, arm in ipairs(arms) do
-            local steel = MakeTexture(midpointMarker, "BORDER", 0.28, 0.31, 0.37, 1)
-            steel:SetPoint("CENTER", bar, "TOP", arm.x, 2.6)
-            steel:SetSize(11.2, 4.2)
-            steel:SetRotation(arm.angle)
-
-            local silver = MakeTexture(midpointMarker, "ARTWORK", 0.73, 0.77, 0.82, 1)
-            silver:SetPoint("CENTER", bar, "TOP", arm.x, 2.9)
-            silver:SetSize(10.0, 2.3)
-            silver:SetRotation(arm.angle)
-
-            local highlight = MakeTexture(midpointMarker, "OVERLAY", 0.95, 0.96, 0.98, 0.78)
-            highlight:SetPoint("CENTER", bar, "TOP", arm.x, 3.3)
-            highlight:SetSize(8.8, 0.8)
-            highlight:SetRotation(arm.angle)
-        end
-
-        -- Solid, centered interior rather than a pair of hollow strokes.
-        local centerFill = MakeTexture(midpointMarker, "ARTWORK", 0.46, 0.50, 0.58, 1)
-        centerFill:SetPoint("CENTER", bar, "TOP", 0, 1.0)
-        centerFill:SetSize(6.4, 3.2)
-        local centerShade = MakeTexture(midpointMarker, "OVERLAY", 0.16, 0.18, 0.22, 0.72)
-        centerShade:SetPoint("CENTER", bar, "TOP", 0, 0.9)
-        centerShade:SetSize(3.8, 1.5)
-
-        -- One clean, centered silver point meets the 50% tick.
-        local tip = MakeTexture(midpointMarker, "ARTWORK", 0.68, 0.73, 0.79, 1)
-        tip:SetPoint("CENTER", bar, "TOP", 0, -0.7)
-        tip:SetSize(3.2, 2.2)
-        local tipHighlight = MakeTexture(midpointMarker, "OVERLAY", 0.95, 0.96, 0.98, 0.72)
-        tipHighlight:SetPoint("CENTER", bar, "TOP", 0, -0.25)
-        tipHighlight:SetSize(1.8, 0.6)
+        local arrow = midpointMarker:CreateTexture(nil, "OVERLAY")
+        arrow:SetAllPoints(midpointMarker)
+        arrow:SetTexture("Interface\\MainMenuBar\\UI-ExhaustionTickNormal")
+        arrow:SetVertexColor(1, 1, 1, 1)
     end
     AddMetalMidpointMarker()
     midpointMarker:SetShown(db.showMidpointMarker)
