@@ -15,7 +15,9 @@ unearned XP sits in a softly shaded near-black channel. Dark upper and lower
 tube rims, a thin white inner reflection, and deeper bottom shading add
 visible depth. The ends now use height-aware stepped circular contours,
 with a matching metallic edge; the curve increases up to a restrained 16px
-radius at large bar heights instead of disappearing at 2px. On older clients
+radius at large bar heights instead of disappearing at 2px. The straight metal
+rails now terminate exactly where the curved cap begins, with no overlapping
+rectangular border or stray black corners. On older clients
 without gradient support, solid XP colors and bevel highlights remain.
 Hover for exact progress, rested XP, completed quest
 XP ready to turn in, session XP, XP/hour, and estimated time to level.
