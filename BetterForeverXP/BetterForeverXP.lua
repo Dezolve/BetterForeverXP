@@ -5,6 +5,7 @@ local defaults = {
     point = "BOTTOM", relativePoint = "BOTTOM", x = 0, y = 155,
     width = 1100, height = 16, scale = 1,
     numberFormat = "short", hideBlizzard = true, showMidpointMarker = true,
+    hoverTextOnly = true,
     version = 6,
 }
 
@@ -364,6 +365,15 @@ local function SetFittingLabel(label, candidates)
     label:SetText("")
 end
 
+-- The bar itself is the default information display; detailed labels
+-- appear on hover. Users who prefer permanent text can disable this option.
+-- The tooltip still contains the full, exact XP values in either mode.
+local function UpdateTextVisibility()
+    if textLayer then
+        textLayer:SetShown(not db.hoverTextOnly or tooltipVisible)
+    end
+end
+
 local function UpdateTextScrims()
     for label, scrim in pairs(textScrims) do
         if not label:IsShown() or not label:GetText() or label:GetText() == "" or db.height < 26 then
@@ -528,10 +538,6 @@ local function CreateBar()
         rim:SetPoint("BOTTOMLEFT", core, "BOTTOMRIGHT", 0, 0)
         local glint = MakeTexture(tickLayer, "OVERLAY", 1, 1, 1, 0.68)
         glint:SetPoint("CENTER", rim, "CENTER", 0, 0)
-        if index == 10 then
-            core:SetPoint("TOP", tickLayer, "TOP", 0, -1)
-            core:SetPoint("BOTTOM", tickLayer, "BOTTOM", 0, 1)
-        end
         tickMarks[index] = {
             core = core, rim = rim, glint = glint,
             isCenter = index == 10,
@@ -570,7 +576,9 @@ local function CreateBar()
     -- Keep this decorative marker pinned to the exact center of the XP track.
     midpointMarker = CreateFrame("Frame", nil, bar)
     midpointMarker:SetSize(32, 32)
-    midpointMarker:SetPoint("CENTER", bar, "TOP", 0, -4)
+    -- Anchor the native artwork to the actual 50% divider, not an
+    -- independently calculated position on the frame.
+    midpointMarker:SetPoint("CENTER", tickMarks[10].core, "TOP", 0, -4)
     midpointMarker:SetFrameLevel(tickLayer:GetFrameLevel() + 1)
     midpointMarker:EnableMouse(false)
 
@@ -586,6 +594,7 @@ local function CreateBar()
     -- A separate child frame keeps every label above both status-bar fills.
     textLayer = CreateFrame("Frame", nil, bar)
     textLayer:SetAllPoints(); textLayer:SetFrameLevel(bar:GetFrameLevel() + 10); textLayer:EnableMouse(false)
+    UpdateTextVisibility()
     leftText, centerText, rightText = MakeLabel(textLayer, "LEFT"), MakeLabel(textLayer, "CENTER"), MakeLabel(textLayer, "RIGHT")
     -- Small, soft scrims sit behind the actual rendered words, not across
     -- the bar. They tone down white divider glints under tall XP labels.
@@ -793,10 +802,12 @@ local function CreateBar()
     end)
     bar:SetScript("OnEnter", function()
         tooltipVisible = true
+        UpdateTextVisibility()
         if bar.ShowDetails then bar:ShowDetails() end
     end)
     bar:SetScript("OnLeave", function()
         tooltipVisible = false
+        UpdateTextVisibility()
         if GameTooltip:GetOwner() == bar then GameTooltip:Hide() end
     end)
 end
@@ -804,6 +815,7 @@ end
 local function ApplyLayout()
     CreateBar(); bar:SetScale(db.scale); bar:SetSize(db.width, db.height)
     midpointMarker:SetShown(db.showMidpointMarker)
+    UpdateTextVisibility()
     bar:ClearAllPoints(); bar:SetPoint(db.point, UIParent, db.relativePoint, db.x, db.y)
     -- Never allow the three text regions to overlap. Compact layouts
     -- progressively remove secondary detail as available width shrinks.
@@ -878,12 +890,12 @@ local function ApplyLayout()
         -- Removing stacked black end-blocks eliminates the dark gaps.
         local grooveHeight = math.max(2, db.height - 2)
         tick.glint:SetHeight(math.max(1, math.floor(grooveHeight * 0.65 + 0.5)))
-        if index ~= 10 then
-            local x = math.floor(db.width * index / 20 * effectiveScale + 0.5) * pixel
-            tick.core:ClearAllPoints()
-            tick.core:SetPoint("TOP", tickLayer, "TOPLEFT", x, -1)
-            tick.core:SetPoint("BOTTOM", tickLayer, "BOTTOMLEFT", x, 1)
-        end
+        -- Every divider, including 50%, shares this exact physical-pixel
+        -- grid. The Blizzard arrow follows tickMarks[10].core automatically.
+        local x = math.floor(db.width * index / 20 * effectiveScale + 0.5) * pixel
+        tick.core:ClearAllPoints()
+        tick.core:SetPoint("TOP", tickLayer, "TOPLEFT", x, -1)
+        tick.core:SetPoint("BOTTOM", tickLayer, "BOTTOMLEFT", x, 1)
     end
 end
 
@@ -1222,12 +1234,13 @@ local function SetSetting(key, value)
         if type(value) ~= "number" or value < 0.5 or value > 3 then return false end
         db.scale = math.floor(value * 100 + 0.5) / 100
         ApplyLayout()
-    elseif key == "locked" or key == "enabled" or key == "hideBlizzard" or key == "showMidpointMarker" then
+    elseif key == "locked" or key == "enabled" or key == "hideBlizzard" or key == "showMidpointMarker" or key == "hoverTextOnly" then
         if type(value) ~= "boolean" then return false end
         db[key] = value
         if key == "locked" then UpdateResizeHandles()
         elseif key == "enabled" then UpdateBar()
         elseif key == "showMidpointMarker" then midpointMarker:SetShown(value)
+        elseif key == "hoverTextOnly" then UpdateTextVisibility()
         else ApplyDefaultBarVisibility() end
     elseif key == "numberFormat" then
         if value ~= "short" and value ~= "commas" and value ~= "exact" then return false end
@@ -1248,6 +1261,7 @@ addon.ResetAll = function()
     db.enabled, db.locked = defaults.enabled, defaults.locked
     db.numberFormat, db.hideBlizzard = defaults.numberFormat, defaults.hideBlizzard
     db.showMidpointMarker = defaults.showMidpointMarker
+    db.hoverTextOnly = defaults.hoverTextOnly
     ResetPosition()
     UpdateResizeHandles(); ApplyDefaultBarVisibility(); UpdateBar()
     if addon.RefreshOptions then addon.RefreshOptions() end
