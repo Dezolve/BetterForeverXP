@@ -11,7 +11,7 @@ local defaults = {
 local db
 local charDB
 local bar, fill, restedFill, spark
-local resizeHandle
+local resizeHandles = {}
 local restedEndMarker
 local textLayer
 local tickLayer, tickMarks = nil, {}
@@ -122,9 +122,32 @@ local function MakeLabel(parent, justify)
     return text
 end
 
-local function UpdateResizeHandle()
-    if resizeHandle then resizeHandle:SetShown(db and not db.locked) end
+local function UpdateResizeHandles()
+    for _, handle in pairs(resizeHandles) do
+        handle:SetShown(db and not db.locked)
+    end
 end
+
+-- Fix the current top-left corner in screen space before resizing. This
+-- removes the half-speed/jumping behavior caused by center-anchored bars.
+-- GetLeft/GetTop are expressed in the bar's effective scale; SavedVariables
+-- use UIParent coordinates, so convert between those coordinate systems.
+local function AnchorForResizing()
+    local parentScale = UIParent:GetEffectiveScale()
+    local frameScale = bar:GetEffectiveScale()
+    if not parentScale or parentScale <= 0 or not frameScale or frameScale <= 0 then
+        return
+    end
+    local left, top = bar:GetLeft(), bar:GetTop()
+    if not left or not top then return end
+    local x = left * frameScale / parentScale
+    local y = top * frameScale / parentScale - UIParent:GetHeight()
+    db.point, db.relativePoint, db.x, db.y = "TOPLEFT", "TOPLEFT", x, y
+    bar:ClearAllPoints()
+    bar:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
+end
+
+local ApplyResizeLayout
 
 local function CreateBar()
     if bar then return end
@@ -177,45 +200,101 @@ local function CreateBar()
     textLayer:SetAllPoints(); textLayer:SetFrameLevel(bar:GetFrameLevel() + 10); textLayer:EnableMouse(false)
     leftText, centerText, rightText = MakeLabel(textLayer, "LEFT"), MakeLabel(textLayer, "CENTER"), MakeLabel(textLayer, "RIGHT")
 
-    -- Small corner grabber scales the entire bar uniformly. Width and height
-    -- remain independent settings, so labels/ticks are never distorted.
-    resizeHandle = CreateFrame("Button", nil, bar)
-    resizeHandle:SetSize(20, 20)
-    resizeHandle:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", 5, -5)
-    resizeHandle:SetFrameLevel(bar:GetFrameLevel() + 20)
-    resizeHandle:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
-    resizeHandle:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
-    resizeHandle:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
-    local normalTexture = resizeHandle:GetNormalTexture()
-    if normalTexture then normalTexture:SetVertexColor(0.95, 0.76, 0.40) end
-    local startX, startY, startScale
-    local function StopScaling(self)
-        self:SetScript("OnUpdate", nil)
-        startX, startY, startScale = nil, nil, nil
+    -- Three intentional resize targets:
+    -- W changes width, H changes height, corner changes both. Their mouse
+    -- movements are measured in screen pixels and converted to bar units,
+    -- so each handle follows the cursor at any UI scale.
+    local MIN_WIDTH, MAX_WIDTH = 300, 1600
+    local MIN_HEIGHT, MAX_HEIGHT = 10, 40
+    local activeResize
+
+    local function FinishResize(handle)
+        if not activeResize or activeResize.handle ~= handle then return end
+        handle:SetScript("OnUpdate", nil)
+        activeResize = nil
         if addon.RefreshOptions then addon.RefreshOptions() end
     end
-    resizeHandle:SetScript("OnMouseDown", function(self, button)
+
+    local function BeginResize(handle, mode, button)
         if button ~= "LeftButton" or not db or db.locked then return end
-        startX, startY = GetCursorPosition()
-        startScale = db.scale
-        self:SetScript("OnUpdate", function(handle)
+        AnchorForResizing()
+        local cursorX, cursorY = GetCursorPosition()
+        local scale = bar:GetEffectiveScale()
+        if not scale or scale <= 0 then scale = 1 end
+        activeResize = {
+            handle = handle, mode = mode, startX = cursorX, startY = cursorY,
+            startWidth = db.width, startHeight = db.height, effectiveScale = scale
+        }
+        handle:SetScript("OnUpdate", function(self)
+            if not activeResize or activeResize.handle ~= self then return end
+            -- Also finish when the mouse button is released outside the grip.
             if IsMouseButtonDown and not IsMouseButtonDown("LeftButton") then
-                StopScaling(handle)
+                FinishResize(self)
                 return
             end
-            local cursorX, cursorY = GetCursorPosition()
-            local parentScale = UIParent:GetEffectiveScale()
-            if not parentScale or parentScale <= 0 then parentScale = 1 end
-            local dx = (cursorX - startX) / parentScale
-            local dy = (cursorY - startY) / parentScale
-            local proposed = startScale + (dx - dy) / (db.width + db.height)
-            db.scale = math.max(0.5, math.min(2, math.floor(proposed * 100 + 0.5) / 100))
-            bar:SetScale(db.scale)
+            local mx, my = GetCursorPosition()
+            local dx = (mx - activeResize.startX) / activeResize.effectiveScale
+            local dy = (my - activeResize.startY) / activeResize.effectiveScale
+            local width, height = activeResize.startWidth, activeResize.startHeight
+            if mode ~= "height" then
+                -- A rightward drag moves the right edge right by the exact
+                -- cursor distance, irrespective of the bar's prior anchor.
+                local visibleWidth = math.max(MIN_WIDTH,
+                    (UIParent:GetWidth() - db.x) / db.scale)
+                width = math.floor(math.max(MIN_WIDTH,
+                    math.min(MAX_WIDTH, visibleWidth, width + dx)) + 0.5)
+            end
+            if mode ~= "width" then
+                -- Screen-space Y rises upwards. Moving the bottom edge
+                -- down increases the height, while the top-left stays fixed.
+                local visibleHeight = math.max(MIN_HEIGHT,
+                    (UIParent:GetHeight() + db.y) / db.scale)
+                height = math.floor(math.max(MIN_HEIGHT,
+                    math.min(MAX_HEIGHT, visibleHeight, height - dy)) + 0.5)
+            end
+            if width ~= db.width or height ~= db.height then
+                db.width, db.height = width, height
+                ApplyResizeLayout()
+            end
         end)
-    end)
-    resizeHandle:SetScript("OnMouseUp", function(self) StopScaling(self) end)
-    resizeHandle:SetScript("OnHide", function(self) StopScaling(self) end)
-    UpdateResizeHandle()
+    end
+
+    local function AddResizeHandle(mode, label, point, x, y, tooltip)
+        local handle = CreateFrame("Button", nil, bar)
+        handle:SetSize(23, 23)
+        handle:SetPoint(point, bar, point, x, y)
+        handle:SetFrameLevel(bar:GetFrameLevel() + 25)
+        handle:EnableMouse(true)
+        local background = MakeTexture(handle, "BACKGROUND", 0.02, 0.045, 0.09, 0.93)
+        background:SetAllPoints()
+        AddBorder(handle)
+        local text = handle:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        text:SetAllPoints()
+        text:SetJustifyH("CENTER")
+        text:SetJustifyV("MIDDLE")
+        text:SetText(label)
+        text:SetTextColor(1, 0.76, 0.32)
+        handle:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:SetText(tooltip, 1, 0.85, 0.55, 1, true)
+            GameTooltip:Show()
+        end)
+        handle:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        handle:SetScript("OnMouseDown", function(self, button)
+            BeginResize(self, mode, button)
+        end)
+        handle:SetScript("OnMouseUp", function(self) FinishResize(self) end)
+        handle:SetScript("OnHide", function(self) FinishResize(self) end)
+        resizeHandles[mode] = handle
+    end
+
+    AddResizeHandle("width", "W", "RIGHT", 14, 0,
+        "Drag horizontally to change width")
+    AddResizeHandle("height", "H", "BOTTOM", 0, -14,
+        "Drag vertically to change height")
+    AddResizeHandle("corner", "+", "BOTTOMRIGHT", 16, -25,
+        "Drag diagonally to resize width and height together")
+    UpdateResizeHandles()
 
     bar:SetScript("OnDragStart", function(self)
         -- Shift-drag is an escape hatch that always works, even after the bar
@@ -267,7 +346,7 @@ local function ApplyLayout()
         rightText:SetPoint("RIGHT", textLayer, "RIGHT", -6, 0)
         rightText:SetSize(db.width * 0.42 - 12, db.height)
     end
-    UpdateResizeHandle()
+    UpdateResizeHandles()
 
     for index, tick in ipairs(tickMarks) do
         local x = db.width * index / 20
@@ -278,6 +357,13 @@ local function ApplyLayout()
         tick.light:SetPoint("TOP", tickLayer, "TOPLEFT", x + 1, -1)
         tick.light:SetPoint("BOTTOM", tickLayer, "BOTTOMLEFT", x + 1, 1)
     end
+end
+
+-- Called only when dimensions actually change during a drag. Keep the
+-- same layout and marker calculations as the options panel and slash commands.
+ApplyResizeLayout = function()
+    ApplyLayout()
+    if addon.UpdateBar then addon.UpdateBar() end
 end
 
 local hookedDefaultFrames = {}
@@ -372,7 +458,7 @@ local function ShowDetails()
     if db.locked then
         GameTooltip:AddLine("Shift-drag to move • /bfxp unlock for normal dragging", 0.55, 0.62, 0.72)
     else
-        GameTooltip:AddLine("Drag to move • /bfxp lock when finished", 0.55, 0.62, 0.72)
+        GameTooltip:AddLine("Drag to move • W: width • H: height • +: both • /bfxp lock", 0.55, 0.62, 0.72)
     end
     GameTooltip:Show()
 end
@@ -416,6 +502,8 @@ local function UpdateBar()
     if tooltipVisible then ShowDetails() end
 end
 
+addon.UpdateBar = UpdateBar
+
 local function RecordXP()
     local xp, xpMax = UnitXP("player") or 0, UnitXPMax("player") or 0
     if lastXP and lastXPMax then
@@ -452,7 +540,7 @@ local function SetSetting(key, value)
     elseif key == "locked" or key == "enabled" or key == "hideBlizzard" then
         if type(value) ~= "boolean" then return false end
         db[key] = value
-        if key == "locked" then UpdateResizeHandle()
+        if key == "locked" then UpdateResizeHandles()
         elseif key == "enabled" then UpdateBar()
         else ApplyDefaultBarVisibility() end
     elseif key == "numberFormat" then
@@ -474,7 +562,7 @@ addon.ResetAll = function()
     db.enabled, db.locked = defaults.enabled, defaults.locked
     db.numberFormat, db.hideBlizzard = defaults.numberFormat, defaults.hideBlizzard
     ResetPosition()
-    UpdateResizeHandle(); ApplyDefaultBarVisibility(); UpdateBar()
+    UpdateResizeHandles(); ApplyDefaultBarVisibility(); UpdateBar()
     if addon.RefreshOptions then addon.RefreshOptions() end
 end
 
