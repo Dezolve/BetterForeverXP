@@ -8,9 +8,11 @@ The bar is 1,100 pixels wide and 16 pixels high by default. It shows level,
 percent, remaining XP, and current/maximum XP. Values always use commas and
 also show shorthand at 1,000 or above, such as `4,500 (4.5K)`.
 
-Earned XP is solid royal blue; rested XP extends beyond it in dark navy with
-a warm metallic end marker; unearned XP is near-black. The hierarchy follows
-Blizzard's proven light-to-dark treatment. Hover for exact progress, rested XP, completed quest
+Earned XP is electric blue while rested and switches to classic purple
+when no rested XP remains. Remaining rested coverage extends beyond earned XP
+in dark navy with a warm metallic end marker; unearned XP is near-black.
+Both the earned fill and its top highlight update as rested status changes.
+Hover for exact progress, rested XP, completed quest
 XP ready to turn in, session XP, XP/hour, and estimated time to level.
 
 The hover card also tracks online time spent on the current level, shows how
