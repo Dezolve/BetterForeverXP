@@ -128,28 +128,24 @@ local function UpdateResizeHandles()
     end
 end
 
--- On drag start, pin the opposite corner before changing dimensions.
--- Top-edge drags keep the bottom-left fixed (top grows upward). Right-edge
--- and bottom-right drags keep the top-left fixed (bottom grows downward).
-local function AnchorForResizing(mode)
+-- Resize from the bottom or right while fixing the top-left corner.
+-- The height hit zone stays OUTSIDE the bottom edge so the entire bar
+-- remains available for movement and the regular XP tooltip.
+local function AnchorForResizing()
     local parentScale = UIParent:GetEffectiveScale()
     local frameScale = bar:GetEffectiveScale()
     if not parentScale or parentScale <= 0 or not frameScale or frameScale <= 0 then
         return false
     end
-    local topAnchored = mode ~= "height"
-    local point = topAnchored and "TOPLEFT" or "BOTTOMLEFT"
-    local left = bar:GetLeft()
-    local barY = topAnchored and bar:GetTop() or bar:GetBottom()
-    local parentLeft = UIParent:GetLeft()
-    local parentY = topAnchored and UIParent:GetTop() or UIParent:GetBottom()
-    if not left or not barY or not parentLeft or not parentY then return false end
+    local left, top = bar:GetLeft(), bar:GetTop()
+    local parentLeft, parentTop = UIParent:GetLeft(), UIParent:GetTop()
+    if not left or not top or not parentLeft or not parentTop then return false end
     local ratio = parentScale / frameScale
     local x = left - parentLeft * ratio
-    local y = barY - parentY * ratio
-    db.point, db.relativePoint, db.x, db.y = point, point, x, y
+    local y = top - parentTop * ratio
+    db.point, db.relativePoint, db.x, db.y = "TOPLEFT", "TOPLEFT", x, y
     bar:ClearAllPoints()
-    bar:SetPoint(point, UIParent, point, x, y)
+    bar:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
     return true
 end
 
@@ -208,7 +204,7 @@ local function CreateBar()
 
     -- Invisible edge hit zones, with subtle affordances shown only while the
     -- pointer is hovering or dragging. No permanent floating W/H/+ buttons.
-    -- Top edge grows upward; right edge grows rightward; bottom-right grows down/right.
+    -- Bottom edge grows downward; right edge grows rightward; bottom-right grows down/right.
     local MIN_WIDTH, MAX_WIDTH = 300, 1600
     local MIN_HEIGHT, MAX_HEIGHT = 10, 120
     local activeResize
@@ -233,7 +229,7 @@ local function CreateBar()
 
     local function BeginResize(handle, mode, button)
         if button ~= "LeftButton" or not db or db.locked then return end
-        if not AnchorForResizing(mode) then return end
+        if not AnchorForResizing() then return end
         local cursorX, cursorY = GetCursorPosition()
         local scale = bar:GetEffectiveScale()
         if not scale or scale <= 0 then scale = 1 end
@@ -260,14 +256,12 @@ local function CreateBar()
                     math.min(MAX_WIDTH, available, width + dx)) + 0.5)
             end
             if mode ~= "width" then
-                -- Top-edge dragging grows upward from a fixed bottom.
-                -- Bottom-right dragging grows downward from a fixed top.
-                local fromTop = mode == "corner"
+                -- Both the bottom edge and bottom-right corner follow the
+                -- cursor downward, growing from a stationary top-left corner.
                 local available = math.max(MIN_HEIGHT,
-                    UIParent:GetHeight() / db.scale + (fromTop and db.y or -db.y))
-                local heightDelta = fromTop and -dy or dy
+                    UIParent:GetHeight() / db.scale + db.y)
                 height = math.floor(math.max(MIN_HEIGHT,
-                    math.min(MAX_HEIGHT, available, height + heightDelta)) + 0.5)
+                    math.min(MAX_HEIGHT, available, height - dy)) + 0.5)
             end
             if width ~= db.width or height ~= db.height then
                 db.width, db.height = width, height
@@ -290,9 +284,9 @@ local function CreateBar()
         indicator:SetAllPoints()
         indicator:EnableMouse(false)
         if mode == "height" then
-            -- Keep the full-width invisible top hover area, but remove the
-            -- solid dark rectangle around its centered gold resize line.
-            -- A thin translucent shadow preserves contrast over bright XP.
+            -- Keep the wide bottom-edge hover area but show only a compact,
+            -- centered gold line with a faint shadow. This handle is below
+            -- the bar and cannot intercept the bar's drag or XP tooltip.
             local shadow = MakeTexture(indicator, "OVERLAY", 0.02, 0.03, 0.05, 0.35)
             shadow:SetPoint("CENTER", 0, 0)
             shadow:SetSize(44, 7)
@@ -362,11 +356,13 @@ local function CreateBar()
     -- preserving the bar body for movement and XP tooltip interactions.
     -- Bottom-right corner has a higher frame level than the width zone.
     AddResizeHandle("width", "RIGHT", 10, 0)
-    AddResizeHandle("height", "TOP", 0, 9)
+    -- The 24px-high hitbox and its 2px insets end at the bottom border.
+    -- Nothing overlaps the XP bar's draggable and tooltip-bearing body.
+    AddResizeHandle("height", "BOTTOM", 0, -14)
     AddResizeHandle("corner", "BOTTOMRIGHT", 12, -10)
     resizeHandles.width:SetSize(24, math.max(28, db.height + 12))
-    -- Hover anywhere along the TOP edge to reveal the centered grip.
-    -- The visible tab stays compact; only this invisible target is wide.
+    -- Hover anywhere just BELOW the bar to reveal the centered grip.
+    -- The visual stays compact; the invisible target spans the bar width.
     resizeHandles.height:SetSize(db.width, 24)
     resizeHandles.corner:SetSize(30, 30)
     UpdateResizeHandles()
@@ -554,7 +550,7 @@ local function ShowDetails()
     if db.locked then
         GameTooltip:AddLine("Right-click for options • Shift-drag to move • /bfxp unlock", 0.55, 0.62, 0.72)
     else
-        GameTooltip:AddLine("Right-click for options • drag to move • hover edges to resize", 0.55, 0.62, 0.72)
+        GameTooltip:AddLine("Right-click for options • drag to move • resize below/right edge", 0.55, 0.62, 0.72)
     end
     GameTooltip:Show()
 end
