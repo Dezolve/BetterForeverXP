@@ -14,6 +14,7 @@ By Dezolve Labs
 - Keeps direct mouse tracking and fixed opposite edges, and increases the proportional bar/text scale slider maximum from 2× to 3× (default remains 1×).
 - Locking the bar disables edge resizing and disables ordinary dragging; Shift-drag remains available.
 - Adds panel controls for enabled state, bar lock, Blizzard bar visibility, width, height, scale, number format, and resets.
+- Fixes the **Hide Blizzard's XP bar** checkbox so unchecking actually restores frames previously hidden by Better Forever XP without a reload. Only addon-hidden frames are restored, and changes made in combat apply afterward.
 - Expands configurable bar height up to 120 pixels (three times the previous 40px limit), with taller bars gradually enlarging their text. The default height remains 16px.
 - Adapts text layout across narrow, medium, and wide bar widths so labels do not overlap.
 - Connects the number format option to the main bar's visible XP values.
