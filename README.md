@@ -23,8 +23,8 @@ This addon targets the WoW Forever beta client interface listed in
 
 Type **`/bfxp`** to open the addon's Options panel under **Settings → AddOns**.
 The XP bar starts **unlocked on new installations**. Drag the bar to move it, or
-drag the small corner arrow to uniformly scale the full bar, including its text.
-Lock the bar from Settings or with `/bfxp lock` to hide the corner grabber and
+drag the W grip at the right to change width, the H grip below to change\nheight, or the + corner grip to change both dimensions. The separate overall\nscale slider adjusts the bar and text proportionally.
+Lock the bar from Settings or with `/bfxp lock` to hide the resize controls and
 prevent accidental movement. Existing users keep their saved lock preference.
 
 The panel also provides separate width, height, scale, visibility, default-bar
