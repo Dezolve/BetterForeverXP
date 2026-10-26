@@ -48,6 +48,19 @@ in every mode, and previous hover/permanent choices are migrated. Completion use
 above it. The Blizzard silver arrow is anchored
 directly to the exact pixel-snapped 50% divider.
 
+## Completed quest XP preview
+
+A gold extension on the XP tube shows how much progress is waiting in completed
+quests ready to turn in. Earned XP remains blue or purple, while the gold segment
+is only a projection; as quests are handed in, the gold becomes earned XP.
+The preview overlays rested coverage without changing rested XP calculations,
+retains the classic five-percent dividers, and respects the tube\'s rounded ends.
+It stops at 100% of the current level; precise next-level carryover remains in
+the hover tooltip. Unfinished quests are not included.
+
+**Preview completed quest XP** is on by default and can be turned off from
+`/bfxp` / right-click → Options. It is independent of the three XP text modes.
+
 ## Install
 
 1. Download the latest `BetterForeverXP-<version>.zip` from GitHub Releases.
