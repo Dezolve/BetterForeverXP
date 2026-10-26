@@ -5,13 +5,14 @@ local defaults = {
     point = "BOTTOM", relativePoint = "BOTTOM", x = 0, y = 155,
     width = 1100, height = 16, scale = 1,
     numberFormat = "short", hideBlizzard = true, showMidpointMarker = true,
+    showQuestPreview = true,
     textMode = "tooltip", -- "tooltip", "hover", or "always"
     version = 8,
 }
 
 local db
 local charDB
-local bar, fill, restedFill, spark, fillSheen, fillShade
+local bar, fill, restedFill, spark, fillSheen, fillShade, questPreview
 local resizeHandles = {}
 local restedEndMarker
 local midpointMarker
@@ -211,6 +212,9 @@ local capColors = {
     rested = {
         bottom = {0.013, 0.042, 0.105}, top = {0.085, 0.17, 0.31}, flat = {0.025, 0.075, 0.18},
     },
+    quest = {
+        bottom = {0.42, 0.22, 0.04}, top = {0.92, 0.65, 0.20}, flat = {0.72, 0.46, 0.09},
+    },
 }
 
 -- Gradient coordinates on trimmed endcap columns need to match the full
@@ -248,6 +252,8 @@ local function SetCapPaint(cap, region)
         cap.topSheen:SetColorTexture(0.55, 0.72, 1.00, 0.18)
     elseif region == "purple" then
         cap.topSheen:SetColorTexture(0.88, 0.74, 0.96, 0.22)
+    elseif region == "quest" then
+        cap.topSheen:SetColorTexture(1.00, 0.90, 0.54, 0.25)
     else
         cap.topSheen:SetColorTexture(0.40, 0.58, 0.84, 0.16)
     end
@@ -544,6 +550,16 @@ local function CreateBar()
             }
         end
     end
+
+    -- Unclaimed completed-quest XP overlays the earned/rested body but stays
+    -- below the metallic rim and the 5% divisions. Rounded endcaps are painted
+    -- by SetCapPaint using the same gold gradient as this center texture.
+    questPreview = MakeTexture(capFillLayer, "ARTWORK", 1, 1, 1, 1)
+    if not ApplyVerticalGradient(questPreview, capColors.quest.bottom, capColors.quest.top) then
+        local color = capColors.quest.flat
+        questPreview:SetColorTexture(color[1], color[2], color[3], 1)
+    end
+    questPreview:Hide()
 
     -- Add a restrained metal tube frame above the status-bar fills. Using a
     -- separate mouse-transparent frame keeps these lines visible on earned,
@@ -1152,6 +1168,7 @@ local function UpdateBar()
     if not XPAvailable() then bar:Hide(); return end
     local xp, xpMax = UnitXP("player") or 0, UnitXPMax("player") or 1
     local rested = GetXPExhaustion and (GetXPExhaustion() or 0) or 0
+    local questXP = db.showQuestPreview and CompletedQuestXP() or 0
     -- Keep Blizzard's blue-when-rested / purple-when-unrested distinction,
     -- but shade each fill from a lighter upper arc to a darker lower arc.
     if rested > 0 then
@@ -1169,12 +1186,19 @@ local function UpdateBar()
     -- rounded caps. Convert absolute XP boundaries to inner StatusBar values
     -- so each 5% groove and the color change agree at exactly the same x.
     local earnedX = db.width * xp / xpMax
+    local questEndX = db.width * math.min(xpMax, xp + questXP) / xpMax
     local restedAmount = math.min(rested, remaining)
     local restedEndX = db.width * math.min(xpMax, xp + restedAmount) / xpMax
     local function InnerPosition(absoluteX)
         return math.max(0, math.min(innerWidth, absoluteX - visualLeft))
     end
     local earnedWidth = InnerPosition(earnedX)
+    local questEndWidth = InnerPosition(questEndX)
+    local questPreviewWidth = math.max(0, questEndWidth - earnedWidth)
+    questPreview:ClearAllPoints()
+    questPreview:SetPoint("TOPLEFT", bar, "TOPLEFT", visualLeft + earnedWidth, -1)
+    questPreview:SetSize(math.max(1, questPreviewWidth), math.max(1, db.height - 2))
+    questPreview:SetShown(db.showQuestPreview and questXP > 0 and questPreviewWidth > 0)
     local restedEndWidth = InnerPosition(restedEndX)
     local restedWidth = math.max(0, restedEndWidth - earnedWidth)
     fill:SetMinMaxValues(0, innerWidth); fill:SetValue(earnedWidth)
@@ -1193,6 +1217,8 @@ local function UpdateBar()
             or (cap.column + 0.5)
         if capX <= earnedX then
             region = earnedCapColor
+        elseif db.showQuestPreview and questXP > 0 and capX <= questEndX then
+            region = "quest"
         elseif rested > 0 and capX <= restedEndX then
             region = "rested"
         end
@@ -1287,12 +1313,13 @@ local function SetSetting(key, value)
         if type(value) ~= "number" or value < 0.5 or value > 3 then return false end
         db.scale = math.floor(value * 100 + 0.5) / 100
         ApplyLayout()
-    elseif key == "locked" or key == "enabled" or key == "hideBlizzard" or key == "showMidpointMarker" then
+    elseif key == "locked" or key == "enabled" or key == "hideBlizzard" or key == "showMidpointMarker" or key == "showQuestPreview" then
         if type(value) ~= "boolean" then return false end
         db[key] = value
         if key == "locked" then UpdateResizeHandles()
         elseif key == "enabled" then UpdateBar()
         elseif key == "showMidpointMarker" then midpointMarker:SetShown(value)
+        elseif key == "showQuestPreview" then UpdateBar()
         else ApplyDefaultBarVisibility() end
     elseif key == "textMode" then
         if value ~= "tooltip" and value ~= "hover" and value ~= "always" then return false end
@@ -1318,6 +1345,7 @@ addon.ResetAll = function()
     db.enabled, db.locked = defaults.enabled, defaults.locked
     db.numberFormat, db.hideBlizzard = defaults.numberFormat, defaults.hideBlizzard
     db.showMidpointMarker = defaults.showMidpointMarker
+    db.showQuestPreview = defaults.showQuestPreview
     db.textMode = defaults.textMode
     UpdateTextVisibility()
     ResetPosition()
