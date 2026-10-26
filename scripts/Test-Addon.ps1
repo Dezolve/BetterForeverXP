@@ -217,6 +217,16 @@ if ($failures.Count -eq 0) {
     $nextLevelIndex = $lua.IndexOf('GameTooltip:AddDoubleLine("XP into next level"')
     Assert-Condition ($afterTurnInsIndex -ge 0 -and $nextLevelIndex -gt $afterTurnInsIndex -and ($nextLevelIndex - $afterTurnInsIndex) -lt 370) 'Next-level XP should appear immediately beneath After turn-ins.'
 
+    Assert-Condition ($lua -match 'showQuestPreview = true') 'Quest preview should be enabled by default.'
+    Assert-Condition ($lua -match 'local questXP = db[.]showQuestPreview and CompletedQuestXP[(][)] or 0') 'The preview must use existing ready-for-turn-in quest XP, without recalculation when disabled.'
+    Assert-Condition ($lua -match 'local questEndX = db[.]width [*] math[.]min[(]xpMax, xp [+] questXP[)] / xpMax') 'Quest preview should stop at the current-level cap.'
+    Assert-Condition ($lua -match 'questPreview:SetShown[(]db[.]showQuestPreview and questXP > 0 and questPreviewWidth > 0[)]') 'The center overlay should disappear when empty or disabled.'
+    Assert-Condition ($lua -match 'elseif db[.]showQuestPreview and questXP > 0 and capX <= questEndX then') 'Rounded cap should display pending quest XP without turning it into earned XP.'
+    Assert-Condition ($lua -match 'region = "quest"') 'Rounded cap needs its own quest region.'
+    Assert-Condition ($lua -match 'elseif key == "showQuestPreview" then UpdateBar[(][)]') 'The checkbox should update the bar immediately.'
+    Assert-Condition ($lua -match 'db[.]showQuestPreview = defaults[.]showQuestPreview') 'Reset all should restore quest preview visibility.'
+    Assert-Condition ($options -match 'AddCheckbox[(]"showQuestPreview", "Preview completed quest XP"') 'The new option must be visible in Settings.'
+    Assert-Condition ($lua -match 'questPreview = MakeTexture[(]capFillLayer, "ARTWORK", 1, 1, 1, 1[)]') 'Quest overlay must be behind the frame and divider layers.'
     Assert-Condition ($lua -notmatch '(?i)\b(TODO|FIXME)\b') 'Release source contains TODO or FIXME markers.'
 
     Assert-Condition ($lua -match 'enabled = true, locked = false') 'New installs should start unlocked.'
