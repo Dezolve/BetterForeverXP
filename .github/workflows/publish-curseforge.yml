@@ -68,8 +68,13 @@ jobs:
             exit 1
           fi
           DETAILS=$(curl --fail --silent --show-error --retry 2 "${HEADERS[@]}" "$API/$RULESET_ID")
-          if ! jq -e '([.rules[].type] | index("update") != null) and ([.rules[].type] | index("deletion") != null)' <<< "$DETAILS" >/dev/null; then
-            echo "::error::The BFXP Release Tags ruleset must restrict tag updates and deletions."
+          if ! jq -e '
+            ((.conditions.ref_name.include // []) | any(. == "refs/tags/v*" or . == "v*" or . == "~ALL")) and
+            ((.conditions.ref_name.exclude // []) | length == 0) and
+            ([.rules[].type] | index("update") != null) and
+            ([.rules[].type] | index("deletion") != null)
+          ' <<< "$DETAILS" >/dev/null; then
+            echo "::error::BFXP Release Tags must target v* with no exclusions and restrict updates and deletions."
             exit 1
           fi
           echo "Release-tag protection ruleset is active."
