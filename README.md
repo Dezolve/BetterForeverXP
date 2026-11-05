@@ -156,9 +156,9 @@ After an in-game-tested release PR is merged into `main`:
    and verify the new file on
    [CurseForge](https://www.curseforge.com/wow/addons/better-forever-xp/files).
 
-The first eligible tag is **v2.6.1 or newer**. Versions 2.5.0 and 2.6.0 were
-already published through the older flow and cannot be republished through
-the new workflow. Existing `CURSEFORGE_API_TOKEN` remains a GitHub repository
+The first eligible tag is **v2.6.2 or newer**. Versions 2.5.0, 2.6.0, and
+2.6.1 were already published through reviewed one-time releases and cannot
+be republished through the tag workflow. Existing `CURSEFORGE_API_TOKEN` remains a GitHub repository
 secret. Pushing an ordinary commit or merging a PR does **not** publish.
 
 ## Automatic Windows test deployment
