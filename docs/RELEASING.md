@@ -2,7 +2,7 @@
 
 This is the permanent release procedure for [Better Forever XP](https://www.curseforge.com/wow/addons/better-forever-xp) (CurseForge project **1731462**).
 
-**Release signal:** Push a new version tag such as `v2.6.3` or `v2.7.0` to an already-reviewed commit on `main`. GitHub Actions validates, packages, and publishes the corresponding ZIP through the existing `CURSEFORGE_API_TOKEN` secret.
+**Release signals:** Merge a reviewed versioned release-request PR into `main` (preferred, automated tag creation) or push a new protected version tag such as `v2.7.0` manually. GitHub Actions validates, packages, and publishes through the existing `CURSEFORGE_API_TOKEN` secret.
 
 **Do not tag releases through 2.6.2 again.** Versions 2.5.0, 2.6.0, 2.6.1, and 2.6.2 were published through reviewed, one-time main-branch workflows. This tag process accepts only versions **newer than 2.6.2**.
 
@@ -23,6 +23,35 @@ The workflow checks for an active repository tag ruleset called `BFXP Release Ta
 The existing repository secret `CURSEFORGE_API_TOKEN` should remain stored in **Settings → Secrets and variables → Actions**. Do not copy the key into files, chat, or logs.
 
 For additional protection, enable a `main` branch ruleset requiring pull requests and the `Validate and package` status check. This prevents unreviewed release files from reaching the main branch.
+
+## Automated, no-local-Git publishing (preferred)
+
+The trusted GitHub release workflow also accepts a **new, reviewed release
+request merged into `main`**. This allows connected repository automation
+to ship releases without asking the addon author to push tags manually.
+
+1. Finalize and test the version in a normal PR (TOC, release notes, changelog).
+2. On a short release PR, add a new text file
+   `.github/release-requests/vX.Y.Z.txt` whose sole line is
+   `Publish Better Forever XP vX.Y.Z to CurseForge`.
+3. After passing validation, squash-merge this release-request PR using a
+   title beginning exactly `release: BFXP vX.Y.Z publish via protected tag`.
+4. A push to `main` that **adds** the request triggers the publisher. It
+   verifies the explicit release-commit title, newly added request, protected
+   tag ruleset, exact version metadata, existing API token, Lua syntax, and
+   release ZIP before creating an **annotated protected version tag** pointing
+   to the merged commit. It then uploads the same ZIP to CurseForge in that
+   workflow run.
+5. Verify the tag, workflow's **Upload to CurseForge** step, and the public
+   CurseForge file. Never re-run a publishing job to retry the same version.
+
+Tag creation uses GitHub Actions' repository-scoped `GITHUB_TOKEN` with
+`contents:write`; GitHub does not start a separate tag-push workflow for
+such token-created tags. Therefore this guarded job publishes directly after
+creating the tag, using the **same shared concurrency lock** as tag-triggered
+publishing. If the version tag already exists, the automated request stops
+before upload. This is a permanent alternative to local tag pushes, not a
+temporary bypass of protected tags.
 
 ## For each future release
 
@@ -83,6 +112,6 @@ For additional protection, enable a `main` branch ruleset requiring pull request
 
 In October and November 2026, releases 2.5.0, 2.6.0, 2.6.1, and 2.6.2 used **temporary, version-specific main-branch push triggers**, followed by restoration to manual-only mode. This worked but required workflow edits for every release.
 
-Version tags are now the release approval signal. Future releases require no workflow edits, no manual GitHub workflow dispatch, and no local CurseForge ZIP upload. The remaining intentional actions are to approve/merge the release PR and create a protected version tag.
+Protected version tags remain the immutable release record. A reviewed release-request merge can now create that protected tag automatically and publish without a local Git step; manual tagged releases remain supported.
 
 **Security note:** Tag ruleset configuration is external repository administration and cannot be installed by committing this file. The publisher will remain blocked until the administrator completes the one-time rule setup.
