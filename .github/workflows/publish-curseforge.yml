@@ -1,17 +1,12 @@
 name: Publish Better Forever XP to CurseForge
 
-# Temporary, reviewed 2.6.1 release exception while GitHub tag protection is
-# pending. Merging the single named main commit publishes this version once.
-# The permanent protected version-tag route remains intact and is restored
-# immediately after successful upload.
+# A release is initiated only by pushing a protected, immutable version tag.
+# Ordinary pushes, PR merges, and CI artifacts never upload to CurseForge.
+# No manual dispatch or one-off workflow edits are necessary for future releases.
 on:
   push:
     tags:
       - 'v*.*.*'
-    branches:
-      - main
-    paths:
-      - .github/workflows/publish-curseforge.yml
 
 permissions:
   contents: read
@@ -23,10 +18,7 @@ concurrency:
 jobs:
   publish:
     name: Validate tagged release and publish
-    if: >-
-      startsWith(github.ref, 'refs/tags/v') ||
-      (github.ref == 'refs/heads/main' &&
-       startsWith(github.event.head_commit.message, 'release: BetterForeverXP 2.6.1 CurseForge'))
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       - name: Reject re-runs that could upload a duplicate file
@@ -44,7 +36,6 @@ jobs:
           persist-credentials: false
 
       - name: Require the tag to point to a reviewed main commit
-        if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
         run: |
           set -euo pipefail
@@ -61,7 +52,6 @@ jobs:
           fi
 
       - name: Require an active release-tag protection ruleset
-        if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -95,7 +85,7 @@ jobs:
         id: release_info
         shell: pwsh
         env:
-          RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || 'v2.6.1' }}
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
           $ErrorActionPreference = 'Stop'
           ./scripts/Test-Release.ps1 -Tag $env:RELEASE_TAG
