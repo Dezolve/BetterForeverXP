@@ -5,7 +5,7 @@ local defaults = {
     point = "BOTTOM", relativePoint = "BOTTOM", x = 0, y = 155,
     width = 1100, height = 16, scale = 1,
     numberFormat = "short", hideBlizzard = true, showMidpointMarker = true,
-    showQuestPreview = true,
+    showQuestPreview = true, enableReputation = true,
     textMode = "hover", -- "tooltip", "hover", or "always"
     version = 8,
 }
@@ -22,6 +22,8 @@ local tubeRim, tubeBackground, endCapCuts, capPaints = nil, nil, {}, {}
 local leftText, centerText, rightText
 local textScrims = {}
 local eventFrame = CreateFrame("Frame")
+local UpdateBar -- Forward declaration used by click handling.
+local displayedMode = "xp"
 local sessionStart, sessionXP = GetTime(), 0
 local lastXP, lastXPMax
 local tooltipVisible = false
@@ -102,6 +104,26 @@ local function FormatBars(value)
     local rounded = RoundedHalfBars(value)
     if rounded == math.floor(rounded) then return tostring(math.floor(rounded)) end
     return string.format("%.1f", rounded)
+end
+
+-- Forever 1.60.1 exposes the modern watched-faction API.
+local function GetWatchedReputation()
+    if not C_Reputation or not C_Reputation.GetWatchedFactionData then return nil end
+    local ok, data = pcall(C_Reputation.GetWatchedFactionData)
+    if not ok or type(data) ~= "table" or type(data.name) ~= "string" or data.name == "" then return nil end
+    local reaction = tonumber(data.reaction)
+    local min = tonumber(data.currentReactionThreshold) or 0
+    local max = tonumber(data.nextReactionThreshold) or min
+    local value = tonumber(data.currentStanding) or min
+    local total = math.max(0, max - min)
+    local isMax = reaction == 8 or total == 0
+    local current = isMax and total or math.max(0, math.min(total, value - min))
+    return {
+        name = data.name, reaction = reaction,
+        standing = _G["FACTION_STANDING_LABEL" .. tostring(reaction or 0)] or "Unknown",
+        current = current, total = total, remaining = math.max(0, total - current),
+        fraction = isMax and 1 or current / total, isMax = isMax,
+    }
 end
 
 local function MakeTexture(parent, layer, r, g, b, a)
@@ -216,6 +238,24 @@ local capColors = {
         bottom = {0.66, 0.40, 0.06}, top = {0.97, 0.82, 0.37}, flat = {0.91, 0.72, 0.25},
     },
 }
+
+-- Blizzard owns standing hues; shade them to match our dimensional XP tube.
+local function ReputationPalette(reaction)
+    local color = FACTION_BAR_COLORS and FACTION_BAR_COLORS[reaction or 0]
+    local r, g, b
+    if color then
+        if type(color.GetRGB) == "function" then
+            local ok, cr, cg, cb = pcall(color.GetRGB, color)
+            if ok then r, g, b = cr, cg, cb end
+        end
+        r, g, b = tonumber(r or color.r), tonumber(g or color.g), tonumber(b or color.b)
+    end
+    if not r or not g or not b then r, g, b = 0.52, 0.54, 0.58 end
+    local function shade(mult, lift)
+        return {math.min(1, r * mult + lift), math.min(1, g * mult + lift), math.min(1, b * mult + lift)}
+    end
+    return {bottom = shade(0.74, 0), top = shade(1.04, 0.035), flat = {r, g, b}}
+end
 
 -- Gradient coordinates on trimmed endcap columns need to match the full
 -- height of the StatusBar: otherwise the gradient stretches into a stripe.
