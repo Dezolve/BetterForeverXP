@@ -1,0 +1,81 @@
+name: Sync Better Forever XP CurseForge page
+
+# Only approved description/summary edits merged into main modify public copy.
+# This does not upload files, create tags, or alter release artifacts.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - CURSEFORGE_DESCRIPTION.md
+      - CURSEFORGE_SUMMARY.txt
+
+permissions:
+  contents: read
+
+concurrency:
+  group: curseforge-bfxp-description
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Update public CurseForge description
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out reviewed page copy
+        uses: actions/checkout@v4
+
+      - name: Validate page assets and credentials
+        shell: bash
+        env:
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -s CURSEFORGE_DESCRIPTION.md
+          test -s CURSEFORGE_SUMMARY.txt
+          grep -Fq 'Better Forever XP' CURSEFORGE_DESCRIPTION.md
+          grep -Fq 'Reputation' CURSEFORGE_DESCRIPTION.md
+          if [[ -z "$CURSEFORGE_TOKEN" ]]; then
+            echo "::error::Existing CURSEFORGE_API_TOKEN is missing."
+            exit 1
+          fi
+          echo "Reviewed public page content and credentials available."
+
+      - name: Sync author project description (and summary where supported)
+        shell: bash
+        env:
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          # The upload-author API is scoped to this single project. The update-
+          # project metadata endpoint is not part of the documented upload API;
+          # fail visibly rather than claiming a public edit if rejected.
+          URL="https://wow.curseforge.com/api/projects/1731462/update-project"
+          echo "Updating CurseForge project 1731462."
+          DESCRIPTION=$(jq -n --rawfile description CURSEFORGE_DESCRIPTION.md \
+            --rawfile summary CURSEFORGE_SUMMARY.txt \
+            '{description: $description, descriptionType: "markdown", summary: ($summary | rtrimstr("\n"))}')
+          response=$(mktemp)
+          status=$(curl --silent --show-error --location \
+            --connect-timeout 15 --max-time 45 \
+            --output "$response" --write-out '%{http_code}' \
+            --request POST --header "X-Api-Token: $CURSEFORGE_TOKEN" \
+            --form-string "metadata=$DESCRIPTION" "$URL")
+          if [[ "$status" =~ ^2[0-9][0-9]$ ]] && ! grep -Eiq '<html|<!doctype|cloudflare' "$response"; then
+            echo "CurseForge accepted the description and summary metadata (HTTP $status)."
+          else
+            echo "::warning::Combined metadata update was not accepted (HTTP $status); retrying description only."
+            METADATA=$(jq -n --rawfile description CURSEFORGE_DESCRIPTION.md \
+              '{description: $description, descriptionType: "markdown"}')
+            status=$(curl --silent --show-error --location \
+              --connect-timeout 15 --max-time 45 \
+              --output "$response" --write-out '%{http_code}' \
+              --request POST --header "X-Api-Token: $CURSEFORGE_TOKEN" \
+              --form-string "metadata=$METADATA" "$URL")
+            if [[ ! "$status" =~ ^2[0-9][0-9]$ ]] || grep -Eiq '<html|<!doctype|cloudflare' "$response"; then
+              echo "::error::CurseForge did not accept the project-page update (HTTP $status). Check the Authors Console and API support."
+              exit 1
+            fi
+            echo "CurseForge accepted the description metadata (HTTP $status); summary may require Authors Console."
+          fi
+          echo "Public page: https://www.curseforge.com/wow/addons/better-forever-xp"

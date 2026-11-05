@@ -1,52 +1,64 @@
 # Better Forever XP
 
-**By Dezolve Labs — World of Warcraft: Forever**
+**A classic-inspired XP and Reputation bar for World of Warcraft: Forever.**
 
-A customizable Blizzard-inspired experience tube that keeps your leveling progress visible without crowding the game. Built for **WoW Forever 1.60.1 (interface 16001)**.
+*By Dezolve Labs · Built for WoW Forever 1.60.1*
 
-## New in 2.7.0 — XP and Reputation in one bar
+Love the feel of the classic segmented experience bar, but want cleaner customization and more useful progress information? **Better Forever XP** brings back that familiar 20-segment look with a polished metallic tube, responsive labels, detailed tooltips, and a single bar that can also track your watched reputation.
 
-- **Left-click** the bar to switch between experience and the faction you're watching in WoW's Reputation panel.
-- Check **Show as Experience Bar** on a faction to have Better Forever XP switch to its Reputation automatically, with no extra click.
-- Blizzard's own standing colors, watched faction name, progress and remaining reputation, all in the existing curved 20-segment metallic bar.
-- The chosen mode is remembered per character. Normal reputation gains don't pull you out of XP mode; watched Reputation can remain visible when XP is unavailable at max level.
-- Refined, scrollable in-game options with grouped controls, translucent panels, intuitive selected states and Dezolve Labs attribution.
-- No Honor or Gold modes. The focus remains XP and Reputation.
+## XP and Reputation. One beautiful bar.
 
-## XP bar
+**New in 2.7.0:** Your progress bar now handles both experience and watched Reputation.
 
-- 20 visible five-percent segments with full-height brushed-steel dividers and an optional Blizzard-style silver midpoint marker
-- Rounded metallic tube with blue earned XP while rested, purple when not rested, dark-navy rested coverage, and a dark empty track
-- **Updated in 2.6.1:** Optional rich golden-yellow completed quest XP preview directly on the bar. See how far ready-to-turn-in quests will advance you without confusing projected XP with earned XP. The preview stops at this level's end; carryover remains in the tooltip.
-- **Updated in 2.6.2:** Three text modes: Tooltip only, Text on hover (the default for new installs and Reset all), or Always visible. Existing preferences are preserved.
-- Current XP, remaining XP, completion percentage, and bars left with compact or exact number formatting
-- Responsive text that stays within the bar; small percentages show two decimal places
+- **Left-click** the bar to switch between XP and your watched faction.
+- In WoW's Reputation panel, choose **Show as Experience Bar** for a faction to switch the addon automatically.
+- Reputation uses Blizzard's standing colors and displays the faction name, standing, progress, and reputation remaining in its hover tooltip.
+- Your preferred mode is remembered **per character**. Earning reputation doesn't unexpectedly switch you away from XP mode.
+- At max level, you can keep using the same bar for watched Reputation when XP is no longer available.
 
-## Detailed XP tooltip
+No extra bars, independent faction picker, or clutter.
 
-Hover over the bar to see:
+## The classic XP bar, refined
 
-- Current level, total/current/remaining XP, and bars left
-- Rested XP and remaining rested coverage
-- XP from completed quests, projected progress after turn-ins, and overflow into the next level where its XP curve is known
-- Session XP, XP/hour, time spent leveling, and estimated time to level
+- **20 clearly defined segments** — one for every 5% of the level, with full-height steel dividers and an optional silver 50% marker.
+- **Rounded metallic tube** with subtle gradients and a slim profile.
+- **Rested-state colors:** blue earned XP while rested, purple when unrested, and navy for remaining rested coverage.
+- **Completed quest XP preview:** a warm gold extension shows the XP waiting in ready-to-turn-in quests. It's a preview, not XP you've already earned.
+- **Readable numbers:** current and remaining XP, percentage and bars left, with compact, comma-separated, or exact formatting.
+- **Three text modes:** Tooltip only, Text on hover (the default), or Always visible.
 
-Session statistics survive `/reload`, without requiring additional libraries or addons.
+## More information when you need it
 
-## In-game settings
+Hover to see the details without filling your screen with permanent text:
 
-Type **`/bfxp`** or **right-click the bar** to open Settings → AddOns. Left-click to cycle between XP and Reputation when a faction is watched. Adjust width (300–1600px), height (10–120px), overall scale (0.5–3×), position, text mode, number format, completed quest XP preview, midpoint marker, lock, and Blizzard bar visibility.
+- Current, remaining, and total XP; percentage and bars left
+- Rested XP and rested coverage
+- XP from completed quests, estimated progress after turn-ins, and next-level carryover when available
+- Session XP, XP per hour, leveling time, and an estimated time to level
 
-Drag the unlocked bar to move it; Shift-drag works while locked. Hover just below the middle or over the right/bottom-right edge to reveal resize handles.
+Session statistics survive `/reload`. The Reputation tooltip focuses on your watched faction's standing and progress instead of XP-only calculations.
 
-## Useful commands
+## Make it yours
 
-- `/bfxp` — open settings
-- `/bfxp lock` / `/bfxp unlock` — lock or unlock
-- `/bfxp reset` — reset position and dimensions
-- `/bfxp width 300-1600`
-- `/bfxp height 10-120`
-- `/bfxp scale 0.5-3`
-- `/bfxp show` / `/bfxp hide`
+Type **`/bfxp`** or **right-click the bar** to open the in-game Settings panel. Its clean, translucent, scrollable sections let you adjust:
 
-No external dependencies. Compatible with **WoW Forever 1.60.1**.
+- Bar width (**300–1600 px**), height (**10–120 px**), and overall scale (**0.5–3×**)
+- Position, movement lock, and resize handles
+- XP/Reputation switching and completed quest XP preview
+- Midpoint marker, number formatting, and text visibility
+- Whether to hide Blizzard's default XP bar
+
+Drag an unlocked bar to move it. **Shift-drag** still works while locked. Resize using the subtle handles below the bar and on its right edge.
+
+## Quick start
+
+1. Install **Better Forever XP** for **WoW Forever 1.60.1**.
+2. Type `/bfxp` to customize the bar.
+3. Left-click to switch between XP and your watched Reputation, or choose a watched faction from WoW's Reputation panel.
+4. Right-click whenever you want to return to settings.
+
+**No additional libraries or addons required.**
+
+[Source code, feedback & issues](https://github.com/Dezolve/BetterForeverXP)
+
+*© 2026 Dezolve Labs. All rights reserved.*
