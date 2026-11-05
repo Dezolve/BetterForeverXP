@@ -24,6 +24,7 @@ local textScrims = {}
 local eventFrame = CreateFrame("Frame")
 local UpdateBar -- Forward declaration used by click handling.
 local displayedMode = "xp"
+local lastWatchedFactionKey
 local sessionStart, sessionXP = GetTime(), 0
 local lastXP, lastXPMax
 local tooltipVisible = false
@@ -119,11 +120,30 @@ local function GetWatchedReputation()
     local isMax = reaction == 8 or total == 0
     local current = isMax and total or math.max(0, math.min(total, value - min))
     return {
-        name = data.name, reaction = reaction,
+        name = data.name, factionID = tonumber(data.factionID), reaction = reaction,
         standing = _G["FACTION_STANDING_LABEL" .. tostring(reaction or 0)] or "Unknown",
         current = current, total = total, remaining = math.max(0, total - current),
         fraction = isMax and 1 or current / total, isMax = isMax,
     }
+end
+
+-- The reputation checkbox in Blizzard's UI changes the watched faction.
+-- Track identity only: reputation gains and standing changes must not steal
+-- focus from XP after the player manually switched back.
+local function WatchedFactionKey()
+    local watched = GetWatchedReputation()
+    return watched and (watched.factionID or watched.name) or nil
+end
+
+local function RefreshWatchedFactionSelection()
+    local currentKey = WatchedFactionKey()
+    local changed = currentKey ~= lastWatchedFactionKey
+    lastWatchedFactionKey = currentKey
+    -- Selecting or reselecting a watched faction explicitly requests the
+    -- Reputation bar. Clearing the watched faction simply falls back to XP.
+    if changed and currentKey and db and db.enableReputation and charDB then
+        charDB.progressMode = "reputation"
+    end
 end
 
 local function MakeTexture(parent, layer, r, g, b, a)
@@ -1605,10 +1625,16 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
         eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD"); eventFrame:RegisterEvent("PLAYER_XP_UPDATE")
         eventFrame:RegisterEvent("PLAYER_LEVEL_UP"); eventFrame:RegisterEvent("UPDATE_EXHAUSTION"); eventFrame:RegisterEvent("QUEST_LOG_UPDATE")
         eventFrame:RegisterEvent("UPDATE_FACTION")
+        -- Baseline on initialization: a watched faction already present on
+        -- login is not a fresh user selection and must not override saved mode.
+        lastWatchedFactionKey = WatchedFactionKey()
         UpdateBar()
     elseif event == "PLAYER_REGEN_ENABLED" then
         ApplyDefaultBarVisibility()
     elseif event == "PLAYER_XP_UPDATE" then RecordXP(); UpdateBar()
+    elseif event == "UPDATE_FACTION" then
+        RefreshWatchedFactionSelection()
+        UpdateBar()
     elseif event == "PLAYER_LEVEL_UP" then
         AccumulateLevelTime()
         if charDB then
@@ -1626,6 +1652,9 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
             charDB.sessionStartClock = sessionStart
             charDB.sessionXP = 0
         end
+        -- Zone entry/reload may refresh the watched faction from server data;
+        -- treat that as a baseline, not a new "Show as Experience Bar" click.
+        lastWatchedFactionKey = WatchedFactionKey()
         ApplyDefaultBarVisibility(); C_Timer.After(0.5, UpdateBar)
     else UpdateBar() end
 end)
