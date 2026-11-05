@@ -139,36 +139,26 @@ every push and pull request and publishes the archive as a workflow artifact.
 
 ## Publishing to CurseForge
 
-Releases use a **permanent, protected version-tag publishing workflow**. No
-temporary release-commit trigger, manual ZIP upload, or Actions Run workflow
-form is needed for future versions. See the full
-[release runbook](docs/RELEASING.md), including one-time repository tag
-protection setup, verification, and recovery.
+Releases use the protected, immutable version-tag workflow. The **preferred
+automated path** no longer needs a local Git checkout or manual tag push:
+a reviewed PR adds a versioned file
+`.github/release-requests/vX.Y.Z.txt` and merges it to `main`.
+GitHub Actions validates the release, creates the annotated protected tag
+and uploads the ZIP to CurseForge in the same guarded run.
 
-After an in-game-tested release PR is merged into `main`:
+The existing `BFXP Release Tags` ruleset must remain Active and protect tag
+updates and deletions. Normal code pushes and PR validation **cannot** publish:
+the release request must be newly added in a merge titled
+`release: BFXP vX.Y.Z publish via protected tag`, and the release's
+TOC, changelog and notes must match exactly.
 
-1. Update the TOC version plus the release notes and changelog headings to
-   match (e.g. `2.7.0`). CI validates the metadata and addon.
-2. Ensure the `BFXP Release Tags` GitHub tag ruleset is **Active** and
-   restricts updates and deletions. The publishing workflow fails closed if
-   this one-time administrative setup is incomplete.
-3. Create and push a new annotated tag on the reviewed `main` commit:
-
-   ```powershell
-   git switch main
-   git pull --ff-only origin main
-   git tag -a v2.7.0 -m "Better Forever XP 2.7.0"
-   git push origin v2.7.0
-   ```
-
-4. Watch the automatic [CurseForge publish workflow](.github/workflows/publish-curseforge.yml)
-   and verify the new file on
-   [CurseForge](https://www.curseforge.com/wow/addons/better-forever-xp/files).
-
-The first eligible tag is **v2.6.3 or newer**. Versions 2.5.0, 2.6.0,
-2.6.1, and 2.6.2 were already published through reviewed one-time releases
-and cannot be republished through the tag workflow. Existing `CURSEFORGE_API_TOKEN` remains a GitHub repository
-secret. Pushing an ordinary commit or merging a PR does **not** publish.
+Manually pushing a protected version tag remains supported for release
+operators who prefer it. The publisher rejects duplicate versions and
+will not rerun an upload for the same GitHub Actions attempt. Verify the
+published file on
+[CurseForge](https://www.curseforge.com/wow/addons/better-forever-xp/files).
+See [docs/RELEASING.md](docs/RELEASING.md) for the complete process and
+recovery guidance.
 
 ## Automatic Windows test deployment
 
