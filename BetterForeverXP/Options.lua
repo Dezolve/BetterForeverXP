@@ -184,11 +184,11 @@ function addon.InitializeOptions()
     scroll:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -33, 8)
 
     content = CreateFrame("Frame", nil, scroll)
-    content:SetSize(572, 889)
+    content:SetSize(572, 918)
     scroll:SetScrollChild(content)
 
     Label(content, "Better Forever XP", 20, -17, "GameFontNormalLarge")
-    local subtitle = Label(content, "CLASSIC PROGRESS  |cff748ba7•|r  PERSONALIZED FOR YOU", 21, -49, "GameFontHighlightSmall")
+    local subtitle = Label(content, "CLASSIC PROGRESS  |cff748ba7•|r  BY DEZOLVE LABS", 21, -49, "GameFontHighlightSmall")
     subtitle:SetTextColor(0.72, 0.81, 0.93, 1)
     -- The last section lives below the fold on common 1080p UI scales.
     -- Call out the scroll affordance before anyone mistakes it for clipping.
@@ -253,6 +253,18 @@ function addon.InitializeOptions()
         "Changes apply immediately. Right-click the bar to return to these settings.",
         34, -850, "GameFontHighlightSmall")
     footnote:SetTextColor(0.69, 0.77, 0.86, 1)
+
+    -- Attribution stays unobtrusive; version is read from the installed TOC,
+    -- never hard-coded to the planned release during feature-branch testing.
+    local version
+    if C_AddOns and C_AddOns.GetAddOnMetadata then
+        version = C_AddOns.GetAddOnMetadata(ADDON_NAME, "Version")
+    elseif GetAddOnMetadata then
+        version = GetAddOnMetadata(ADDON_NAME, "Version")
+    end
+    local credit = Label(content, "© 2026 Dezolve Labs  |cff748ba7•|r  Better Forever XP"
+        .. (version and ("  v" .. tostring(version)) or ""), 34, -878, "GameFontHighlightSmall")
+    credit:SetTextColor(0.59, 0.69, 0.79, 1)
 
     panel.OnRefresh = function()
         local db = addon.GetSettings()
