@@ -111,6 +111,8 @@ function addon.InitializeOptions()
     AddTextModeButton("always", "Always visible", 424, "Keep XP labels on the bar at all times.")
 
     Label(panel, "Bar dimensions", 24, -179, "GameFontNormalLarge")
+    AddCheckbox("showQuestPreview", "Preview completed quest XP", -172,
+        "Show XP from quests ready to turn in as a gold extension of your current XP. Does not include unfinished quests.", 305)
     AddSlider("width", "Width", -209, 300, 1600, 10, " px")
     AddSlider("height", "Height", -273, 10, 120, 1, " px")
     AddSlider("scale", "Overall UI scale (including text)", -337, 0.5, 3, 0.05, "x")

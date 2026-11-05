@@ -1,16 +1,15 @@
-# Better Forever XP 2.5.0
+# Better Forever XP 2.6.0
 
-A major customization and presentation update for **WoW Forever 1.60.1** (interface 16001).
+Ready-quest XP previews are now visible directly on the classic-inspired XP bar for **WoW Forever 1.60.1** (interface 16001).
 
-## Highlights
+## What's new
 
-- **New in-game settings**: Open with `/bfxp` or right-click the XP bar. Configure width (300–1600), height (10–120), scale (0.5–3), position, lock, number formatting, Blizzard bar visibility, and the 50% midpoint marker.
-- **Three display modes**: Tooltip only, text on hover, or always-visible XP labels. The detailed XP tooltip remains available in every mode.
-- **Blizzard-inspired XP tube**: Rounded ends, rich blue/purple fill gradients, dark rested coverage, and 20 visible 5% segments with full-height brushed-steel dividers.
-- **Accurate level tracking**: Current, remaining and rested XP; remaining bars; ready-quest turn-in estimates; and XP spilling into the next level where the XP curve can be validated.
-- **Leveling pace**: Session XP, XP/hour, estimated time to level, time on current level, and session persistence across `/reload`.
-- **Usability**: Mouse-transparent decorative artwork, scale-aware divider placement, compact edge/corner resize handles, and improved text fitting at large font sizes.
-- **Small-progress precision**: Percentages under 1% use two decimals (e.g. 0.02%).
+- **Completed quest XP preview:** A muted brass-gold extension shows how much XP is waiting from completed quests ready to turn in, separate from XP already earned.
+- **Live turn-in feedback:** As quests are turned in, the projected segment shrinks while the normal earned XP bar grows.
+- **Optional and immediate:** Toggle **Preview completed quest XP** in `/bfxp` or right-click settings. Enabled by default; independent of tooltip and on-bar text modes.
+- **Classic tube styling preserved:** The preview follows rounded endcaps, respects the 20 five-percent segments and metallic markers, and overlays rested coverage without changing rested XP calculations.
+- **Accurate level overflow:** The visual preview stops at 100% of the current level; the existing tooltip continues to show completed-quest XP carried into the following level when available.
+- **Final in-game polish:** The quest segment uses softer brass tones and restrained highlights for clear distinction without overpowering the earned blue/purple bar.
 
 ## Requirements
 
@@ -20,4 +19,4 @@ A major customization and presentation update for **WoW Forever 1.60.1** (interf
 
 ## Getting started
 
-Type `/bfxp` for settings or hover over the bar for detailed XP information. Use `/bfxp reset` if your bar is off-screen after changing width or scale.
+Open settings with `/bfxp` or right-click the XP bar, and toggle **Preview completed quest XP**. Hover for detailed quest XP estimates and next-level carryover.

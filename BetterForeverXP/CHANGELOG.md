@@ -1,3 +1,16 @@
+# Better Forever XP 2.6.0
+
+By Dezolve Labs
+
+## Completed quest XP preview
+
+- Adds an optional gold/brass overlay showing XP from completed quests ready to turn in, directly after the earned XP portion of the bar.
+- Updates the preview as quests are completed and turned in; earned XP, rested coverage, and previous tooltip math remain unchanged.
+- Adds the **Preview completed quest XP** settings toggle, enabled by default, persisted with existing preferences and restored by Reset all defaults.
+- Caps the visible preview at 100% of the current level while retaining precise next-level overflow in the tooltip.
+- Preserves curved endcaps, 20 five-percent segments, steel dividers, the 50% marker, bar resizing, and three text visibility modes.
+- Tunes the preview from bright gold to subdued warm brass after in-game testing.
+
 # Better Forever XP 2.5.0
 
 By Dezolve Labs
