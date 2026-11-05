@@ -99,7 +99,9 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           ./scripts/Test-Release.ps1 -Tag $env:RELEASE_TAG
-          if ($LASTEXITCODE -ne 0) { throw 'Release metadata preflight failed.' }
+          # Test-Release.ps1 is a PowerShell script; $? tracks its result.
+          # $LASTEXITCODE can contain a stale exit code from earlier native tools.
+          if (-not $?) { throw 'Release metadata preflight failed.' }
           $toc = Get-Content -LiteralPath 'BetterForeverXP/BetterForeverXP.toc' -Raw
           $version = [regex]::Match($toc, '(?m)^## Version:\s*(\S+)\s*$').Groups[1].Value
           "version=$version" >> $env:GITHUB_OUTPUT
