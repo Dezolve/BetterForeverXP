@@ -1,27 +1,12 @@
 name: Publish Better Forever XP to CurseForge
 
-# Manual-only and main-branch-only. Ordinary pushes, PRs, and merges
-# never upload a release to CurseForge without explicit confirmation.
+# A release is initiated only by pushing a protected, immutable version tag.
+# Ordinary pushes, PR merges, and CI artifacts never upload to CurseForge.
+# No manual dispatch or one-off workflow edits are necessary for future releases.
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: "Version from BetterForeverXP.toc (for example 2.6.0)"
-        required: true
-        type: string
-        default: "2.6.0"
-      release_type:
-        description: "CurseForge channel"
-        required: true
-        type: choice
-        options:
-          - release
-          - beta
-        default: release
-      confirmation:
-        description: "Type PUBLISH to confirm the live upload"
-        required: true
-        type: string
+  push:
+    tags:
+      - 'v*.*.*'
 
 permissions:
   contents: read
@@ -32,51 +17,89 @@ concurrency:
 
 jobs:
   publish:
-    name: Validate, package and publish
-    if: github.ref == 'refs/heads/main'
+    name: Validate tagged release and publish
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
-    env:
-      CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_API_TOKEN }}
     steps:
-      - name: Require explicit publishing confirmation and token
+      - name: Reject re-runs that could upload a duplicate file
+        shell: bash
+        run: |
+          if [ "$GITHUB_RUN_ATTEMPT" != "1" ]; then
+            echo "::error::Publishing jobs cannot be re-run: they could duplicate a CurseForge upload. See docs/RELEASING.md."
+            exit 1
+          fi
+
+      - name: Check out the exact tagged source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require the tag to point to a reviewed main commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          TAG_COMMIT=$(git rev-parse "refs/tags/$GITHUB_REF_NAME^{commit}")
+          HEAD_COMMIT=$(git rev-parse HEAD)
+          if [ "$TAG_COMMIT" != "$HEAD_COMMIT" ]; then
+            echo "::error::The release tag does not match the checked-out commit."
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor HEAD refs/remotes/origin/main; then
+            echo "::error::Release tags must point to commits already merged into main."
+            exit 1
+          fi
+
+      - name: Require an active release-tag protection ruleset
         shell: bash
         env:
-          CONFIRMATION: ${{ inputs.confirmation }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          if [ "$CONFIRMATION" != "PUBLISH" ]; then
-            echo "::error::Enter PUBLISH to confirm an upload to the public CurseForge project."
+          set -euo pipefail
+          # Fail closed: the repository owner must configure the documented
+          # tag ruleset before this workflow may publish any future version.
+          API="https://api.github.com/repos/$GITHUB_REPOSITORY/rulesets"
+          HEADERS=(-H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28")
+          RULESETS=$(curl --fail --silent --show-error --retry 2 "${HEADERS[@]}" "$API")
+          RULESET_ID=$(jq -r '[.[] | select(.name == "BFXP Release Tags" and .target == "tag" and .enforcement == "active")] | first | .id // empty' <<< "$RULESETS")
+          if [ -z "$RULESET_ID" ]; then
+            echo "::error::An active tag ruleset named BFXP Release Tags is required. See docs/RELEASING.md."
             exit 1
           fi
-          if [ -z "$CURSEFORGE_TOKEN" ]; then
-            echo "::error::Set CURSEFORGE_API_TOKEN as a GitHub Actions repository secret before publishing."
+          DETAILS=$(curl --fail --silent --show-error --retry 2 "${HEADERS[@]}" "$API/$RULESET_ID")
+          if ! jq -e '([.rules[].type] | index("update") != null) and ([.rules[].type] | index("deletion") != null)' <<< "$DETAILS" >/dev/null; then
+            echo "::error::The BFXP Release Tags ruleset must restrict tag updates and deletions."
             exit 1
           fi
+          echo "Release-tag protection ruleset is active."
 
-      - name: Check out reviewed main branch
-        uses: actions/checkout@v4
-
-      - name: Validate expected version and target game
+      - name: Verify exact version, release notes, and target game
         id: release_info
         shell: pwsh
         env:
-          REQUESTED_VERSION: ${{ inputs.version }}
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
           $ErrorActionPreference = 'Stop'
+          ./scripts/Test-Release.ps1 -Tag $env:RELEASE_TAG
+          if ($LASTEXITCODE -ne 0) { throw 'Release metadata preflight failed.' }
           $toc = Get-Content -LiteralPath 'BetterForeverXP/BetterForeverXP.toc' -Raw
-          $match = [regex]::Match($toc, '(?m)^## Version:\s*(\S+)\s*$')
-          if (-not $match.Success) { throw 'Missing version in BetterForeverXP.toc' }
-          $version = $match.Groups[1].Value
-          if ($version -ne $env:REQUESTED_VERSION) {
-            throw "Requested $($env:REQUESTED_VERSION), but reviewed source version is $version."
-          }
-          if ($toc -notmatch '(?m)^## Interface:\s*16001\s*$') {
-            throw 'Publishing target requires the WoW Forever Interface 16001 TOC.'
-          }
-          $zip = "dist/BetterForeverXP-$version.zip"
-          "zip_path=$zip" >> $env:GITHUB_OUTPUT
+          $version = [regex]::Match($toc, '(?m)^## Version:\s*(\S+)\s*$').Groups[1].Value
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "zip_path=dist/BetterForeverXP-$version.zip" >> $env:GITHUB_OUTPUT
           "changelog<<END_CHANGELOG" >> $env:GITHUB_OUTPUT
           Get-Content -LiteralPath 'CURSEFORGE_RELEASE_NOTES.md' -Encoding UTF8 >> $env:GITHUB_OUTPUT
           "END_CHANGELOG" >> $env:GITHUB_OUTPUT
+
+      - name: Require existing CurseForge API secret
+        shell: bash
+        env:
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_API_TOKEN }}
+        run: |
+          if [ -z "$CURSEFORGE_TOKEN" ]; then
+            echo "::error::Missing CURSEFORGE_API_TOKEN GitHub Actions secret."
+            exit 1
+          fi
 
       - name: Validate Lua syntax
         shell: bash
@@ -90,15 +113,22 @@ jobs:
         shell: pwsh
         run: ./scripts/Package-Addon.ps1
 
-      - name: Confirm upload ZIP exists
+      - name: Confirm exact release ZIP exists
         shell: pwsh
         env:
           ZIP_PATH: ${{ steps.release_info.outputs.zip_path }}
         run: |
           if (-not (Test-Path -LiteralPath $env:ZIP_PATH -PathType Leaf)) {
-            throw "CurseForge release ZIP missing: $($env:ZIP_PATH)"
+            throw "Versioned release ZIP is missing: $($env:ZIP_PATH)"
           }
-          Write-Host "Ready to upload $($env:ZIP_PATH) to CurseForge project 1731462 (Forever 1.60.1)."
+          Write-Host "Ready to upload $($env:ZIP_PATH) for WoW Forever 1.60.1."
+
+      - name: Archive reviewed release ZIP for audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: BetterForeverXP-${{ steps.release_info.outputs.version }}
+          path: ${{ steps.release_info.outputs.zip_path }}
+          if-no-files-found: error
 
       - name: Upload to CurseForge
         uses: itsmeow/curseforge-upload@v3.1.2
@@ -108,7 +138,7 @@ jobs:
           game_endpoint: wow
           game_versions: "1.60.1"
           file_path: ${{ steps.release_info.outputs.zip_path }}
-          release_type: ${{ inputs.release_type }}
-          display_name: Better Forever XP ${{ inputs.version }}
+          release_type: release
+          display_name: Better Forever XP ${{ steps.release_info.outputs.version }}
           changelog: ${{ steps.release_info.outputs.changelog }}
           changelog_type: markdown
