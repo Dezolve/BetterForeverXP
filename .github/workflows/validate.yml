@@ -36,6 +36,24 @@ jobs:
             exit 1
           }
 
+      - name: Validate release metadata without publishing
+        shell: pwsh
+        run: ./scripts/Test-Release.ps1
+
+      - name: Verify retired and mismatched tags are rejected
+        shell: bash
+        run: |
+          set -euo pipefail
+          if pwsh -NoProfile -File ./scripts/Test-Release.ps1 -Tag v2.6.0; then
+            echo "::error::The already-published version 2.6.0 must be blocked."
+            exit 1
+          fi
+          if pwsh -NoProfile -File ./scripts/Test-Release.ps1 -Tag v99.99.99; then
+            echo "::error::A tag that differs from release metadata must be blocked."
+            exit 1
+          fi
+          echo "Expected tag guard rejections PASS."
+
       - name: Validate addon
         shell: pwsh
         run: ./scripts/Test-Addon.ps1
