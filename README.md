@@ -2,7 +2,7 @@
 
 ![Better Forever XP logo](Brand/BetterForeverXP-CurseForge-Logo.png)
 
-A slim, standalone experience bar for WoW Forever, by Dezolve Labs.
+A slim, classic-inspired experience **and watched-reputation** bar for WoW Forever, by Dezolve Labs.
 
 Better Forever XP keeps the always-visible interface compact and puts the
 details one hover away. It shows exact and abbreviated XP values, rested XP,
@@ -49,6 +49,14 @@ in every mode, and previous hover/permanent choices are migrated. Completion use
 above it. The Blizzard silver arrow is anchored
 directly to the exact pixel-snapped 50% divider.
 
+## XP and watched Reputation (new in 2.7.0)
+
+**Left-click** the bar to switch between XP and the faction you're watching in WoW's Reputation panel. Selecting **Show as Experience Bar** for a faction automatically switches the custom bar into its Reputation mode. The bar remembers your mode per character; ordinary reputation gains won't take control away after you switch back to XP.
+
+Reputation uses Blizzard's standing colors and the same metallic 20-segment tube, plus a dedicated tooltip with faction name, standing, progress and remaining reputation. At maximum level, a watched faction can be displayed even when XP is unavailable. No Honor or Gold modes are included.
+
+The updated `/bfxp` settings panel uses scrollable, translucent sections for Display & Interaction, Text & Numbers, and Bar Dimensions. It includes an **Enable XP / Reputation** toggle and a small Dezolve Labs/version footer. All existing quest-gold preview, rested XP, position, resize and text preferences remain.
+
 ## Completed quest XP preview
 
 A gold extension on the XP tube shows how much progress is waiting in completed
@@ -74,7 +82,7 @@ This addon targets the WoW Forever beta client interface listed in
 
 ## In-game customization
 
-Type **`/bfxp`** or **right-click the XP bar** to open its Options panel under **Settings → AddOns**. Right-click also works when locked.
+Type **`/bfxp`** or **right-click the bar** to open its Options panel under **Settings → AddOns**. Right-click also works when locked.
 The XP bar starts **unlocked on new installations**. Drag its body to move it.
 Hover **just below the center** of the bar to reveal the gold height grip,
 then drag downward to increase thickness. Only a compact 96×18px target

@@ -1,3 +1,17 @@
+# Better Forever XP 2.7.0
+
+By Dezolve Labs
+
+## XP ↔ watched Reputation
+
+- Adds left-click switching between Experience and the currently watched faction, with per-character mode persistence.
+- Automatically displays Reputation when **Show as Experience Bar** is selected for a faction in WoW's Reputation panel; watches faction identity, not reputation gains, so manual switching back to XP remains respected.
+- Uses Blizzard's `FACTION_BAR_COLORS` for standing hues with a restrained tube gradient and the same 20 metallic segments, silver midpoint marker and rounded endcaps.
+- Adds standing, progress, remaining reputation and faction name to a dedicated reputation tooltip. Falls back to watched Reputation at level cap when XP is unavailable.
+- Keeps right-click settings, drag/Shift-drag movement and external resize handles without unintended mode changes.
+- Rebuilds the addon settings as a scrollable premium canvas with three distinct sections, translucent cards, clearly active text/format choices and a Dezolve Labs copyright/version footer.
+- Preserves previous XP calculations, rested colors, quest-gold preview, text display preferences, SavedVariables, and existing controls. No Gold or Honor modes.
+
 # Better Forever XP 2.6.2
 
 By Dezolve Labs

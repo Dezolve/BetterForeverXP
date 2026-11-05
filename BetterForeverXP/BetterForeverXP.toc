@@ -1,8 +1,8 @@
 ## Interface: 16001
 ## Title: |cff67d5ffBetter Forever XP|r
-## Notes: A slim modern XP bar with compact progress text and detailed hover information.
+## Notes: A classic-inspired XP and watched reputation bar with quest XP previews and detailed hover information.
 ## Author: Dezolve Labs
-## Version: 2.6.2
+## Version: 2.7.0
 ## SavedVariables: BetterForeverXPDB
 ## SavedVariablesPerCharacter: BetterForeverXPCharDB
 

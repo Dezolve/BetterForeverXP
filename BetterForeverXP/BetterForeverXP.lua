@@ -5,7 +5,7 @@ local defaults = {
     point = "BOTTOM", relativePoint = "BOTTOM", x = 0, y = 155,
     width = 1100, height = 16, scale = 1,
     numberFormat = "short", hideBlizzard = true, showMidpointMarker = true,
-    showQuestPreview = true,
+    showQuestPreview = true, enableReputation = true,
     textMode = "hover", -- "tooltip", "hover", or "always"
     version = 8,
 }
@@ -22,6 +22,9 @@ local tubeRim, tubeBackground, endCapCuts, capPaints = nil, nil, {}, {}
 local leftText, centerText, rightText
 local textScrims = {}
 local eventFrame = CreateFrame("Frame")
+local UpdateBar -- Forward declaration used by click handling.
+local displayedMode = "xp"
+local lastWatchedFactionKey
 local sessionStart, sessionXP = GetTime(), 0
 local lastXP, lastXPMax
 local tooltipVisible = false
@@ -102,6 +105,45 @@ local function FormatBars(value)
     local rounded = RoundedHalfBars(value)
     if rounded == math.floor(rounded) then return tostring(math.floor(rounded)) end
     return string.format("%.1f", rounded)
+end
+
+-- Forever 1.60.1 exposes the modern watched-faction API.
+local function GetWatchedReputation()
+    if not C_Reputation or not C_Reputation.GetWatchedFactionData then return nil end
+    local ok, data = pcall(C_Reputation.GetWatchedFactionData)
+    if not ok or type(data) ~= "table" or type(data.name) ~= "string" or data.name == "" then return nil end
+    local reaction = tonumber(data.reaction)
+    local min = tonumber(data.currentReactionThreshold) or 0
+    local max = tonumber(data.nextReactionThreshold) or min
+    local value = tonumber(data.currentStanding) or min
+    local total = math.max(0, max - min)
+    local isMax = reaction == 8 or total == 0
+    local current = isMax and total or math.max(0, math.min(total, value - min))
+    return {
+        name = data.name, factionID = tonumber(data.factionID), reaction = reaction,
+        standing = _G["FACTION_STANDING_LABEL" .. tostring(reaction or 0)] or "Unknown",
+        current = current, total = total, remaining = math.max(0, total - current),
+        fraction = isMax and 1 or current / total, isMax = isMax,
+    }
+end
+
+-- The reputation checkbox in Blizzard's UI changes the watched faction.
+-- Track identity only: reputation gains and standing changes must not steal
+-- focus from XP after the player manually switched back.
+local function WatchedFactionKey()
+    local watched = GetWatchedReputation()
+    return watched and (watched.factionID or watched.name) or nil
+end
+
+local function RefreshWatchedFactionSelection()
+    local currentKey = WatchedFactionKey()
+    local changed = currentKey ~= lastWatchedFactionKey
+    lastWatchedFactionKey = currentKey
+    -- Selecting or reselecting a watched faction explicitly requests the
+    -- Reputation bar. Clearing the watched faction simply falls back to XP.
+    if changed and currentKey and db and db.enableReputation and charDB then
+        charDB.progressMode = "reputation"
+    end
 end
 
 local function MakeTexture(parent, layer, r, g, b, a)
@@ -217,6 +259,24 @@ local capColors = {
     },
 }
 
+-- Blizzard owns standing hues; shade them to match our dimensional XP tube.
+local function ReputationPalette(reaction)
+    local color = FACTION_BAR_COLORS and FACTION_BAR_COLORS[reaction or 0]
+    local r, g, b
+    if color then
+        if type(color.GetRGB) == "function" then
+            local ok, cr, cg, cb = pcall(color.GetRGB, color)
+            if ok then r, g, b = cr, cg, cb end
+        end
+        r, g, b = tonumber(r or color.r), tonumber(g or color.g), tonumber(b or color.b)
+    end
+    if not r or not g or not b then r, g, b = 0.52, 0.54, 0.58 end
+    local function shade(mult, lift)
+        return {math.min(1, r * mult + lift), math.min(1, g * mult + lift), math.min(1, b * mult + lift)}
+    end
+    return {bottom = shade(0.74, 0), top = shade(1.04, 0.035), flat = {r, g, b}}
+end
+
 -- Gradient coordinates on trimmed endcap columns need to match the full
 -- height of the StatusBar: otherwise the gradient stretches into a stripe.
 local function TrimmedGradientStops(colors, fraction)
@@ -254,6 +314,8 @@ local function SetCapPaint(cap, region)
         cap.topSheen:SetColorTexture(0.88, 0.74, 0.96, 0.22)
     elseif region == "quest" then
         cap.topSheen:SetColorTexture(1.00, 0.90, 0.60, 0.20)
+    elseif region == "reputation" then
+        cap.topSheen:SetColorTexture(1, 1, 1, 0.14)
     else
         cap.topSheen:SetColorTexture(0.40, 0.58, 0.84, 0.16)
     end
@@ -469,6 +531,27 @@ local function AnchorForResizing()
 end
 
 local ApplyResizeLayout
+
+local function XPAvailable()
+    if not db or not db.enabled then return false end
+    if IsXPUserDisabled and IsXPUserDisabled() then return false end
+    return (UnitXPMax("player") or 0) > 0
+end
+
+local function SwitchBarMode()
+    if not db or not db.enableReputation or not charDB then return end
+    if displayedMode == "reputation" then
+        -- No XP remains to select when the character is at level cap.
+        if not XPAvailable() then return end
+        charDB.progressMode = "xp"
+    elseif GetWatchedReputation() then
+        charDB.progressMode = "reputation"
+    else
+        Print("No watched faction. Select a faction to track in the Reputation panel first.")
+        return
+    end
+    UpdateBar()
+end
 
 local function CreateBar()
     if bar then return end
@@ -854,10 +937,23 @@ local function CreateBar()
     resizeHandles.corner:SetSize(30, 30)
     UpdateResizeHandles()
 
+    local mouseDownX, mouseDownY, wasDragged
+    bar:SetScript("OnMouseDown", function(_, button)
+        if button ~= "LeftButton" then return end
+        mouseDownX, mouseDownY = GetCursorPosition()
+        wasDragged = false
+    end)
     bar:SetScript("OnMouseUp", function(_, button)
-        OpenBarOptions(button)
+        if button == "RightButton" then OpenBarOptions(button); return end
+        if button ~= "LeftButton" then return end
+        local x, y = GetCursorPosition()
+        local click = mouseDownX and mouseDownY and not wasDragged
+            and math.abs(x - mouseDownX) <= 6 and math.abs(y - mouseDownY) <= 6
+        mouseDownX, mouseDownY, wasDragged = nil, nil, nil
+        if click then SwitchBarMode() end
     end)
     bar:SetScript("OnDragStart", function(self)
+        wasDragged = true
         -- Shift-drag is an escape hatch that always works, even after the bar
         -- has been locked to prevent accidental movement.
         if not db.locked or IsShiftKeyDown() then self:StartMoving() end
@@ -1096,6 +1192,27 @@ end
 
 local function ShowDetails()
     if not db or not bar or not bar:IsShown() then return end
+    if displayedMode == "reputation" then
+        local rep = GetWatchedReputation()
+        if not rep then return end
+        GameTooltip:SetOwner(bar, "ANCHOR_TOP", 0, 8); GameTooltip:ClearLines()
+        GameTooltip:AddLine("Better Forever XP  |cff8499b8• by Dezolve Labs|r", 0.45, 0.84, 1)
+        GameTooltip:AddLine(rep.name, 1, 1, 1)
+        GameTooltip:AddDoubleLine("Standing", rep.standing, 0.72, 0.77, 0.86, 1, 1, 1)
+        if rep.isMax then
+            GameTooltip:AddLine("Maximum reputation reached", 0.55, 1, 0.64)
+        else
+            GameTooltip:AddDoubleLine("Progress", Commas(rep.current) .. " / " .. Commas(rep.total), 0.72, 0.77, 0.86, 1, 1, 1)
+            GameTooltip:AddDoubleLine("Complete", FormatProgressPercent(rep.fraction * 100), 0.72, 0.77, 0.86, 1, 1, 1)
+            GameTooltip:AddDoubleLine("To next standing", Commas(rep.remaining), 0.72, 0.77, 0.86, 1, 0.82, 0.42)
+        end
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine(XPAvailable()
+            and "Left-click for XP • Right-click for options"
+            or "Right-click for options", 0.55, 0.62, 0.72)
+        GameTooltip:Show()
+        return
+    end
     local xp, xpMax = UnitXP("player") or 0, UnitXPMax("player") or 0
     local remaining = math.max(0, xpMax - xp)
     local rested = GetXPExhaustion and (GetXPExhaustion() or 0) or 0
@@ -1150,22 +1267,81 @@ local function ShowDetails()
     GameTooltip:AddDoubleLine("Estimated level", rate > 0 and FormatTime(remaining / rate * 3600) or "Waiting for XP gain", 0.72, 0.77, 0.86, 0.55, 1, 0.64)
     GameTooltip:AddLine(" ")
     if db.locked then
-        GameTooltip:AddLine("Right-click for options • Shift-drag to move • /bfxp unlock", 0.55, 0.62, 0.72)
+        GameTooltip:AddLine("Left-click for rep • Right-click for options • Shift-drag to move", 0.55, 0.62, 0.72)
     else
-        GameTooltip:AddLine("Right-click for options • drag to move • resize below/right edge", 0.55, 0.62, 0.72)
+        GameTooltip:AddLine("Left-click for rep • Right-click for options • drag to move", 0.55, 0.62, 0.72)
     end
     GameTooltip:Show()
 end
 
-local function XPAvailable()
-    if not db.enabled then return false end
-    if IsXPUserDisabled and IsXPUserDisabled() then return false end
-    return (UnitXPMax("player") or 0) > 0
+-- The reputation tube uses the same geometry, dividers and steel endcaps,
+-- but none of the rested/quest-only XP layers.
+local lastReputationPaletteKey
+local function RenderReputation(rep)
+    local palette = ReputationPalette(rep.reaction)
+    local colorKey = tostring(rep.reaction) .. ":" .. table.concat(palette.flat, ",")
+    if colorKey ~= lastReputationPaletteKey then
+        capColors.reputation = palette
+        for _, cap in ipairs(capPaints) do
+            if cap.region == "reputation" then cap.region = nil end
+        end
+        lastReputationPaletteKey = colorKey
+    end
+    local _, visualLeft, innerWidth = TubeGeometry(db.height, db.width)
+    local earnedX = db.width * rep.fraction
+    local earnedWidth = math.max(0, math.min(innerWidth, earnedX - visualLeft))
+    ApplyTubeStatusColor(fill, palette.bottom, palette.top, palette.flat)
+    fillSheen:SetColorTexture(1, 1, 1, 0.15)
+    fill:SetMinMaxValues(0, innerWidth); fill:SetValue(earnedWidth)
+    restedFill:Hide()
+    questPreview:Hide()
+    restedEndMarker:Hide()
+    for _, cap in ipairs(capPaints) do
+        local capX = cap.right and (db.width - cap.column - 0.5)
+            or (cap.column + 0.5)
+        SetCapPaint(cap, capX <= earnedX and "reputation" or nil)
+    end
+    for index, tick in ipairs(tickMarks) do
+        ApplyBeveledTick(tick, index / 20 <= rep.fraction and "earned" or "empty")
+    end
+    spark:ClearAllPoints(); spark:SetPoint("CENTER", fill, "LEFT", earnedWidth, 0)
+    spark:SetShown(rep.fraction > 0 and rep.fraction < 1)
+    if leftText:IsShown() then SetFittingLabel(leftText, {rep.name, "Rep"}) end
+    local pct = FormatProgressPercent(rep.fraction * 100)
+    if db.width < 530 then
+        SetFittingLabel(centerText, {rep.standing .. "  •  " .. pct, pct})
+    elseif db.width < 830 then
+        SetFittingLabel(centerText, {
+            rep.standing .. "  •  " .. (rep.isMax and "MAX" or pct),
+            rep.standing, pct,
+        })
+    else
+        SetFittingLabel(centerText, {
+            rep.standing .. "  •  " .. (rep.isMax and "MAX" or (Commas(rep.current) .. " / " .. Commas(rep.total) .. "  •  " .. pct)),
+            rep.standing .. "  •  " .. pct, pct,
+        })
+        SetFittingLabel(rightText, rep.isMax and {"Maximum reputation", "MAX"} or {
+            Commas(rep.remaining) .. " rep to next standing",
+            Short(rep.remaining) .. " rep remaining",
+            Short(rep.remaining) .. " left",
+        })
+    end
+    UpdateTextScrims()
+    bar:Show()
+    if tooltipVisible then ShowDetails() end
 end
 
-local function UpdateBar()
+UpdateBar = function()
     CreateBar()
-    if not XPAvailable() then bar:Hide(); return end
+    if not db.enabled then displayedMode = nil; bar:Hide(); return end
+    local rep = db.enableReputation and GetWatchedReputation() or nil
+    if rep and (not XPAvailable() or (charDB and charDB.progressMode == "reputation")) then
+        displayedMode = "reputation"
+        RenderReputation(rep)
+        return
+    end
+    if not XPAvailable() then displayedMode = nil; bar:Hide(); return end
+    displayedMode = "xp"
     local xp, xpMax = UnitXP("player") or 0, UnitXPMax("player") or 1
     local rested = GetXPExhaustion and (GetXPExhaustion() or 0) or 0
     local questXP = db.showQuestPreview and CompletedQuestXP() or 0
@@ -1313,13 +1489,13 @@ local function SetSetting(key, value)
         if type(value) ~= "number" or value < 0.5 or value > 3 then return false end
         db.scale = math.floor(value * 100 + 0.5) / 100
         ApplyLayout()
-    elseif key == "locked" or key == "enabled" or key == "hideBlizzard" or key == "showMidpointMarker" or key == "showQuestPreview" then
+    elseif key == "locked" or key == "enabled" or key == "hideBlizzard" or key == "showMidpointMarker" or key == "showQuestPreview" or key == "enableReputation" then
         if type(value) ~= "boolean" then return false end
         db[key] = value
         if key == "locked" then UpdateResizeHandles()
         elseif key == "enabled" then UpdateBar()
         elseif key == "showMidpointMarker" then midpointMarker:SetShown(value)
-        elseif key == "showQuestPreview" then UpdateBar()
+        elseif key == "showQuestPreview" or key == "enableReputation" then UpdateBar()
         else ApplyDefaultBarVisibility() end
     elseif key == "textMode" then
         if value ~= "tooltip" and value ~= "hover" and value ~= "always" then return false end
@@ -1346,6 +1522,8 @@ addon.ResetAll = function()
     db.numberFormat, db.hideBlizzard = defaults.numberFormat, defaults.hideBlizzard
     db.showMidpointMarker = defaults.showMidpointMarker
     db.showQuestPreview = defaults.showQuestPreview
+    db.enableReputation = defaults.enableReputation
+    if charDB then charDB.progressMode = "xp" end
     db.textMode = defaults.textMode
     UpdateTextVisibility()
     ResetPosition()
@@ -1357,6 +1535,7 @@ local function Help()
     Print("/bfxp lock | unlock | show | hide | reset")
     Print("/bfxp (open options) • width 300-1600 • height 10-120 • scale 0.5-3")
     Print("/bfxp format short | commas | exact")
+    Print("Left-click bar to toggle XP / watched Reputation (when enabled)")
     Print("/bfxp default on|off  (show or hide Blizzard's bar)")
 end
 
@@ -1412,6 +1591,9 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
         end
         BetterForeverXPCharDB = BetterForeverXPCharDB or {}
         charDB = BetterForeverXPCharDB
+        if charDB.progressMode ~= "xp" and charDB.progressMode ~= "reputation" then
+            charDB.progressMode = "xp"
+        end
         local currentLevel = UnitLevel("player") or 0
         if charDB.level ~= currentLevel then
             charDB.level = currentLevel
@@ -1442,10 +1624,17 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
         lastXP, lastXPMax = UnitXP("player"), UnitXPMax("player")
         eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD"); eventFrame:RegisterEvent("PLAYER_XP_UPDATE")
         eventFrame:RegisterEvent("PLAYER_LEVEL_UP"); eventFrame:RegisterEvent("UPDATE_EXHAUSTION"); eventFrame:RegisterEvent("QUEST_LOG_UPDATE")
+        eventFrame:RegisterEvent("UPDATE_FACTION")
+        -- Baseline on initialization: a watched faction already present on
+        -- login is not a fresh user selection and must not override saved mode.
+        lastWatchedFactionKey = WatchedFactionKey()
         UpdateBar()
     elseif event == "PLAYER_REGEN_ENABLED" then
         ApplyDefaultBarVisibility()
     elseif event == "PLAYER_XP_UPDATE" then RecordXP(); UpdateBar()
+    elseif event == "UPDATE_FACTION" then
+        RefreshWatchedFactionSelection()
+        UpdateBar()
     elseif event == "PLAYER_LEVEL_UP" then
         AccumulateLevelTime()
         if charDB then
@@ -1463,6 +1652,9 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
             charDB.sessionStartClock = sessionStart
             charDB.sessionXP = 0
         end
+        -- Zone entry/reload may refresh the watched faction from server data;
+        -- treat that as a baseline, not a new "Show as Experience Bar" click.
+        lastWatchedFactionKey = WatchedFactionKey()
         ApplyDefaultBarVisibility(); C_Timer.After(0.5, UpdateBar)
     else UpdateBar() end
 end)
