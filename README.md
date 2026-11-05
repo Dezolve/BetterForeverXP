@@ -130,37 +130,36 @@ every push and pull request and publishes the archive as a workflow artifact.
 
 ## Publishing to CurseForge
 
-The addon is already packaged by `scripts/Package-Addon.ps1` and by every
-successful validation run. The [CurseForge release workflow](.github/workflows/publish-curseforge.yml)
-adds an optional, **manual-only** publish step for the existing
-[Better Forever XP project](https://www.curseforge.com/wow/addons/better-forever-xp)
-(CurseForge project ID `1731462`).
+Releases use a **permanent, protected version-tag publishing workflow**. No
+temporary release-commit trigger, manual ZIP upload, or Actions Run workflow
+form is needed for future versions. See the full
+[release runbook](docs/RELEASING.md), including one-time repository tag
+protection setup, verification, and recovery.
 
-To publish a reviewed release:
+After an in-game-tested release PR is merged into `main`:
 
-1. Merge the reviewed PR into `main`; the publishing workflow deliberately
-   refuses to run from other branches.
-2. Create a [CurseForge author API token](https://www.curseforge.com/account/api-tokens).
-   In GitHub, open **Settings → Secrets and variables → Actions → New repository
-   secret** and name it **`CURSEFORGE_API_TOKEN`**. Never commit the token or
-   paste it into issues or chat.
-3. Under **Actions → Publish Better Forever XP to CurseForge**, choose
-   **Run workflow**, the `main` branch, version `2.6.0`, release type
-   `release` (or `beta` for a test channel), and enter `PUBLISH` to confirm.
-   The action compares the requested version with `BetterForeverXP.toc`,
-   checks interface `16001`, validates Lua and package contents, and uploads
-   the versioned ZIP for **WoW Forever 1.60.1**.
-4. Verify the new version appears under the project's **Files** tab after any
-   CurseForge processing/review. Refresh the project's description using
-   [CURSEFORGE_DESCRIPTION.md](CURSEFORGE_DESCRIPTION.md) if desired.
+1. Update the TOC version plus the release notes and changelog headings to
+   match (e.g. `2.7.0`). CI validates the metadata and addon.
+2. Ensure the `BFXP Release Tags` GitHub tag ruleset is **Active** and
+   restricts updates and deletions. The publishing workflow fails closed if
+   this one-time administrative setup is incomplete.
+3. Create and push a new annotated tag on the reviewed `main` commit:
 
-The current 2.6.0 file changelog comes from
-[CURSEFORGE_RELEASE_NOTES.md](CURSEFORGE_RELEASE_NOTES.md). Update it for the
-next release. Normal pushes, draft PRs and CI builds **never publish**.
-If you prefer a one-time manual upload instead, download the successful
-GitHub Actions **BetterForeverXP** artifact, extract its
-`BetterForeverXP-2.6.0.zip`, and upload that inner ZIP through the CurseForge
-project dashboard; mark **1.60.1 / Forever** as the compatible game version.
+   ```powershell
+   git switch main
+   git pull --ff-only origin main
+   git tag -a v2.7.0 -m "Better Forever XP 2.7.0"
+   git push origin v2.7.0
+   ```
+
+4. Watch the automatic [CurseForge publish workflow](.github/workflows/publish-curseforge.yml)
+   and verify the new file on
+   [CurseForge](https://www.curseforge.com/wow/addons/better-forever-xp/files).
+
+The first eligible tag is **v2.6.1 or newer**. Versions 2.5.0 and 2.6.0 were
+already published through the older flow and cannot be republished through
+the new workflow. Existing `CURSEFORGE_API_TOKEN` remains a GitHub repository
+secret. Pushing an ordinary commit or merging a PR does **not** publish.
 
 ## Automatic Windows test deployment
 
