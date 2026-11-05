@@ -1245,9 +1245,9 @@ local function ShowDetails()
     GameTooltip:AddDoubleLine("Estimated level", rate > 0 and FormatTime(remaining / rate * 3600) or "Waiting for XP gain", 0.72, 0.77, 0.86, 0.55, 1, 0.64)
     GameTooltip:AddLine(" ")
     if db.locked then
-        GameTooltip:AddLine("Right-click for options • Shift-drag to move • /bfxp unlock", 0.55, 0.62, 0.72)
+        GameTooltip:AddLine("Left-click for rep • Right-click for options • Shift-drag to move", 0.55, 0.62, 0.72)
     else
-        GameTooltip:AddLine("Right-click for options • drag to move • resize below/right edge", 0.55, 0.62, 0.72)
+        GameTooltip:AddLine("Left-click for rep • Right-click for options • drag to move", 0.55, 0.62, 0.72)
     end
     GameTooltip:Show()
 end
@@ -1467,13 +1467,13 @@ local function SetSetting(key, value)
         if type(value) ~= "number" or value < 0.5 or value > 3 then return false end
         db.scale = math.floor(value * 100 + 0.5) / 100
         ApplyLayout()
-    elseif key == "locked" or key == "enabled" or key == "hideBlizzard" or key == "showMidpointMarker" or key == "showQuestPreview" then
+    elseif key == "locked" or key == "enabled" or key == "hideBlizzard" or key == "showMidpointMarker" or key == "showQuestPreview" or key == "enableReputation" then
         if type(value) ~= "boolean" then return false end
         db[key] = value
         if key == "locked" then UpdateResizeHandles()
         elseif key == "enabled" then UpdateBar()
         elseif key == "showMidpointMarker" then midpointMarker:SetShown(value)
-        elseif key == "showQuestPreview" then UpdateBar()
+        elseif key == "showQuestPreview" or key == "enableReputation" then UpdateBar()
         else ApplyDefaultBarVisibility() end
     elseif key == "textMode" then
         if value ~= "tooltip" and value ~= "hover" and value ~= "always" then return false end
@@ -1500,6 +1500,8 @@ addon.ResetAll = function()
     db.numberFormat, db.hideBlizzard = defaults.numberFormat, defaults.hideBlizzard
     db.showMidpointMarker = defaults.showMidpointMarker
     db.showQuestPreview = defaults.showQuestPreview
+    db.enableReputation = defaults.enableReputation
+    if charDB then charDB.progressMode = "xp" end
     db.textMode = defaults.textMode
     UpdateTextVisibility()
     ResetPosition()
@@ -1511,6 +1513,7 @@ local function Help()
     Print("/bfxp lock | unlock | show | hide | reset")
     Print("/bfxp (open options) • width 300-1600 • height 10-120 • scale 0.5-3")
     Print("/bfxp format short | commas | exact")
+    Print("Left-click bar to toggle XP / watched Reputation (when enabled)")
     Print("/bfxp default on|off  (show or hide Blizzard's bar)")
 end
 
@@ -1566,6 +1569,9 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
         end
         BetterForeverXPCharDB = BetterForeverXPCharDB or {}
         charDB = BetterForeverXPCharDB
+        if charDB.progressMode ~= "xp" and charDB.progressMode ~= "reputation" then
+            charDB.progressMode = "xp"
+        end
         local currentLevel = UnitLevel("player") or 0
         if charDB.level ~= currentLevel then
             charDB.level = currentLevel
@@ -1596,6 +1602,7 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
         lastXP, lastXPMax = UnitXP("player"), UnitXPMax("player")
         eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD"); eventFrame:RegisterEvent("PLAYER_XP_UPDATE")
         eventFrame:RegisterEvent("PLAYER_LEVEL_UP"); eventFrame:RegisterEvent("UPDATE_EXHAUSTION"); eventFrame:RegisterEvent("QUEST_LOG_UPDATE")
+        eventFrame:RegisterEvent("UPDATE_FACTION")
         UpdateBar()
     elseif event == "PLAYER_REGEN_ENABLED" then
         ApplyDefaultBarVisibility()
