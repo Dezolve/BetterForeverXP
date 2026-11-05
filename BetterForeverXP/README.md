@@ -2,7 +2,17 @@
 
 By Dezolve Labs
 
-A standalone, modern, low-profile experience bar for WoW Forever beta.
+A standalone, classic-inspired low-profile XP and watched Reputation bar for WoW Forever beta.
+
+## New in 2.7.0
+
+- Left-click the bar to switch XP ↔ watched Reputation; right-click to open settings.
+- Checking **Show as Experience Bar** for a faction in WoW's Reputation panel automatically switches the addon to that faction's standing. Earning reputation alone does not undo a manual switch back to XP.
+- The current mode is saved per character. Watched Reputation can be shown at level cap when XP is unavailable.
+- Native Blizzard standing hues, the familiar 20-segment metallic tube, and a Reputation-specific tooltip with faction progress.
+- Scrollable, translucent settings grouped by Display & Interaction, Text & Numbers, and Bar Dimensions, with Dezolve Labs attribution.
+- No Gold or Honor modes. All XP features, rested colors and quest preview remain intact.
+
 
 The bar is 1,100 pixels wide and 16 pixels high by default. It shows level,
 percent, remaining XP, and current/maximum XP. Values always use commas and
