@@ -1,3 +1,13 @@
+# Better Forever XP 2.6.1
+
+By Dezolve Labs
+
+## Rich quest-gold refinement
+
+- Changes the completed quest XP preview from muted bronze to a richer, warmer golden-yellow gradient, with a subtle matched endcap sheen.
+- Improves visual distinction from earned blue or purple XP, preserving the classic tube styling.
+- No changes to quest calculations, rested coverage, settings persistence, markers, sizing, or tooltip math.
+
 # Better Forever XP 2.6.0
 
 By Dezolve Labs

@@ -213,7 +213,7 @@ local capColors = {
         bottom = {0.013, 0.042, 0.105}, top = {0.085, 0.17, 0.31}, flat = {0.025, 0.075, 0.18},
     },
     quest = {
-        bottom = {0.35, 0.21, 0.08}, top = {0.78, 0.57, 0.25}, flat = {0.60, 0.42, 0.17},
+        bottom = {0.66, 0.40, 0.06}, top = {0.97, 0.82, 0.37}, flat = {0.91, 0.72, 0.25},
     },
 }
 
@@ -253,7 +253,7 @@ local function SetCapPaint(cap, region)
     elseif region == "purple" then
         cap.topSheen:SetColorTexture(0.88, 0.74, 0.96, 0.22)
     elseif region == "quest" then
-        cap.topSheen:SetColorTexture(0.90, 0.80, 0.52, 0.17)
+        cap.topSheen:SetColorTexture(1.00, 0.90, 0.60, 0.20)
     else
         cap.topSheen:SetColorTexture(0.40, 0.58, 0.84, 0.16)
     end

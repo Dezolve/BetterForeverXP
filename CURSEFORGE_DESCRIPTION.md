@@ -8,7 +8,7 @@ A customizable Blizzard-inspired experience tube that keeps your leveling progre
 
 - 20 visible five-percent segments with full-height brushed-steel dividers and an optional Blizzard-style silver midpoint marker
 - Rounded metallic tube with blue earned XP while rested, purple when not rested, dark-navy rested coverage, and a dark empty track
-- **New in 2.6.0:** Optional warm-brass completed quest XP preview directly on the bar. See how far ready-to-turn-in quests will advance you without confusing projected XP with earned XP. Stops at this level's end; carryover remains in the tooltip.
+- **Updated in 2.6.1:** Optional rich golden-yellow completed quest XP preview directly on the bar. See how far ready-to-turn-in quests will advance you without confusing projected XP with earned XP. The preview stops at this level's end; carryover remains in the tooltip.
 - **Three text modes:** Tooltip only (clean default), Text on hover, or Always visible
 - Current XP, remaining XP, completion percentage, and bars left with compact or exact number formatting
 - Responsive text that stays within the bar; small percentages show two decimal places
