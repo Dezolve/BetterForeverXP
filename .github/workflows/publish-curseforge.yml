@@ -6,10 +6,10 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version from BetterForeverXP.toc (for example 2.5.0)"
+        description: "Version from BetterForeverXP.toc (for example 2.6.0)"
         required: true
         type: string
-        default: "2.5.0"
+        default: "2.6.0"
       release_type:
         description: "CurseForge channel"
         required: true
