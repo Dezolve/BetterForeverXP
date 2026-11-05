@@ -1,13 +1,13 @@
-# Better Forever XP 2.6.1
+# Better Forever XP 2.6.2
 
-This visual update gives completed-quest XP a richer, more recognizable **quest-gold** color while keeping the familiar Blizzard-inspired XP tube intact.
+**Text on hover is now the default** for the XP bar on new installations and when choosing Reset all in settings.
 
 ## What's changed
 
-- **Richer quest gold:** Replaces the muted bronze preview introduced in 2.6.0 with a warmer golden-yellow gradient and softer, coordinated rounded-end highlights.
-- **Improved distinction:** Pending quest reward XP stands apart from earned blue/purple XP, including while rested.
-- **No behavior changes:** Ready-to-turn-in quest totals, 100% level cap, next-level carryover in the tooltip, options toggle, 5% dividers, 50% marker, and rested XP behavior are unchanged.
-- **In-game verified:** Tested visually in WoW Forever before release.
+- **Better out-of-box text visibility:** Hover over the bar to see XP labels directly on it, without leaving text permanently visible.
+- **Your existing choices stay yours:** Upgrading preserves a previously saved Tooltip only, Text on hover, or Always visible selection.
+- **Full three-mode control:** Change between Tooltip only, Text on hover, and Always visible with `/bfxp` or right-click the XP bar.
+- **Everything else unchanged:** XP calculations, detailed tooltip, quest-gold preview, rested colors, markers and bar layout all remain the same.
 
 ## Requirements
 
@@ -17,4 +17,4 @@ This visual update gives completed-quest XP a richer, more recognizable **quest-
 
 ## Getting started
 
-Use `/bfxp` or right-click the XP bar to enable or disable **Preview completed quest XP**.
+Open `/bfxp` or right-click the XP bar. In **XP bar text**, select **Text on hover** if your existing profile previously used Tooltip only.
