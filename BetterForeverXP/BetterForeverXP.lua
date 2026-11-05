@@ -1170,6 +1170,27 @@ end
 
 local function ShowDetails()
     if not db or not bar or not bar:IsShown() then return end
+    if displayedMode == "reputation" then
+        local rep = GetWatchedReputation()
+        if not rep then return end
+        GameTooltip:SetOwner(bar, "ANCHOR_TOP", 0, 8); GameTooltip:ClearLines()
+        GameTooltip:AddLine("Better Forever XP  |cff8499b8• by Dezolve Labs|r", 0.45, 0.84, 1)
+        GameTooltip:AddLine(rep.name, 1, 1, 1)
+        GameTooltip:AddDoubleLine("Standing", rep.standing, 0.72, 0.77, 0.86, 1, 1, 1)
+        if rep.isMax then
+            GameTooltip:AddLine("Maximum reputation reached", 0.55, 1, 0.64)
+        else
+            GameTooltip:AddDoubleLine("Progress", Commas(rep.current) .. " / " .. Commas(rep.total), 0.72, 0.77, 0.86, 1, 1, 1)
+            GameTooltip:AddDoubleLine("Complete", FormatProgressPercent(rep.fraction * 100), 0.72, 0.77, 0.86, 1, 1, 1)
+            GameTooltip:AddDoubleLine("To next standing", Commas(rep.remaining), 0.72, 0.77, 0.86, 1, 0.82, 0.42)
+        end
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine(XPAvailable()
+            and "Left-click for XP • Right-click for options"
+            or "Right-click for options", 0.55, 0.62, 0.72)
+        GameTooltip:Show()
+        return
+    end
     local xp, xpMax = UnitXP("player") or 0, UnitXPMax("player") or 0
     local remaining = math.max(0, xpMax - xp)
     local rested = GetXPExhaustion and (GetXPExhaustion() or 0) or 0
@@ -1231,15 +1252,74 @@ local function ShowDetails()
     GameTooltip:Show()
 end
 
-local function XPAvailable()
-    if not db.enabled then return false end
-    if IsXPUserDisabled and IsXPUserDisabled() then return false end
-    return (UnitXPMax("player") or 0) > 0
+-- The reputation tube uses the same geometry, dividers and steel endcaps,
+-- but none of the rested/quest-only XP layers.
+local lastReputationPaletteKey
+local function RenderReputation(rep)
+    local palette = ReputationPalette(rep.reaction)
+    local colorKey = tostring(rep.reaction) .. ":" .. table.concat(palette.flat, ",")
+    if colorKey ~= lastReputationPaletteKey then
+        capColors.reputation = palette
+        for _, cap in ipairs(capPaints) do
+            if cap.region == "reputation" then cap.region = nil end
+        end
+        lastReputationPaletteKey = colorKey
+    end
+    local _, visualLeft, innerWidth = TubeGeometry(db.height, db.width)
+    local earnedX = db.width * rep.fraction
+    local earnedWidth = math.max(0, math.min(innerWidth, earnedX - visualLeft))
+    ApplyTubeStatusColor(fill, palette.bottom, palette.top, palette.flat)
+    fillSheen:SetColorTexture(1, 1, 1, 0.15)
+    fill:SetMinMaxValues(0, innerWidth); fill:SetValue(earnedWidth)
+    restedFill:Hide()
+    questPreview:Hide()
+    restedEndMarker:Hide()
+    for _, cap in ipairs(capPaints) do
+        local capX = cap.right and (db.width - cap.column - 0.5)
+            or (cap.column + 0.5)
+        SetCapPaint(cap, capX <= earnedX and "reputation" or nil)
+    end
+    for index, tick in ipairs(tickMarks) do
+        ApplyBeveledTick(tick, index / 20 <= rep.fraction and "earned" or "empty")
+    end
+    spark:ClearAllPoints(); spark:SetPoint("CENTER", fill, "LEFT", earnedWidth, 0)
+    spark:SetShown(rep.fraction > 0 and rep.fraction < 1)
+    if leftText:IsShown() then SetFittingLabel(leftText, {rep.name, "Rep"}) end
+    local pct = FormatProgressPercent(rep.fraction * 100)
+    if db.width < 530 then
+        SetFittingLabel(centerText, {rep.standing .. "  •  " .. pct, pct})
+    elseif db.width < 830 then
+        SetFittingLabel(centerText, {
+            rep.standing .. "  •  " .. (rep.isMax and "MAX" or pct),
+            rep.standing, pct,
+        })
+    else
+        SetFittingLabel(centerText, {
+            rep.standing .. "  •  " .. (rep.isMax and "MAX" or (Commas(rep.current) .. " / " .. Commas(rep.total) .. "  •  " .. pct)),
+            rep.standing .. "  •  " .. pct, pct,
+        })
+        SetFittingLabel(rightText, rep.isMax and {"Maximum reputation", "MAX"} or {
+            Commas(rep.remaining) .. " rep to next standing",
+            Short(rep.remaining) .. " rep remaining",
+            Short(rep.remaining) .. " left",
+        })
+    end
+    UpdateTextScrims()
+    bar:Show()
+    if tooltipVisible then ShowDetails() end
 end
 
-local function UpdateBar()
+UpdateBar = function()
     CreateBar()
-    if not XPAvailable() then bar:Hide(); return end
+    if not db.enabled then displayedMode = nil; bar:Hide(); return end
+    local rep = db.enableReputation and GetWatchedReputation() or nil
+    if rep and (not XPAvailable() or (charDB and charDB.progressMode == "reputation")) then
+        displayedMode = "reputation"
+        RenderReputation(rep)
+        return
+    end
+    if not XPAvailable() then displayedMode = nil; bar:Hide(); return end
+    displayedMode = "xp"
     local xp, xpMax = UnitXP("player") or 0, UnitXPMax("player") or 1
     local rested = GetXPExhaustion and (GetXPExhaustion() or 0) or 0
     local questXP = db.showQuestPreview and CompletedQuestXP() or 0
