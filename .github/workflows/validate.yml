@@ -44,8 +44,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if pwsh -NoProfile -File ./scripts/Test-Release.ps1 -Tag v2.6.0; then
-            echo "::error::The already-published version 2.6.0 must be blocked."
+          if pwsh -NoProfile -File ./scripts/Test-Release.ps1 -Tag v2.6.1; then
+            echo "::error::The already-published version 2.6.1 must be blocked."
             exit 1
           fi
           if pwsh -NoProfile -File ./scripts/Test-Release.ps1 -Tag v99.99.99; then
