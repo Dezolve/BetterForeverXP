@@ -33,7 +33,9 @@ local function AddSection(title, subtitle, offset, height)
     section:SetSize(CARD_WIDTH, height)
     section:SetPoint("TOPLEFT", content, "TOPLEFT", 16, -offset)
 
-    local background = Paint(section, "BACKGROUND", 0.065, 0.085, 0.13, 0.54)
+    -- Readable over bright outdoor zones and NPC nameplates, without losing
+    -- the native dark WoW Settings aesthetic.
+    local background = Paint(section, "BACKGROUND", 0.065, 0.085, 0.13, 0.87)
     background:SetAllPoints()
 
     local hairline = Paint(section, "BORDER", 0.34, 0.46, 0.59, 0.46)
@@ -188,6 +190,14 @@ function addon.InitializeOptions()
     Label(content, "Better Forever XP", 20, -17, "GameFontNormalLarge")
     local subtitle = Label(content, "CLASSIC PROGRESS  |cff748ba7•|r  PERSONALIZED FOR YOU", 21, -49, "GameFontHighlightSmall")
     subtitle:SetTextColor(0.72, 0.81, 0.93, 1)
+    -- The last section lives below the fold on common 1080p UI scales.
+    -- Call out the scroll affordance before anyone mistakes it for clipping.
+    local scrollHint = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    scrollHint:SetPoint("TOPRIGHT", content, "TOPRIGHT", -18, -49)
+    scrollHint:SetWidth(175)
+    scrollHint:SetJustifyH("RIGHT")
+    scrollHint:SetText("SCROLL FOR MORE  |cff76b9e9\226\134\147|r")
+    scrollHint:SetTextColor(0.77, 0.85, 0.93, 1)
     local line = Paint(content, "ARTWORK", 0.34, 0.58, 0.78, 0.50)
     line:SetPoint("TOPLEFT", content, "TOPLEFT", 20, -77)
     line:SetSize(536, 1)
