@@ -1,0 +1,42 @@
+name: Verify public CurseForge page independently
+on:
+  push:
+    branches:
+      - qa/curseforge-page-public-verification
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe public listing without using author credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          urls=(
+            "https://www.curseforge.com/wow/addons/better-forever-xp"
+            "https://www.curseforge.com/wow/addons/better-forever-xp?verify=20261105-2-7-0"
+          )
+          for i in 0 1; do
+            target="${urls[$i]}"
+            output=$(mktemp)
+            code=$(curl --location --silent --show-error --retry 1 --connect-timeout 10 --max-time 40 \
+              -H "Cache-Control: no-cache" -H "Pragma: no-cache" \
+              -H "User-Agent: Mozilla/5.0 BetterForeverXP-Release-QA" \
+              -o "$output" -w '%{http_code}' "$target") || code="request-error"
+            echo "Page probe $i: HTTP $code, bytes=$(wc -c < "$output")"
+            if grep -Fq 'XP and Reputation. One beautiful bar.' "$output" || grep -Fq 'No extra bars, independent faction picker' "$output"; then
+              echo "PUBLIC_DESCRIPTION=NEW_2_7_0"
+            elif grep -Fq 'height 10-30' "$output" || grep -Fq 'slim, modern experience bar designed for WoW Forever' "$output"; then
+              echo "PUBLIC_DESCRIPTION=OLD_XP_ONLY"
+            else
+              echo "PUBLIC_DESCRIPTION=UNKNOWN"
+            fi
+            if grep -Fq 'Classic-inspired XP &amp; watched Reputation' "$output" || grep -Fq 'Classic-inspired XP & watched Reputation' "$output"; then
+              echo "PUBLIC_SUMMARY=NEW"
+            else
+              echo "PUBLIC_SUMMARY=NOT_DETECTED"
+            fi
+          done
