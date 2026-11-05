@@ -387,7 +387,7 @@ if ($failures.Count -eq 0) {
     # prevent the reputation checkbox from overlapping width controls.
     Assert-Condition ($options -match 'CreateFrame\("ScrollFrame", "BetterForeverXPOptionsScrollFrame"') 'Settings must use a real scroll viewport.'
     Assert-Condition ($options -match 'scroll:SetScrollChild\(content\)') 'All options must remain clipped inside scroll content.'
-    Assert-Condition ($options -match 'content:SetSize\(572, 889\)') 'Scrollable canvas must have stable content dimensions.'
+    Assert-Condition ($options -match 'content:SetSize\(572, 918\)') 'Scrollable canvas must include space for the attribution footer.'
     Assert-Condition ($options -match 'local behavior = AddSection\("DISPLAY & INTERACTION",') 'General, quest, and reputation controls belong in one section.'
     Assert-Condition ($options -match 'local textCard = AddSection\("TEXT & NUMBERS",') 'Text and number choices must be grouped.'
     Assert-Condition ($options -match 'local dimensions = AddSection\("BAR DIMENSIONS",') 'Sliders need a separate section.'
