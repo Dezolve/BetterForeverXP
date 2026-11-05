@@ -510,6 +510,27 @@ end
 
 local ApplyResizeLayout
 
+local function XPAvailable()
+    if not db or not db.enabled then return false end
+    if IsXPUserDisabled and IsXPUserDisabled() then return false end
+    return (UnitXPMax("player") or 0) > 0
+end
+
+local function SwitchBarMode()
+    if not db or not db.enableReputation or not charDB then return end
+    if displayedMode == "reputation" then
+        -- No XP remains to select when the character is at level cap.
+        if not XPAvailable() then return end
+        charDB.progressMode = "xp"
+    elseif GetWatchedReputation() then
+        charDB.progressMode = "reputation"
+    else
+        Print("No watched faction. Select a faction to track in the Reputation panel first.")
+        return
+    end
+    UpdateBar()
+end
+
 local function CreateBar()
     if bar then return end
     bar = CreateFrame("Frame", "BetterForeverXPBar", UIParent)
@@ -894,10 +915,23 @@ local function CreateBar()
     resizeHandles.corner:SetSize(30, 30)
     UpdateResizeHandles()
 
+    local mouseDownX, mouseDownY, wasDragged
+    bar:SetScript("OnMouseDown", function(_, button)
+        if button ~= "LeftButton" then return end
+        mouseDownX, mouseDownY = GetCursorPosition()
+        wasDragged = false
+    end)
     bar:SetScript("OnMouseUp", function(_, button)
-        OpenBarOptions(button)
+        if button == "RightButton" then OpenBarOptions(button); return end
+        if button ~= "LeftButton" then return end
+        local x, y = GetCursorPosition()
+        local click = mouseDownX and mouseDownY and not wasDragged
+            and math.abs(x - mouseDownX) <= 6 and math.abs(y - mouseDownY) <= 6
+        mouseDownX, mouseDownY, wasDragged = nil, nil, nil
+        if click then SwitchBarMode() end
     end)
     bar:SetScript("OnDragStart", function(self)
+        wasDragged = true
         -- Shift-drag is an escape hatch that always works, even after the bar
         -- has been locked to prevent accidental movement.
         if not db.locked or IsShiftKeyDown() then self:StartMoving() end
