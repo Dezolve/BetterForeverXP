@@ -1,9 +1,8 @@
 name: Publish Better Forever XP to CurseForge
 
 # Releases require either a protected version-tag push OR a newly reviewed
-# versioned release request merged into main. Main-release requests create the
-# tag with GITHUB_TOKEN and publish in the same job, since token-created tag
-# pushes intentionally do not trigger another GitHub Actions workflow.
+# versioned release request merged into main. Main-release requests create
+# the tag with GITHUB_TOKEN and publish in the same guarded job.
 # Ordinary code pushes, PRs and CI artifacts cannot publish.
 on:
   push:
@@ -131,74 +130,11 @@ jobs:
           RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
         run: |
           $ErrorActionPreference = 'Stop'
-          # For a reviewed main request, derive the tag from the TOC.
-          # Direct tag pushes use the actual immutable pushed tag.
+          # Main release requests derive a protected tag from the TOC.
+          # Direct tag pushes use the exact pushed immutable tag.
           if (-not $env:RELEASE_TAG) {
             $tocRaw = Get-Content -LiteralPath 'BetterForeverXP/BetterForeverXP.toc' -Raw
-            $v = [regex]::Match($tocRaw, '(?m)^## Version:\s*(\S+)\s*
-          # Test-Release.ps1 is a PowerShell script; $? tracks its result.
-          # $LASTEXITCODE can contain a stale exit code from earlier native tools.
-          if (-not $?) { throw 'Release metadata preflight failed.' }
-          $toc = Get-Content -LiteralPath 'BetterForeverXP/BetterForeverXP.toc' -Raw
-          $version = [regex]::Match($toc, '(?m)^## Version:\s*(\S+)\s*$').Groups[1].Value
-          "version=$version" >> $env:GITHUB_OUTPUT
-          "zip_path=dist/BetterForeverXP-$version.zip" >> $env:GITHUB_OUTPUT
-          "changelog<<END_CHANGELOG" >> $env:GITHUB_OUTPUT
-          Get-Content -LiteralPath 'CURSEFORGE_RELEASE_NOTES.md' -Encoding UTF8 >> $env:GITHUB_OUTPUT
-          "END_CHANGELOG" >> $env:GITHUB_OUTPUT
-
-      - name: Require existing CurseForge API secret
-        shell: bash
-        env:
-          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_API_TOKEN }}
-        run: |
-          if [ -z "$CURSEFORGE_TOKEN" ]; then
-            echo "::error::Missing CURSEFORGE_API_TOKEN GitHub Actions secret."
-            exit 1
-          fi
-
-      - name: Validate Lua syntax
-        shell: bash
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq lua5.4
-          luac -p BetterForeverXP/BetterForeverXP.lua
-          luac -p BetterForeverXP/Options.lua
-
-      - name: Test and package addon
-        shell: pwsh
-        run: ./scripts/Package-Addon.ps1
-
-      - name: Confirm exact release ZIP exists
-        shell: pwsh
-        env:
-          ZIP_PATH: ${{ steps.release_info.outputs.zip_path }}
-        run: |
-          if (-not (Test-Path -LiteralPath $env:ZIP_PATH -PathType Leaf)) {
-            throw "Versioned release ZIP is missing: $($env:ZIP_PATH)"
-          }
-          Write-Host "Ready to upload $($env:ZIP_PATH) for WoW Forever 1.60.1."
-
-      - name: Archive reviewed release ZIP for audit
-        uses: actions/upload-artifact@v4
-        with:
-          name: BetterForeverXP-${{ steps.release_info.outputs.version }}
-          path: ${{ steps.release_info.outputs.zip_path }}
-          if-no-files-found: error
-
-      - name: Upload to CurseForge
-        uses: itsmeow/curseforge-upload@v3.1.2
-        with:
-          token: ${{ secrets.CURSEFORGE_API_TOKEN }}
-          project_id: "1731462"
-          game_endpoint: wow
-          game_versions: "1.60.1"
-          file_path: ${{ steps.release_info.outputs.zip_path }}
-          release_type: release
-          display_name: Better Forever XP ${{ steps.release_info.outputs.version }}
-          changelog: ${{ steps.release_info.outputs.changelog }}
-          changelog_type: markdown
-).Groups[1].Value
+            $v = [regex]::Match($tocRaw, '(?m)^## Version:\s*(\S+)\s*$').Groups[1].Value
             $env:RELEASE_TAG = "v$v"
           }
           ./scripts/Test-Release.ps1 -Tag $env:RELEASE_TAG
@@ -251,6 +187,38 @@ jobs:
           name: BetterForeverXP-${{ steps.release_info.outputs.version }}
           path: ${{ steps.release_info.outputs.zip_path }}
           if-no-files-found: error
+
+      - name: Create protected annotated tag for approved main release
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ steps.release_info.outputs.version }}
+        run: |
+          set -euo pipefail
+          TAG="v${RELEASE_VERSION}"
+          # Any existing tag blocks this request before upload.
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" >/dev/null 2>&1; then
+            echo "::error::Protected tag $TAG already exists; refusing a duplicate upload."
+            exit 1
+          fi
+          TAG_SHA=$(gh api -X POST "repos/$GITHUB_REPOSITORY/git/tags" \
+            -f tag="$TAG" -f message="Better Forever XP $RELEASE_VERSION" \
+            -f object="$GITHUB_SHA" -f type="commit" --jq .sha)
+          if [[ ! "$TAG_SHA" =~ ^[a-f0-9]{40}$ ]]; then
+            echo "::error::Could not create an annotated release tag object."
+            exit 1
+          fi
+          gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" \
+            -f ref="refs/tags/$TAG" -f sha="$TAG_SHA" >/dev/null
+          CONFIRMED=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" --jq '.object.sha')
+          if [[ "$CONFIRMED" != "$TAG_SHA" ]]; then
+            echo "::error::Protected release tag mismatch after creation."
+            exit 1
+          fi
+          echo "Created protected annotated tag $TAG at reviewed commit $GITHUB_SHA."
+          # A GITHUB_TOKEN-created tag does not launch the tag-push workflow;
+          # publish below in this same validated, serialized run.
 
       - name: Upload to CurseForge
         uses: itsmeow/curseforge-upload@v3.1.2
