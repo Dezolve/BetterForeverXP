@@ -6,7 +6,7 @@ local defaults = {
     width = 1100, height = 16, scale = 1,
     numberFormat = "short", hideBlizzard = true, showMidpointMarker = true,
     showQuestPreview = true,
-    textMode = "tooltip", -- "tooltip", "hover", or "always"
+    textMode = "hover", -- "tooltip", "hover", or "always"
     version = 8,
 }
 
@@ -1393,7 +1393,7 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
         local oldVersion = BetterForeverXPDB.version or 0
         -- Restore all three display modes. Carry forward previous permanent
         -- and hover-only choices from either of the earlier checkbox schemas;
-        -- truly new installs default to a clean tooltip-only XP tube.
+        -- truly new installs default to on-hover XP labels.
         if BetterForeverXPDB.textMode == nil then
             if BetterForeverXPDB.showBarText == true
                 or (BetterForeverXPDB.showBarText == nil and BetterForeverXPDB.hoverTextOnly == false) then
@@ -1401,7 +1401,7 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
             elseif BetterForeverXPDB.hoverTextOnly == true then
                 BetterForeverXPDB.textMode = "hover"
             else
-                BetterForeverXPDB.textMode = "tooltip"
+                BetterForeverXPDB.textMode = defaults.textMode
             end
         end
         BetterForeverXPDB.showBarText = nil

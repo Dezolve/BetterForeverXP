@@ -2,7 +2,7 @@
 ## Title: |cff67d5ffBetter Forever XP|r
 ## Notes: A slim modern XP bar with compact progress text and detailed hover information.
 ## Author: Dezolve Labs
-## Version: 2.6.1
+## Version: 2.6.2
 ## SavedVariables: BetterForeverXPDB
 ## SavedVariablesPerCharacter: BetterForeverXPCharDB
 

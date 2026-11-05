@@ -42,8 +42,9 @@ XP labels now have separate non-overlapping regions; they automatically
 shorten to fit their measured font widths at taller sizes. A very subtle
 shadow only behind the actual large-label text reduces interference from
 bright 5% lines. Settings provides **three XP text modes**: **Tooltip only**
-(the clean default), **Text on hover** (bar labels while hovering), or
-**Always visible** (permanent labels). The full tooltip remains available
+(no inline labels), **Text on hover** (the default for new installs and
+Reset all; bar labels appear while hovering), or **Always visible**
+(permanent labels). The full tooltip remains available
 in every mode, and previous hover/permanent choices are migrated. Completion uses two decimals below 1% (e.g. 0.02%) and one
 above it. The Blizzard silver arrow is anchored
 directly to the exact pixel-snapped 50% divider.

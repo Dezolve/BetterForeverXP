@@ -1,3 +1,13 @@
+# Better Forever XP 2.6.2
+
+By Dezolve Labs
+
+## Text on hover as the default
+
+- Makes **Text on hover** the default for new addon installations and Reset all settings.
+- Preserves existing players' saved text-mode preferences, including Tooltip only and Always visible.
+- Retains migration of legacy display preferences; no changes to quest XP, rested XP, bar rendering, or tooltips.
+
 # Better Forever XP 2.6.1
 
 By Dezolve Labs
