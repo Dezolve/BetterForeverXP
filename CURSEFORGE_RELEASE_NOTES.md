@@ -1,22 +1,20 @@
-# Better Forever XP 2.6.0
+# Better Forever XP 2.6.1
 
-Ready-quest XP previews are now visible directly on the classic-inspired XP bar for **WoW Forever 1.60.1** (interface 16001).
+This visual update gives completed-quest XP a richer, more recognizable **quest-gold** color while keeping the familiar Blizzard-inspired XP tube intact.
 
-## What's new
+## What's changed
 
-- **Completed quest XP preview:** A muted brass-gold extension shows how much XP is waiting from completed quests ready to turn in, separate from XP already earned.
-- **Live turn-in feedback:** As quests are turned in, the projected segment shrinks while the normal earned XP bar grows.
-- **Optional and immediate:** Toggle **Preview completed quest XP** in `/bfxp` or right-click settings. Enabled by default; independent of tooltip and on-bar text modes.
-- **Classic tube styling preserved:** The preview follows rounded endcaps, respects the 20 five-percent segments and metallic markers, and overlays rested coverage without changing rested XP calculations.
-- **Accurate level overflow:** The visual preview stops at 100% of the current level; the existing tooltip continues to show completed-quest XP carried into the following level when available.
-- **Final in-game polish:** The quest segment uses softer brass tones and restrained highlights for clear distinction without overpowering the earned blue/purple bar.
+- **Richer quest gold:** Replaces the muted bronze preview introduced in 2.6.0 with a warmer golden-yellow gradient and softer, coordinated rounded-end highlights.
+- **Improved distinction:** Pending quest reward XP stands apart from earned blue/purple XP, including while rested.
+- **No behavior changes:** Ready-to-turn-in quest totals, 100% level cap, next-level carryover in the tooltip, options toggle, 5% dividers, 50% marker, and rested XP behavior are unchanged.
+- **In-game verified:** Tested visually in WoW Forever before release.
 
 ## Requirements
 
-- **Game:** World of Warcraft — Forever (1.60.1)
+- **Game:** World of Warcraft — Forever 1.60.1
 - **TOC interface:** 16001
-- No libraries or other addons required.
+- No external dependencies.
 
 ## Getting started
 
-Open settings with `/bfxp` or right-click the XP bar, and toggle **Preview completed quest XP**. Hover for detailed quest XP estimates and next-level carryover.
+Use `/bfxp` or right-click the XP bar to enable or disable **Preview completed quest XP**.
