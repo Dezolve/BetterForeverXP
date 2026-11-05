@@ -2,9 +2,9 @@
 
 This is the permanent release procedure for [Better Forever XP](https://www.curseforge.com/wow/addons/better-forever-xp) (CurseForge project **1731462**).
 
-**Release signal:** Push a new version tag such as `v2.6.2` or `v2.7.0` to an already-reviewed commit on `main`. GitHub Actions validates, packages, and publishes the corresponding ZIP through the existing `CURSEFORGE_API_TOKEN` secret.
+**Release signal:** Push a new version tag such as `v2.6.3` or `v2.7.0` to an already-reviewed commit on `main`. GitHub Actions validates, packages, and publishes the corresponding ZIP through the existing `CURSEFORGE_API_TOKEN` secret.
 
-**Do not tag releases through 2.6.1 again.** Versions 2.5.0, 2.6.0, and 2.6.1 were published through reviewed, one-time main-branch workflows. This tag process accepts only versions **newer than 2.6.1**.
+**Do not tag releases through 2.6.2 again.** Versions 2.5.0, 2.6.0, 2.6.1, and 2.6.2 were published through reviewed, one-time main-branch workflows. This tag process accepts only versions **newer than 2.6.2**.
 
 ## One-time protection setup (required before the first new release tag)
 
@@ -62,7 +62,7 @@ For additional protection, enable a `main` branch ruleset requiring pull request
 - The event must be a tag push matching a stable `vMAJOR.MINOR.PATCH` version (no `-beta` or `+build` suffix).
 - The tag must point at a commit already merged into `main`. The workflow checks out that **tagged commit**, not a moving branch head.
 - `Test-Release.ps1 -Tag ...` requires exact agreement between the tag, TOC version, first heading of release notes, and first heading of the changelog. It also checks WoW Forever Interface `16001`.
-- Versions up to and including `2.6.1` are rejected to avoid reposting old releases.
+- Versions up to and including `2.6.2` are rejected to avoid reposting old releases.
 - An active `BFXP Release Tags` ruleset must restrict changes and deletions of version tags.
 - Addon syntax, existing assertions, and packaging all run before API upload.
 - The release type is fixed as `release`; the CurseForge project ID and target game version are fixed.
@@ -81,7 +81,7 @@ For additional protection, enable a `main` branch ruleset requiring pull request
 
 ## Why this replaces the older process
 
-In October and November 2026, releases 2.5.0, 2.6.0, and 2.6.1 used **temporary, version-specific main-branch push triggers**, followed by restoration to manual-only mode. This worked but required workflow edits for every release.
+In October and November 2026, releases 2.5.0, 2.6.0, 2.6.1, and 2.6.2 used **temporary, version-specific main-branch push triggers**, followed by restoration to manual-only mode. This worked but required workflow edits for every release.
 
 Version tags are now the release approval signal. Future releases require no workflow edits, no manual GitHub workflow dispatch, and no local CurseForge ZIP upload. The remaining intentional actions are to approve/merge the release PR and create a protected version tag.
 

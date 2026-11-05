@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     # Omit -Tag for a read-only metadata check on PRs and ordinary pushes.
-    # Supply -Tag for a publishing preflight; releases through 2.6.1 are blocked.
+    # Supply -Tag for a publishing preflight; releases through 2.6.2 are blocked.
     [string]$Tag
 )
 
@@ -49,9 +49,9 @@ if ($PSBoundParameters.ContainsKey('Tag')) {
     }
 
     # Historical versions were already sent to CurseForge through the older workflow.
-    # Never republish v2.6.1 or earlier using the new automatic tag workflow.
-    if ([version]$version -le [version]'2.6.1') {
-        throw "Version $version was released before tag automation. First eligible automatic tag is v2.6.2 or newer."
+    # Never republish v2.6.2 or earlier using the new automatic tag workflow.
+    if ([version]$version -le [version]'2.6.2') {
+        throw "Version $version was released before tag automation. First eligible automatic tag is v2.6.3 or newer."
     }
 }
 
