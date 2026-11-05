@@ -62,13 +62,15 @@ jobs:
           API="https://api.github.com/repos/$GITHUB_REPOSITORY/rulesets"
           HEADERS=(-H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28")
           RULESETS=$(curl --fail --silent --show-error --retry 2 "${HEADERS[@]}" "$API")
-          RULESET_ID=$(jq -r '[.[] | select(.name == "BFXP Release Tags" and .target == "tag" and .enforcement == "active")] | first | .id // empty' <<< "$RULESETS")
+          RULESET_ID=$(jq -r '[.[] | select(.name == "BFXP Release Tags" and .enforcement == "active")] | first | .id // empty' <<< "$RULESETS")
           if [ -z "$RULESET_ID" ]; then
             echo "::error::An active tag ruleset named BFXP Release Tags is required. See docs/RELEASING.md."
             exit 1
           fi
           DETAILS=$(curl --fail --silent --show-error --retry 2 "${HEADERS[@]}" "$API/$RULESET_ID")
           if ! jq -e '
+            (.target == "tag") and
+            (.enforcement == "active") and
             ((.conditions.ref_name.include // []) | any(. == "refs/tags/v*" or . == "v*" or . == "~ALL")) and
             ((.conditions.ref_name.exclude // []) | length == 0) and
             ([.rules[].type] | index("update") != null) and
