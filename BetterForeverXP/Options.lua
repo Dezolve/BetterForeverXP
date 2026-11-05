@@ -113,8 +113,8 @@ function addon.InitializeOptions()
     Label(panel, "Bar dimensions", 24, -179, "GameFontNormalLarge")
     AddCheckbox("showQuestPreview", "Preview completed quest XP", -172,
         "Show XP from quests ready to turn in as a gold extension of your current XP. Does not include unfinished quests.", 305)
-    AddCheckbox("enableReputation", "Click switches XP / Reputation", -203,
-        "Left-click the bar to switch between XP and the faction watched in WoW's Reputation panel. Right-click still opens options. The chosen mode is remembered per character.", 305)
+    AddCheckbox("enableReputation", "Enable XP / Reputation", -203,
+        "Left-click the bar to switch modes. Choosing Show as Experience Bar in WoW's Reputation panel also switches directly to that faction. Right-click still opens options. Your selected mode is remembered per character.", 305)
     AddSlider("width", "Width", -209, 300, 1600, 10, " px")
     AddSlider("height", "Height", -273, 10, 120, 1, " px")
     AddSlider("scale", "Overall UI scale (including text)", -337, 0.5, 3, 0.05, "x")
