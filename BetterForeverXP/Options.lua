@@ -33,9 +33,9 @@ local function AddSection(title, subtitle, offset, height)
     section:SetSize(CARD_WIDTH, height)
     section:SetPoint("TOPLEFT", content, "TOPLEFT", 16, -offset)
 
-    -- Readable over bright outdoor zones and NPC nameplates, without losing
-    -- the native dark WoW Settings aesthetic.
-    local background = Paint(section, "BACKGROUND", 0.065, 0.085, 0.13, 0.87)
+    -- Keep Azeroth visible through the cards like native WoW addon panels,
+    -- while maintaining a modest contrast layer for labels and controls.
+    local background = Paint(section, "BACKGROUND", 0.065, 0.085, 0.13, 0.68)
     background:SetAllPoints()
 
     local hairline = Paint(section, "BORDER", 0.34, 0.46, 0.59, 0.46)
