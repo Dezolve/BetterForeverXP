@@ -54,7 +54,7 @@ A gold extension on the XP tube shows how much progress is waiting in completed
 quests ready to turn in. Earned XP remains blue or purple, while the gold segment
 is only a projection; as quests are handed in, the gold becomes earned XP.
 The preview overlays rested coverage without changing rested XP calculations,
-retains the classic five-percent dividers, and respects the tube\'s rounded ends.
+retains the classic five-percent dividers, and respects the tube's rounded ends.
 It stops at 100% of the current level; precise next-level carryover remains in
 the hover tooltip. Unfinished quests are not included.
 
@@ -145,7 +145,7 @@ To publish a reviewed release:
    secret** and name it **`CURSEFORGE_API_TOKEN`**. Never commit the token or
    paste it into issues or chat.
 3. Under **Actions → Publish Better Forever XP to CurseForge**, choose
-   **Run workflow**, the `main` branch, version `2.5.0`, release type
+   **Run workflow**, the `main` branch, version `2.6.0`, release type
    `release` (or `beta` for a test channel), and enter `PUBLISH` to confirm.
    The action compares the requested version with `BetterForeverXP.toc`,
    checks interface `16001`, validates Lua and package contents, and uploads
@@ -154,12 +154,12 @@ To publish a reviewed release:
    CurseForge processing/review. Refresh the project's description using
    [CURSEFORGE_DESCRIPTION.md](CURSEFORGE_DESCRIPTION.md) if desired.
 
-The current 2.5.0 file changelog comes from
+The current 2.6.0 file changelog comes from
 [CURSEFORGE_RELEASE_NOTES.md](CURSEFORGE_RELEASE_NOTES.md). Update it for the
 next release. Normal pushes, draft PRs and CI builds **never publish**.
 If you prefer a one-time manual upload instead, download the successful
 GitHub Actions **BetterForeverXP** artifact, extract its
-`BetterForeverXP-2.5.0.zip`, and upload that inner ZIP through the CurseForge
+`BetterForeverXP-2.6.0.zip`, and upload that inner ZIP through the CurseForge
 project dashboard; mark **1.60.1 / Forever** as the compatible game version.
 
 ## Automatic Windows test deployment
