@@ -294,6 +294,8 @@ local function SetCapPaint(cap, region)
         cap.topSheen:SetColorTexture(0.88, 0.74, 0.96, 0.22)
     elseif region == "quest" then
         cap.topSheen:SetColorTexture(1.00, 0.90, 0.60, 0.20)
+    elseif region == "reputation" then
+        cap.topSheen:SetColorTexture(1, 1, 1, 0.14)
     else
         cap.topSheen:SetColorTexture(0.40, 0.58, 0.84, 0.16)
     end
