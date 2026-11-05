@@ -1,15 +1,22 @@
 name: Publish Better Forever XP to CurseForge
 
-# A release is initiated only by pushing a protected, immutable version tag.
-# Ordinary pushes, PR merges, and CI artifacts never upload to CurseForge.
-# No manual dispatch or one-off workflow edits are necessary for future releases.
+# Releases require either a protected version-tag push OR a newly reviewed
+# versioned release request merged into main. Main-release requests create
+# the tag with GITHUB_TOKEN and publish in the same guarded job.
+# Ordinary code pushes, PRs and CI artifacts cannot publish.
 on:
   push:
     tags:
       - 'v*.*.*'
+    branches:
+      - main
+    # Only new versioned request files trigger main publishing.
+    # GitHub ignores path filters for tag pushes.
+    paths:
+      - '.github/release-requests/v*.*.*.txt'
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: curseforge-better-forever-xp
@@ -18,7 +25,9 @@ concurrency:
 jobs:
   publish:
     name: Validate tagged release and publish
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: >-
+      startsWith(github.ref, 'refs/tags/v') ||
+      github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Reject re-runs that could upload a duplicate file
@@ -36,6 +45,7 @@ jobs:
           persist-credentials: false
 
       - name: Require the tag to point to a reviewed main commit
+        if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
         run: |
           set -euo pipefail
@@ -50,6 +60,38 @@ jobs:
             echo "::error::Release tags must point to commits already merged into main."
             exit 1
           fi
+
+      - name: Require a newly approved main release request
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          VERSION=$(sed -n 's/^## Version:[[:space:]]*//p' BetterForeverXP/BetterForeverXP.toc)
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid release version in TOC."
+            exit 1
+          fi
+          SUBJECT=$(git log -1 --pretty=%s)
+          if [[ "$SUBJECT" != "release: BFXP v${VERSION} publish via protected tag"* ]]; then
+            echo "::error::Explicitly approved release-request merge required."
+            exit 1
+          fi
+          REQUEST=".github/release-requests/v${VERSION}.txt"
+          if [[ ! -f "$REQUEST" ]]; then
+            echo "::error::Missing versioned release request."
+            exit 1
+          fi
+          if [[ "$(cat "$REQUEST")" != "Publish Better Forever XP v${VERSION} to CurseForge" ]]; then
+            echo "::error::Release-request content doesn't match the TOC."
+            exit 1
+          fi
+          if ! git diff --diff-filter=A --name-only "$BEFORE_SHA" "$GITHUB_SHA" | grep -Fxq "$REQUEST"; then
+            echo "::error::Release request must be newly added by this approved merge."
+            exit 1
+          fi
+          echo "Approved request for v${VERSION} newly merged into main."
 
       - name: Require an active release-tag protection ruleset
         shell: bash
@@ -85,9 +127,16 @@ jobs:
         id: release_info
         shell: pwsh
         env:
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
         run: |
           $ErrorActionPreference = 'Stop'
+          # Main release requests derive a protected tag from the TOC.
+          # Direct tag pushes use the exact pushed immutable tag.
+          if (-not $env:RELEASE_TAG) {
+            $tocRaw = Get-Content -LiteralPath 'BetterForeverXP/BetterForeverXP.toc' -Raw
+            $v = [regex]::Match($tocRaw, '(?m)^## Version:\s*(\S+)\s*$').Groups[1].Value
+            $env:RELEASE_TAG = "v$v"
+          }
           ./scripts/Test-Release.ps1 -Tag $env:RELEASE_TAG
           # Test-Release.ps1 is a PowerShell script; $? tracks its result.
           # $LASTEXITCODE can contain a stale exit code from earlier native tools.
@@ -138,6 +187,38 @@ jobs:
           name: BetterForeverXP-${{ steps.release_info.outputs.version }}
           path: ${{ steps.release_info.outputs.zip_path }}
           if-no-files-found: error
+
+      - name: Create protected annotated tag for approved main release
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ steps.release_info.outputs.version }}
+        run: |
+          set -euo pipefail
+          TAG="v${RELEASE_VERSION}"
+          # Any existing tag blocks this request before upload.
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" >/dev/null 2>&1; then
+            echo "::error::Protected tag $TAG already exists; refusing a duplicate upload."
+            exit 1
+          fi
+          TAG_SHA=$(gh api -X POST "repos/$GITHUB_REPOSITORY/git/tags" \
+            -f tag="$TAG" -f message="Better Forever XP $RELEASE_VERSION" \
+            -f object="$GITHUB_SHA" -f type="commit" --jq .sha)
+          if [[ ! "$TAG_SHA" =~ ^[a-f0-9]{40}$ ]]; then
+            echo "::error::Could not create an annotated release tag object."
+            exit 1
+          fi
+          gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" \
+            -f ref="refs/tags/$TAG" -f sha="$TAG_SHA" >/dev/null
+          CONFIRMED=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" --jq '.object.sha')
+          if [[ "$CONFIRMED" != "$TAG_SHA" ]]; then
+            echo "::error::Protected release tag mismatch after creation."
+            exit 1
+          fi
+          echo "Created protected annotated tag $TAG at reviewed commit $GITHUB_SHA."
+          # A GITHUB_TOKEN-created tag does not launch the tag-push workflow;
+          # publish below in this same validated, serialized run.
 
       - name: Upload to CurseForge
         uses: itsmeow/curseforge-upload@v3.1.2
