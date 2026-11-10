@@ -24,7 +24,7 @@ local textScrims = {}
 local eventFrame = CreateFrame("Frame")
 local UpdateBar -- Forward declaration used by click handling.
 local displayedMode = "xp"
-local lastWatchedFactionKey
+local watchedSelection
 local sessionStart, sessionXP = GetTime(), 0
 local lastXP, lastXPMax
 local tooltipVisible = false
@@ -78,14 +78,6 @@ local function FormatNumber(value)
     return Short(value)
 end
 
-local function ExactAndShort(value)
-    local exact = Commas(value)
-    if (tonumber(value) or 0) >= 1000 then
-        return exact .. " (" .. Short(value) .. ")"
-    end
-    return exact
-end
-
 local function FormatTime(seconds)
     if not seconds or seconds <= 0 or seconds == math.huge then return "—" end
     seconds = math.floor(seconds + 0.5)
@@ -137,10 +129,10 @@ end
 
 local function RefreshWatchedFactionSelection()
     local currentKey = WatchedFactionKey()
-    local changed = currentKey ~= lastWatchedFactionKey
-    lastWatchedFactionKey = currentKey
-    -- Selecting or reselecting a watched faction explicitly requests the
-    -- Reputation bar. Clearing the watched faction simply falls back to XP.
+    -- A first non-nil faction after login may be delayed server restoration.
+    -- Never let that initial UPDATE_FACTION overwrite an existing XP choice.
+    local changed = watchedSelection and watchedSelection:Observe(currentKey)
+    -- Genuine in-session selection/reselection still requests Reputation.
     if changed and currentKey and db and db.enableReputation and charDB then
         charDB.progressMode = "reputation"
     end
@@ -1206,6 +1198,7 @@ local function ShowDetails()
             GameTooltip:AddDoubleLine("Complete", FormatProgressPercent(rep.fraction * 100), 0.72, 0.77, 0.86, 1, 1, 1)
             GameTooltip:AddDoubleLine("To next standing", Commas(rep.remaining), 0.72, 0.77, 0.86, 1, 0.82, 0.42)
         end
+        GameTooltip:AddDoubleLine("Bars", addon.BarsProgressText(rep.fraction), 0.72, 0.77, 0.86, 1, 1, 1)
         GameTooltip:AddLine(" ")
         GameTooltip:AddLine(XPAvailable()
             and "Left-click for XP • Right-click for options"
@@ -1250,7 +1243,7 @@ local function ShowDetails()
     GameTooltip:AddDoubleLine("Current XP", Commas(xp) .. " / " .. Commas(xpMax), 0.72, 0.77, 0.86, 1, 1, 1)
     GameTooltip:AddDoubleLine("Complete", xpMax > 0 and FormatProgressPercent(xp / xpMax * 100) or "—", 0.72, 0.77, 0.86, 1, 1, 1)
     GameTooltip:AddDoubleLine("Remaining", Commas(remaining), 0.72, 0.77, 0.86, 1, 0.82, 0.42)
-    GameTooltip:AddDoubleLine("Bars left", FormatBars(barsLeft), 0.72, 0.77, 0.86, 1, 0.82, 0.42)
+    GameTooltip:AddDoubleLine("Bars", addon.BarsProgressText(xpMax > 0 and xp / xpMax or 0), 0.72, 0.77, 0.86, 1, 0.82, 0.42)
 
     AddSection("Bonuses & Ready Quests", 1, 0.76, 0.30)
     GameTooltip:AddDoubleLine("Rested XP", Commas(rested) .. string.format("  (%.1f%%)", restedPercent), 0.72, 0.77, 0.86, 0.42, 0.78, 1)
@@ -1308,20 +1301,23 @@ local function RenderReputation(rep)
     spark:SetShown(rep.fraction > 0 and rep.fraction < 1)
     if leftText:IsShown() then SetFittingLabel(leftText, {rep.name, "Rep"}) end
     local pct = FormatProgressPercent(rep.fraction * 100)
+    local compactBars = addon.CompactBarsProgressText(rep.fraction)
     if db.width < 530 then
-        SetFittingLabel(centerText, {rep.standing .. "  •  " .. pct, pct})
+        SetFittingLabel(centerText, {compactBars, rep.standing .. "  •  " .. pct, pct})
     elseif db.width < 830 then
         SetFittingLabel(centerText, {
-            rep.standing .. "  •  " .. (rep.isMax and "MAX" or pct),
-            rep.standing, pct,
+            rep.standing .. "  •  " .. pct .. "  •  " .. compactBars,
+            rep.standing .. "  •  " .. compactBars,
+            compactBars, rep.standing .. "  •  " .. pct, pct,
         })
     else
         SetFittingLabel(centerText, {
             rep.standing .. "  •  " .. (rep.isMax and "MAX" or (Commas(rep.current) .. " / " .. Commas(rep.total) .. "  •  " .. pct)),
             rep.standing .. "  •  " .. pct, pct,
         })
-        SetFittingLabel(rightText, rep.isMax and {"Maximum reputation", "MAX"} or {
-            Commas(rep.remaining) .. " rep to next standing",
+        SetFittingLabel(rightText, rep.isMax and {compactBars, "MAX"} or {
+            Short(rep.remaining) .. " rep left  •  " .. compactBars,
+            compactBars,
             Short(rep.remaining) .. " rep remaining",
             Short(rep.remaining) .. " left",
         })
@@ -1419,34 +1415,41 @@ UpdateBar = function()
         SetFittingLabel(leftText, {"Level " .. level, "Lv " .. level, tostring(level)})
     end
     local pct = FormatProgressPercent(percent)
+    local compactBars = addon.CompactBarsProgressText(xp / xpMax)
     if db.width < 530 then
         SetFittingLabel(centerText, {
+            compactBars,
             pct .. "  •  " .. Short(remaining) .. " left",
             pct .. "  •  " .. Short(remaining),
             pct,
         })
     elseif db.width < 830 then
         SetFittingLabel(centerText, {
+            Short(xp) .. " / " .. Short(xpMax) .. "  •  " .. compactBars,
+            pct .. "  •  " .. compactBars,
+            compactBars,
             Short(xp) .. " / " .. Short(xpMax) .. "  •  " .. pct,
             Short(xp) .. "/" .. Short(xpMax) .. " " .. pct,
             pct,
         })
     else
-        local display = db.numberFormat == "short" and ExactAndShort or FormatNumber
+        -- Honor the selected format on wide bars too. Compact is short-only
+        -- (26.7K / 111.8K), not the old 26,713 (26.7K) hybrid display.
+        local display = FormatNumber
         SetFittingLabel(centerText, {
             display(xp) .. " / " .. display(xpMax) .. "  •  " .. pct,
-            Commas(xp) .. " / " .. Commas(xpMax) .. "  •  " .. pct,
+            display(xp) .. " / " .. display(xpMax),
             Short(xp) .. " / " .. Short(xpMax) .. "  •  " .. pct,
             Short(xp) .. "/" .. Short(xpMax),
             pct,
         })
         SetFittingLabel(rightText, {
-            display(remaining) .. " XP left  •  " .. FormatBars(barsLeft) .. " bars left",
-            Commas(remaining) .. " left  •  " .. FormatBars(barsLeft) .. " bars",
-            Short(remaining) .. " left  •  " .. FormatBars(barsLeft) .. " bars",
+            display(remaining) .. " XP left  •  " .. compactBars,
+            Short(remaining) .. " left  •  " .. compactBars,
+            compactBars,
             Short(remaining) .. " XP left",
             Short(remaining) .. " left",
-            FormatBars(barsLeft) .. " bars",
+            FormatBars(barsLeft) .. " bars left",
         })
     end
     UpdateTextScrims()
@@ -1591,6 +1594,8 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
         end
         BetterForeverXPCharDB = BetterForeverXPCharDB or {}
         charDB = BetterForeverXPCharDB
+        local hadSavedProgressMode = charDB.progressMode == "xp" or charDB.progressMode == "reputation"
+        watchedSelection = addon.NewWatchedSelection(hadSavedProgressMode)
         if charDB.progressMode ~= "xp" and charDB.progressMode ~= "reputation" then
             charDB.progressMode = "xp"
         end
@@ -1625,9 +1630,9 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
         eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD"); eventFrame:RegisterEvent("PLAYER_XP_UPDATE")
         eventFrame:RegisterEvent("PLAYER_LEVEL_UP"); eventFrame:RegisterEvent("UPDATE_EXHAUSTION"); eventFrame:RegisterEvent("QUEST_LOG_UPDATE")
         eventFrame:RegisterEvent("UPDATE_FACTION")
-        -- Baseline on initialization: a watched faction already present on
-        -- login is not a fresh user selection and must not override saved mode.
-        lastWatchedFactionKey = WatchedFactionKey()
+        -- An available watched faction is a login baseline, not a new click.
+        -- If unavailable yet, defer baselining until its first valid update.
+        watchedSelection:Prime(WatchedFactionKey())
         UpdateBar()
     elseif event == "PLAYER_REGEN_ENABLED" then
         ApplyDefaultBarVisibility()
@@ -1652,9 +1657,9 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
             charDB.sessionStartClock = sessionStart
             charDB.sessionXP = 0
         end
-        -- Zone entry/reload may refresh the watched faction from server data;
-        -- treat that as a baseline, not a new "Show as Experience Bar" click.
-        lastWatchedFactionKey = WatchedFactionKey()
+        -- On world entry the watched faction can still be nil during loading;
+        -- never discard the existing identity or reset an XP preference.
+        watchedSelection:Prime(WatchedFactionKey())
         ApplyDefaultBarVisibility(); C_Timer.After(0.5, UpdateBar)
     else UpdateBar() end
 end)

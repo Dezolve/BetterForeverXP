@@ -49,7 +49,7 @@ in every mode, and previous hover/permanent choices are migrated. Completion use
 above it. The Blizzard silver arrow is anchored
 directly to the exact pixel-snapped 50% divider.
 
-## XP and watched Reputation (new in 2.7.0)
+## XP and watched Reputation (new in 2.7.0; refined in 2.7.1)
 
 **Left-click** the bar to switch between XP and the faction you're watching in WoW's Reputation panel. Selecting **Show as Experience Bar** for a faction automatically switches the custom bar into its Reputation mode. The bar remembers your mode per character; ordinary reputation gains won't take control away after you switch back to XP.
 
