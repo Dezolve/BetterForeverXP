@@ -2,7 +2,7 @@
 ## Title: |cff67d5ffBetter Forever XP|r
 ## Notes: A classic-inspired XP and watched reputation bar with quest XP previews and detailed hover information.
 ## Author: Dezolve Labs
-## Version: 2.7.0
+## Version: 2.7.1
 ## SavedVariables: BetterForeverXPDB
 ## SavedVariablesPerCharacter: BetterForeverXPCharDB
 

@@ -1,3 +1,15 @@
+# Better Forever XP 2.7.1
+
+By Dezolve Labs
+
+## User-choice persistence and bar count fixes
+
+- Preserve a character's saved XP choice when watched Reputation data first arrives late during login or `/reload`; do not confuse a restored faction with a user reselecting it. Later genuine watched-faction changes still select Reputation.
+- Display earned and remaining 5% divisions on the visible XP and Reputation bars with compact text (for example, `9.5 bars • 10.5 left`); retain the explicit `9.5/20 bars (10.5 left)` in both hover tooltips. Both halves sum to 20 after rounding.
+- Make the default **Compact** numeric style truly abbreviated even on wide bars (for example, `26.7K / 111.8K`); **With commas** and **Exact** remain separate choices.
+- Include standalone Lua behavioral regressions for relog state, watched changes and bar-count math. Optimize CI so internal pull requests do not duplicate branch packaging runs.
+- No color, geometry or other bar design changes.
+
 # Better Forever XP 2.7.0
 
 By Dezolve Labs

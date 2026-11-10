@@ -4,6 +4,13 @@ By Dezolve Labs
 
 A standalone, classic-inspired low-profile XP and watched Reputation bar for WoW Forever beta.
 
+## Updated in 2.7.1
+
+- Manual XP selection is now remembered even when watched Reputation data is restored after login or reload.
+- XP and watched Reputation bars both show **earned bars and bars left** (e.g. `9.5 bars • 10.5 left`); tooltips give the full `9.5/20 bars (10.5 left)` count.
+- Default **Compact** uses abbreviations only, e.g. `26.7K / 111.8K`; **With commas** and **Exact** remain available.
+- No color changes.
+
 ## New in 2.7.0
 
 - Left-click the bar to switch XP ↔ watched Reputation; right-click to open settings.
@@ -15,8 +22,8 @@ A standalone, classic-inspired low-profile XP and watched Reputation bar for WoW
 
 
 The bar is 1,100 pixels wide and 16 pixels high by default. It shows level,
-percent, remaining XP, and current/maximum XP. Values always use commas and
-also show shorthand at 1,000 or above, such as `4,500 (4.5K)`.
+percent, remaining XP, and current/maximum XP. Values use compact abbreviations by default, such as `4.5K`;
+**With commas** and **Exact** are optional formats.
 
 Earned XP uses a deeper, more saturated Blizzard-style cobalt-blue tube
 gradient while rested, switching to light/deep classic purple when the rested

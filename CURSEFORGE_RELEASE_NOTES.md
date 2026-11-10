@@ -1,25 +1,21 @@
-# Better Forever XP 2.7.0
+# Better Forever XP 2.7.1
 
-**XP and Reputation in one classic-inspired progress bar.** Left-click to switch between experience and your watched faction, or select **Show as Experience Bar** for a faction in the game's Reputation panel to automatically display its progress.
+A focused quality-of-life update to XP and watched Reputation tracking.
 
-## What's new
+## Fixes and refinements
 
-- **Watched Reputation mode:** The same 20-segment metallic tube displays your tracked faction's standing and progress using Blizzard's own standing colors. Hover for faction, standing, current/required reputation, and remaining progress.
-- **Natural switching:** Left-click switches XP ↔ Reputation. Selecting a newly watched faction in WoW's Reputation panel switches to Reputation automatically. Regular reputation gains do not override a manual switch back to XP.
-- **Remembered per character:** Your selected mode persists across reloads and logins. When experience is unavailable at max level, a watched faction can take its place.
-- **A polished Settings panel:** Scrollable, neatly grouped **Display & Interaction**, **Text & Numbers**, and **Bar Dimensions** sections; clear selected controls; translucent WoW-native styling; and a subtle Dezolve Labs credit.
-- **All the XP features you love:** Completed quest XP preview in gold, rested XP, blue/purple earned XP, session pace, tooltips, precise markers and resizing remain available in XP mode.
+- **Remember manual XP selection after relog:** If you left-click from watched Reputation back to XP, a late watched-faction update while logging in or reloading no longer steals the bar back. Selecting a different faction (or unwatching and rewatching one) during play still switches to Reputation automatically.
+- **Bars earned and bars left:** Both XP **and** Reputation show a concise on-bar readout such as **9.5 bars • 10.5 left**. The detailed hover tooltip includes the total, e.g. **9.5/20 bars (10.5 left)**. Counts round to half-bar increments, consistently totaling 20.
+- **Compact really means compact:** The default Compact mode shows **26.7K / 111.8K**, without also repeating the full **26,713** value. The **With commas** and **Exact** choices remain available in settings.
+- **No visual-color changes:** Existing XP, rested, quest-preview and Blizzard reputation palettes are unchanged.
 
 ## How to use
 
-1. Open your Reputation panel and select a faction's **Show as Experience Bar** option.
-2. Better Forever XP switches to that faction's progress automatically.
-3. Left-click the bar to switch back to XP; right-click to open settings.
-4. To disable switching, uncheck **Enable XP / Reputation** under `/bfxp`.
+Left-click the bar to switch XP ↔ watched Reputation, right-click for settings or use `/bfxp`. Select a faction's **Show as Experience Bar** option in WoW's Reputation panel to track it automatically.
 
 ## Requirements
 
-- World of Warcraft — Forever 1.60.1 (interface 16001)
-- No external dependencies.
+- World of Warcraft: Forever 1.60.1 (interface 16001)
+- No external dependencies
 
-*By Dezolve Labs · © 2026 Dezolve Labs.*
+*Better Forever XP by Dezolve Labs · © 2026 Dezolve Labs.*
