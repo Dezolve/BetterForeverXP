@@ -78,14 +78,6 @@ local function FormatNumber(value)
     return Short(value)
 end
 
-local function ExactAndShort(value)
-    local exact = Commas(value)
-    if (tonumber(value) or 0) >= 1000 then
-        return exact .. " (" .. Short(value) .. ")"
-    end
-    return exact
-end
-
 local function FormatTime(seconds)
     if not seconds or seconds <= 0 or seconds == math.huge then return "—" end
     seconds = math.floor(seconds + 0.5)
@@ -1433,17 +1425,19 @@ UpdateBar = function()
             pct,
         })
     else
-        local display = db.numberFormat == "short" and ExactAndShort or FormatNumber
+        -- Honor the selected format on wide bars too. Compact is short-only
+        -- (26.7K / 111.8K), not the old 26,713 (26.7K) hybrid display.
+        local display = FormatNumber
         SetFittingLabel(centerText, {
             display(xp) .. " / " .. display(xpMax) .. "  •  " .. pct,
-            Commas(xp) .. " / " .. Commas(xpMax) .. "  •  " .. pct,
+            display(xp) .. " / " .. display(xpMax),
             Short(xp) .. " / " .. Short(xpMax) .. "  •  " .. pct,
             Short(xp) .. "/" .. Short(xpMax),
             pct,
         })
         SetFittingLabel(rightText, {
             display(remaining) .. " XP left  •  " .. FormatBars(barsLeft) .. " bars left",
-            Commas(remaining) .. " left  •  " .. FormatBars(barsLeft) .. " bars",
+            display(remaining) .. " left  •  " .. FormatBars(barsLeft) .. " bars",
             Short(remaining) .. " left  •  " .. FormatBars(barsLeft) .. " bars",
             Short(remaining) .. " XP left",
             Short(remaining) .. " left",
