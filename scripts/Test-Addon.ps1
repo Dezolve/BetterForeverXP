@@ -147,8 +147,9 @@ if ($failures.Count -eq 0) {
     Assert-Condition ($lua -match 'numberFormat = "short"') 'New installations should default to Compact.'
     Assert-Condition ($lua -match 'local display = FormatNumber') 'Wide bar must honor the selected number format.'
     Assert-Condition ($lua -notmatch 'ExactAndShort') 'Compact must never append an exact value to its shortened value.'
-    Assert-Condition ($lua -notmatch 'Commas\(xp\) [.][.] " / " [.][.] Commas\(xpMax\)') 'Compact must not silently fall back to comma-formatted XP.'
-    Assert-Condition ($lua -notmatch 'Commas\(remaining\) [.][.] " left') 'Compact must not silently fall back to comma-formatted remaining XP.'
+    $wideLabels = [regex]::Match($lua, '(?s)local display = FormatNumber.*?UpdateTextScrims\(\)')
+    Assert-Condition ($wideLabels.Success) 'Wide bar number-format candidates must be present.'
+    Assert-Condition ($wideLabels.Value -notmatch 'Commas\(') 'Wide bar fallbacks must not force comma values when Compact is selected.'
     Assert-Condition ($lua -match 'db[.]numberFormat == "commas" then return Commas\(value\)') 'With commas must remain available as an explicit format.'
     Assert-Condition ($lua -match 'db[.]numberFormat == "exact" then') 'Exact must remain available as an explicit format.'
 
