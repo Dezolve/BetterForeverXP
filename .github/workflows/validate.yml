@@ -8,8 +8,18 @@ on:
 permissions:
   contents: read
 
+# Superseded branch commits do not need their own full build. Keep release
+# tag publishing independent: that workflow is deliberately never cancelled.
+concurrency:
+  group: validate-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
+    # An in-repository PR already has a push build for this exact commit.
+    # Keep push validation and the ZIP artifact for Windows auto-deployment;
+    # validate external fork PRs here because their pushes aren't in this repo.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
