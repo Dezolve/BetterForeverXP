@@ -22,8 +22,10 @@ jobs:
             sudo apt-get update -qq
             sudo apt-get install -y -qq lua5.4
           fi
+          luac -p BetterForeverXP/ProgressLogic.lua
           luac -p BetterForeverXP/BetterForeverXP.lua
           luac -p BetterForeverXP/Options.lua
+          lua5.4 scripts/Test-ProgressLogic.lua
 
       - name: Parse Windows auto-deploy script
         shell: pwsh
