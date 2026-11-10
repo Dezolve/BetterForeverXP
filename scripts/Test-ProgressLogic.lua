@@ -18,6 +18,15 @@ Equal(addon.BarsProgressText(1), "20/20 bars (0 left)", "complete")
 Equal(addon.BarsProgressText(-1), "0/20 bars (20 left)", "negative clamped")
 Equal(addon.BarsProgressText(2), "20/20 bars (0 left)", "overfull clamped")
 
+-- The visible bar omits the already obvious /20 while still showing both
+-- earned and remaining divisions. Tooltip text above stays explicit.
+Equal(addon.CompactBarsProgressText(0), "0 bars • 20 left", "compact zero")
+Equal(addon.CompactBarsProgressText(0.25), "5 bars • 15 left", "compact quarter")
+Equal(addon.CompactBarsProgressText(0.467), "9.5 bars • 10.5 left", "compact screenshot fraction")
+Equal(addon.CompactBarsProgressText(0.75), "15 bars • 5 left", "compact three-quarters")
+Equal(addon.CompactBarsProgressText(0.775), "15.5 bars • 4.5 left", "compact partial")
+Equal(addon.CompactBarsProgressText(1), "20 bars • 0 left", "compact complete")
+
 -- Character manually clicked back from Rep to XP, then reloaded. During
 -- initialization the watched faction is missing and arrives via UPDATE_FACTION.
 -- That first non-nil watcher must be baseline only; never force Rep.

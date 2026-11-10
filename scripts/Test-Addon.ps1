@@ -72,6 +72,11 @@ if ($failures.Count -eq 0) {
     Assert-Condition ([regex]::Matches($lua, 'watchedSelection:Prime\(WatchedFactionKey\(\)\)').Count -eq 2) 'Addon loading and world entry must baseline watched identity safely.'
     Assert-Condition ($lua -match 'GameTooltip:AddDoubleLine\("Bars", addon[.]BarsProgressText\(rep[.]fraction\)') 'Reputation tooltip should show earned bars and left bars.'
     Assert-Condition ($lua -match 'GameTooltip:AddDoubleLine\("Bars", addon[.]BarsProgressText\(xpMax > 0 and xp / xpMax or 0\)') 'XP tooltip should show earned bars and left bars.'
+    Assert-Condition ($lua -match 'local compactBars = addon[.]CompactBarsProgressText\(rep[.]fraction\)') 'Visible reputation bar must show earned and remaining divisions.'
+    Assert-Condition ($lua -match 'local compactBars = addon[.]CompactBarsProgressText\(xp / xpMax\)') 'Visible XP bar must show earned and remaining divisions.'
+    Assert-Condition ($lua -match 'SetFittingLabel\(rightText, rep[.]isMax and \{compactBars, "MAX"\}') 'Max-standing reputation must show bar progress on wide bars.'
+    Assert-Condition ($lua -match 'display\(remaining\) [.][.] " XP left  •  " [.][.] compactBars') 'Wide XP bar must display earned and remaining segments without /20.'
+    Assert-Condition ($lua -match 'SetFittingLabel\(centerText, \{compactBars, rep[.]standing') 'Narrow Reputation bars must prioritize compact earned/remaining divisions.'
     Assert-Condition (Test-Path -LiteralPath (Join-Path $repositoryRoot 'scripts/Test-ProgressLogic.lua') -PathType Leaf) 'Lua behavior regression tests must be present.'
     Assert-Condition ($options -match 'Choosing Show as Experience Bar') 'Settings must explain automatic switching when the tracked faction changes.'
 

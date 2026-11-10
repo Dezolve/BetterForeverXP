@@ -3,7 +3,7 @@ local _, addon = ...
 -- Progress is divided into the same twenty 5%-wide divisions shown by the
 -- tube. Round to the nearest half division for a readable chat/tooltip count;
 -- derive the remainder from that same rounded value so the two always sum 20.
-function addon.BarsProgressText(fraction)
+local function BarsParts(fraction)
     local progress = math.max(0, math.min(1, tonumber(fraction) or 0))
     local filled = math.floor(progress * 40 + 0.5) / 2
     local remaining = 20 - filled
@@ -13,7 +13,20 @@ function addon.BarsProgressText(fraction)
             or string.format("%.1f", value)
     end
 
-    return Number(filled) .. "/20 bars (" .. Number(remaining) .. " left)"
+    return Number(filled), Number(remaining)
+end
+
+-- The hover tooltip keeps the explicit twenty-division reference.
+function addon.BarsProgressText(fraction)
+    local filled, remaining = BarsParts(fraction)
+    return filled .. "/20 bars (" .. remaining .. " left)"
+end
+
+-- The visible bar is already divided into 20 segments, so it doesn't
+-- need to repeat the denominator. Keep earned and remaining in view.
+function addon.CompactBarsProgressText(fraction)
+    local filled, remaining = BarsParts(fraction)
+    return filled .. " bars • " .. remaining .. " left"
 end
 
 -- In Forever, ADDON_LOADED/PLAYER_ENTERING_WORLD can precede a populated

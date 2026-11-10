@@ -1301,20 +1301,23 @@ local function RenderReputation(rep)
     spark:SetShown(rep.fraction > 0 and rep.fraction < 1)
     if leftText:IsShown() then SetFittingLabel(leftText, {rep.name, "Rep"}) end
     local pct = FormatProgressPercent(rep.fraction * 100)
+    local compactBars = addon.CompactBarsProgressText(rep.fraction)
     if db.width < 530 then
-        SetFittingLabel(centerText, {rep.standing .. "  •  " .. pct, pct})
+        SetFittingLabel(centerText, {compactBars, rep.standing .. "  •  " .. pct, pct})
     elseif db.width < 830 then
         SetFittingLabel(centerText, {
-            rep.standing .. "  •  " .. (rep.isMax and "MAX" or pct),
-            rep.standing, pct,
+            rep.standing .. "  •  " .. pct .. "  •  " .. compactBars,
+            rep.standing .. "  •  " .. compactBars,
+            compactBars, rep.standing .. "  •  " .. pct, pct,
         })
     else
         SetFittingLabel(centerText, {
             rep.standing .. "  •  " .. (rep.isMax and "MAX" or (Commas(rep.current) .. " / " .. Commas(rep.total) .. "  •  " .. pct)),
             rep.standing .. "  •  " .. pct, pct,
         })
-        SetFittingLabel(rightText, rep.isMax and {"Maximum reputation", "MAX"} or {
-            Commas(rep.remaining) .. " rep to next standing",
+        SetFittingLabel(rightText, rep.isMax and {compactBars, "MAX"} or {
+            Short(rep.remaining) .. " rep left  •  " .. compactBars,
+            compactBars,
             Short(rep.remaining) .. " rep remaining",
             Short(rep.remaining) .. " left",
         })
@@ -1412,14 +1415,19 @@ UpdateBar = function()
         SetFittingLabel(leftText, {"Level " .. level, "Lv " .. level, tostring(level)})
     end
     local pct = FormatProgressPercent(percent)
+    local compactBars = addon.CompactBarsProgressText(xp / xpMax)
     if db.width < 530 then
         SetFittingLabel(centerText, {
+            compactBars,
             pct .. "  •  " .. Short(remaining) .. " left",
             pct .. "  •  " .. Short(remaining),
             pct,
         })
     elseif db.width < 830 then
         SetFittingLabel(centerText, {
+            Short(xp) .. " / " .. Short(xpMax) .. "  •  " .. compactBars,
+            pct .. "  •  " .. compactBars,
+            compactBars,
             Short(xp) .. " / " .. Short(xpMax) .. "  •  " .. pct,
             Short(xp) .. "/" .. Short(xpMax) .. " " .. pct,
             pct,
@@ -1436,12 +1444,12 @@ UpdateBar = function()
             pct,
         })
         SetFittingLabel(rightText, {
-            display(remaining) .. " XP left  •  " .. FormatBars(barsLeft) .. " bars left",
-            display(remaining) .. " left  •  " .. FormatBars(barsLeft) .. " bars",
-            Short(remaining) .. " left  •  " .. FormatBars(barsLeft) .. " bars",
+            display(remaining) .. " XP left  •  " .. compactBars,
+            Short(remaining) .. " left  •  " .. compactBars,
+            compactBars,
             Short(remaining) .. " XP left",
             Short(remaining) .. " left",
-            FormatBars(barsLeft) .. " bars",
+            FormatBars(barsLeft) .. " bars left",
         })
     end
     UpdateTextScrims()
