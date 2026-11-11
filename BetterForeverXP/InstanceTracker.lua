@@ -64,17 +64,18 @@ function addon.NewInstanceTracker(saved)
             Finish(run)
             run = nil
         end
+        local wasInside = tracker.inside
         if not run then
             NewRun(info, sample)
             run = saved.active
-        elseif run.leftAt then
+        elseif run.leftAt or not wasInside then
             -- The baseline must be replaced after an absence: XP gained outside
             -- a dungeon is never credited to the run when returning.
             run.sample = Snapshot(sample.level, sample.xp, sample.xpMax)
         end
         run.leftAt = nil
         tracker.inside = true
-        tracker.lastTick = nil
+        if not wasInside then tracker.lastTick = nil end
     end
 
     function tracker:XP(level, xp, xpMax)
@@ -82,8 +83,14 @@ function addon.NewInstanceTracker(saved)
         if not tracker.inside or not run then return end
         local current = Snapshot(level, xp, xpMax)
         local previous = run.sample
-        run.sample = current
-        if not previous or previous.xpMax <= 0 or current.xpMax <= 0 then return end
+        if not previous or previous.xpMax <= 0 or current.xpMax <= 0 then
+            run.sample = current
+            return
+        end
+        -- Some clients emit an XP reset BEFORE PLAYER_LEVEL_UP. Do not replace
+        -- the pre-level baseline with a smaller same-level value: the next
+        -- snapshot with the new level must still know the XP left to level.
+        if current.level == previous.level and current.xp < previous.xp then return end
         local earned, gainedBars = 0, 0
         if current.level == previous.level and current.xp >= previous.xp then
             earned = current.xp - previous.xp
@@ -96,6 +103,7 @@ function addon.NewInstanceTracker(saved)
             gainedBars = math.max(0, previous.xpMax - previous.xp) / previous.xpMax * 20
                 + current.xp / current.xpMax * 20
         end
+        run.sample = current
         run.xp = CleanNumber(run.xp) + earned
         run.bars = CleanNumber(run.bars) + gainedBars
     end
