@@ -7,5 +7,6 @@
 ## SavedVariablesPerCharacter: BetterForeverXPCharDB
 
 ProgressLogic.lua
+InstanceTracker.lua
 BetterForeverXP.lua
 Options.lua

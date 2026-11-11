@@ -91,6 +91,19 @@ if ($failures.Count -eq 0) {
     Assert-Condition ($lua -match 'if rep and \(not XPAvailable\(\)') 'Watched Reputation should remain visible at level cap.'
     Assert-Condition ($options -match 'AddCheckbox\("enableReputation"') 'Settings must offer XP / Reputation switching.'
 
+    # 2.8.0: dungeon tracker is optional, separate, persisted per character.
+    Assert-Condition ($toc -match '(?m)^InstanceTracker[.]lua$') 'Dungeon tracker module must load before the UI.'
+    Assert-Condition ($options -match 'AddCheckbox\("trackInstanceXP", "Track dungeon XP"') 'Options must expose instance tracking as an opt-out.'
+    Assert-Condition ($lua -match 'trackInstanceXP = true') 'Dungeon XP tracker must default on.'
+    Assert-Condition ($lua -match 'charDB[.]instanceTracker = charDB[.]instanceTracker or \{\}') 'Dungeon runs must persist per character.'
+    Assert-Condition ($lua -match 'GetInstanceInfo\(\)') 'Dungeon identity must use the game API.'
+    Assert-Condition ($lua -match 'kind ~= "party" and kind ~= "raid"') 'Only PvE instances should be tracked.'
+    Assert-Condition ($lua -match 'eventFrame:RegisterEvent\("ZONE_CHANGED_NEW_AREA"\)') 'Zone changes must update the tracker.'
+    Assert-Condition ($lua -match 'instanceTracker:XP\(UnitLevel\("player"\), UnitXP\("player"\), UnitXPMax\("player"\)\)') 'Actual XP snapshots, not ready-quest estimates, must drive run XP.'
+    Assert-Condition ($lua -match 'ShowInstanceDetails\(\)') 'Existing tooltip must show instance statistics.'
+    Assert-Condition (Test-Path -LiteralPath (Join-Path $repositoryRoot 'scripts/Test-InstanceTracker.lua') -PathType Leaf) 'Executable Lua instance regression cases must exist.'
+
+
     Assert-Condition ($lua -match 'if rested > 0 then\s+ApplyTubeStatusColor\(fill, earnedBlue[.]bottom, earnedBlue[.]top, earnedBlue[.]flat\)') 'Earned XP should have a blue tube gradient while rested.'
     Assert-Condition ($lua -match 'else\s+ApplyTubeStatusColor\(fill,\s+\{0[.]29, 0[.]10, 0[.]40\}, \{0[.]64, 0[.]36, 0[.]77\}') 'Earned XP should have a purple tube gradient when unrested.'
     Assert-Condition ($lua -match 'fillSheen:SetColorTexture\(0[.]88, 0[.]74, 0[.]96, 0[.]22\)') 'Unrested top highlight must be tinted purple rather than blue.'
@@ -408,12 +421,12 @@ if ($failures.Count -eq 0) {
     # prevent the reputation checkbox from overlapping width controls.
     Assert-Condition ($options -match 'CreateFrame\("ScrollFrame", "BetterForeverXPOptionsScrollFrame"') 'Settings must use a real scroll viewport.'
     Assert-Condition ($options -match 'scroll:SetScrollChild\(content\)') 'All options must remain clipped inside scroll content.'
-    Assert-Condition ($options -match 'content:SetSize\(572, 918\)') 'Scrollable canvas must include space for the attribution footer.'
+    Assert-Condition ($options -match 'content:SetSize\(572, 960\)') 'Scrollable canvas must include space for the attribution footer.'
     Assert-Condition ($options -match 'local behavior = AddSection\("DISPLAY & INTERACTION",') 'General, quest, and reputation controls belong in one section.'
     Assert-Condition ($options -match 'local textCard = AddSection\("TEXT & NUMBERS",') 'Text and number choices must be grouped.'
     Assert-Condition ($options -match 'local dimensions = AddSection\("BAR DIMENSIONS",') 'Sliders need a separate section.'
     Assert-Condition ($options -match 'AddCheckbox\("enableReputation", "Enable XP / Reputation", -149,') 'Reputation checkbox must have a dedicated row rather than overlapping width.'
-    Assert-Condition ($options -match 'local dimensions = AddSection\("BAR DIMENSIONS",\s+"Adjust the bar''s size, height, and visual scale[.]", 498, 275\)') 'Dimensions start below text controls and have space for all three sliders.'
+    Assert-Condition ($options -match 'local dimensions = AddSection\("BAR DIMENSIONS",\s+"Adjust the bar''s size, height, and visual scale[.]", 537, 275\)') 'Dimensions start below text controls and have space for all three sliders.'
     Assert-Condition ($options -match 'local selected = db[.]textMode == mode\s+RefreshChoice\(data, selected\)') 'The chosen text mode must be visibly selected.'
     Assert-Condition ($options -match 'local selected = db[.]numberFormat == key\s+RefreshChoice\(data, selected\)') 'Number format selection must be visibly selected.'
     Assert-Condition ($options -notmatch 'data[.]control:SetEnabled\(not selected\)') 'Selected choices must not look disabled.'

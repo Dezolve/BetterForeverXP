@@ -165,9 +165,11 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq lua5.4
           luac -p BetterForeverXP/ProgressLogic.lua
+          luac -p BetterForeverXP/InstanceTracker.lua
           luac -p BetterForeverXP/BetterForeverXP.lua
           luac -p BetterForeverXP/Options.lua
           lua5.4 scripts/Test-ProgressLogic.lua
+          lua5.4 scripts/Test-InstanceTracker.lua
 
       - name: Test and package addon
         shell: pwsh
