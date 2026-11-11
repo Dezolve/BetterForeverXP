@@ -83,7 +83,7 @@ function addon.NewInstanceTracker(saved)
         if not tracker.inside or not run then return end
         local current = Snapshot(level, xp, xpMax)
         local previous = run.sample
-        if not previous or previous.xpMax <= 0 or current.xpMax <= 0 then
+        if not previous or previous.xpMax <= 0 then
             run.sample = current
             return
         end
@@ -92,7 +92,7 @@ function addon.NewInstanceTracker(saved)
         -- snapshot with the new level must still know the XP left to level.
         if current.level == previous.level and current.xp < previous.xp then return end
         local earned, gainedBars = 0, 0
-        if current.level == previous.level and current.xp >= previous.xp then
+        if current.level == previous.level and current.xp >= previous.xp and current.xpMax > 0 then
             earned = current.xp - previous.xp
             gainedBars = earned / previous.xpMax * 20
         elseif current.level == previous.level + 1 then
@@ -101,7 +101,12 @@ function addon.NewInstanceTracker(saved)
             -- accidental huge negative XP when the level rolls over.
             earned = math.max(0, previous.xpMax - previous.xp) + current.xp
             gainedBars = math.max(0, previous.xpMax - previous.xp) / previous.xpMax * 20
-                + current.xp / current.xpMax * 20
+            -- At character level cap the client may return UnitXPMax = 0.
+            -- The final level's remainder was earned; there is no new XP
+            -- interval or denominator for the now-maxed character.
+            if current.xpMax > 0 then
+                gainedBars = gainedBars + current.xp / current.xpMax * 20
+            end
         end
         run.sample = current
         run.xp = CleanNumber(run.xp) + earned

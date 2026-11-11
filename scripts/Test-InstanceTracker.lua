@@ -73,4 +73,13 @@ eq(different.xp,0,"different dungeon starts immediately")
 reloaded:XP(32,50,1400)
 reloaded:XP(32,250,1400)
 eq(different.xp,50,"same-level XP reset ignored until valid recovery")
+-- Reaching the actual level cap inside a dungeon often reports xpMax=0.
+-- Credit the final part of the old level without dividing by the missing cap.
+local capped = addon.NewInstanceTracker({})
+capped:Zone(beta, sample(59, 800, 1000), 2000)
+capped:XP(60, 0, 0)
+local cappedRun = select(1, capped:View())
+eq(cappedRun.xp, 200, "final level remainder counted at cap")
+eq(cappedRun.bars, 4, "final level bars counted without next XP cap")
+
 print("InstanceTracker regression PASS: " .. n .. " assertions")
