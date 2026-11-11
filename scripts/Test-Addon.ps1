@@ -100,6 +100,9 @@ if ($failures.Count -eq 0) {
     Assert-Condition ($lua -match 'kind ~= "party" and kind ~= "raid"') 'Only PvE instances should be tracked.'
     Assert-Condition ($lua -match 'eventFrame:RegisterEvent\("ZONE_CHANGED_NEW_AREA"\)') 'Zone changes must update the tracker.'
     Assert-Condition ($lua -match 'instanceTracker:XP\(UnitLevel\("player"\), UnitXP\("player"\), UnitXPMax\("player"\)\)') 'Actual XP snapshots, not ready-quest estimates, must drive run XP.'
+    Assert-Condition ($lua -match '(?s)elseif event == "PLAYER_XP_UPDATE" then\s+if instanceTracker and db[.]trackInstanceXP then\s+--.*?SyncInstance[(][)]\s+instanceTracker:XP[(]') 'XP events must recheck dungeon boundaries BEFORE crediting the event.'
+    Assert-Condition ($lua -match '(?s)C_Timer[.]After[(]0[.]2, function[(][)]\s+if instanceTracker and db[.]trackInstanceXP then\s+SyncInstance[(][)]\s+instanceTracker:XP[(]') 'Level-up XP must recheck dungeon boundaries before crediting gains.'
+
     Assert-Condition ($lua -match 'ShowInstanceDetails\(\)') 'Existing tooltip must show instance statistics.'
     Assert-Condition (Test-Path -LiteralPath (Join-Path $repositoryRoot 'scripts/Test-InstanceTracker.lua') -PathType Leaf) 'Executable Lua instance regression cases must exist.'
 

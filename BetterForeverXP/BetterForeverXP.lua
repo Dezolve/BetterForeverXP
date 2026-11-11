@@ -1693,6 +1693,9 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
         ApplyDefaultBarVisibility()
     elseif event == "PLAYER_XP_UPDATE" then
         if instanceTracker and db.trackInstanceXP then
+            -- Detect boundary transitions before attributing XP. The 1Hz
+            -- ticker alone can lag an immediate post-zone XP event.
+            SyncInstance()
             instanceTracker:XP(UnitLevel("player"), UnitXP("player"), UnitXPMax("player"))
         end
         RecordXP(); UpdateBar()
@@ -1711,6 +1714,7 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
         lastXP, lastXPMax = nil, nil
         C_Timer.After(0.2, function()
             if instanceTracker and db.trackInstanceXP then
+                SyncInstance()
                 instanceTracker:XP(UnitLevel("player"), UnitXP("player"), UnitXPMax("player"))
             end
             lastXP, lastXPMax = UnitXP("player"), UnitXPMax("player")

@@ -82,4 +82,17 @@ local cappedRun = select(1, capped:View())
 eq(cappedRun.xp, 200, "final level remainder counted at cap")
 eq(cappedRun.bars, 4, "final level bars counted without next XP cap")
 
+-- The event handler now probes the zone BEFORE recording an XP update.
+-- These transitions assert the two branches that handler must distinguish.
+local boundary = addon.NewInstanceTracker({})
+boundary:Zone(alpha, sample(20, 100, 1000), 3000)
+boundary:XP(20, 200, 1000)
+eq(select(1, boundary:View()).xp, 100, "inside XP credits normally")
+boundary:Zone(nil, sample(20, 250, 1000), 3001)
+boundary:XP(20, 250, 1000)
+eq(select(1, boundary:View()).xp, 100, "XP event immediately after exit excluded")
+boundary:Zone(alpha, sample(20, 300, 1000), 3002)
+boundary:XP(20, 350, 1000)
+eq(select(1, boundary:View()).xp, 150, "XP event after reentry credits only post-baseline change")
+
 print("InstanceTracker regression PASS: " .. n .. " assertions")
