@@ -1,3 +1,16 @@
+# Better Forever XP 2.8.0
+
+By Dezolve Labs
+
+## Instance XP tracking
+
+- Add a per-character tracker for current dungeon/raid XP, XP per hour, time spent inside and total equivalent bars earned across level-ups.
+- Show Instance Session or Last Instance as a contextual section in the **existing** XP and Reputation hover tooltip; no new window or bar.
+- Retain the most recent completed run until a new instance begins. Brief exits of at most 120 seconds into the same instance resume the prior run, without attributing XP or time spent outside.
+- Restore active-run totals after reload/relog and rebaseline XP to avoid crediting progress earned while offline or outside.
+- Introduce an enabled-by-default **Track dungeon XP** setting in Display & Interaction.
+- Add a standalone pure-Lua regression suite for instance transitions, level-up XP, persisted state, runtime and run boundaries; retain existing bar/rep colors and controls.
+
 # Better Forever XP 2.7.1
 
 By Dezolve Labs

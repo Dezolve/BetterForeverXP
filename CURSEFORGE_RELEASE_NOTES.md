@@ -1,21 +1,24 @@
-# Better Forever XP 2.7.1
+# Better Forever XP 2.8.0
 
-A focused quality-of-life update to XP and watched Reputation tracking.
+**New: Automatic Instance XP Tracking** — see how much experience you've earned while running a dungeon without adding another bar or window.
 
-## Fixes and refinements
+## What's new
 
-- **Remember manual XP selection after relog:** If you left-click from watched Reputation back to XP, a late watched-faction update while logging in or reloading no longer steals the bar back. Selecting a different faction (or unwatching and rewatching one) during play still switches to Reputation automatically.
-- **Bars earned and bars left:** Both XP **and** Reputation show a concise on-bar readout such as **9.5 bars • 10.5 left**. The detailed hover tooltip includes the total, e.g. **9.5/20 bars (10.5 left)**. Counts round to half-bar increments, consistently totaling 20.
-- **Compact really means compact:** The default Compact mode shows **26.7K / 111.8K**, without also repeating the full **26,713** value. The **With commas** and **Exact** choices remain available in settings.
-- **No visual-color changes:** Existing XP, rested, quest-preview and Blizzard reputation palettes are unchanged.
+- **Current Instance** in the existing XP/Reputation hover tooltip shows the dungeon or raid name, XP earned in that run, actual time inside, run XP/hour, and equivalent 20-segment bars gained.
+- **Last Instance** retains the finished run's summary after leaving, until the next instance begins.
+- **Safe persistence:** run totals survive `/reload` and relogging. A brief exit and return to the *same* instance within two minutes continues the existing run; time and XP earned outside don't count.
+- **Correct level-ups:** the tracker combines XP remaining before a level-up with XP earned on the next level. It also avoids counting a temporary XP reset as a new gain.
+- **Optional and lightweight:** **Track dungeon XP** is enabled by default under `/bfxp` Settings → Display & Interaction. The feature uses normal game events and the existing tooltip, with no combat-log parser or extra dependencies.
 
-## How to use
+## Unchanged
 
-Left-click the bar to switch XP ↔ watched Reputation, right-click for settings or use `/bfxp`. Select a faction's **Show as Experience Bar** option in WoW's Reputation panel to track it automatically.
+- Existing XP ↔ Reputation switching, per-character preference, quest-gold preview and rested colors.
+- The Classic-inspired 20-segment bar layout and Compact number formatting.
+- No separate window, run-history database, or new colors.
 
 ## Requirements
 
 - World of Warcraft: Forever 1.60.1 (interface 16001)
-- No external dependencies
+- No external libraries.
 
 *Better Forever XP by Dezolve Labs · © 2026 Dezolve Labs.*
