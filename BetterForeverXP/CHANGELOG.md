@@ -4,7 +4,8 @@ By Dezolve Labs
 
 ## Instance XP tracking
 
-- Add a per-character tracker for current dungeon/raid XP, XP per hour, time spent inside and total equivalent bars earned across level-ups.
+- Add a per-character tracker for current dungeon/raid XP **excluding quest turn-in rewards**, XP per hour, time spent inside and total equivalent bars earned across level-ups.
+- Use the actual `QUEST_TURNED_IN` experience reward and reconcile it with XP snapshots regardless of event order. Preserve quest-exclusion totals through reloads, and show the excluded amount in the existing tooltip.
 - Show Instance Session or Last Instance as a contextual section in the **existing** XP and Reputation hover tooltip; no new window or bar.
 - Retain the most recent completed run until a new instance begins. Brief exits of at most 120 seconds into the same instance resume the prior run, without attributing XP or time spent outside.
 - Restore active-run totals after reload/relog and rebaseline XP to avoid crediting progress earned while offline or outside.

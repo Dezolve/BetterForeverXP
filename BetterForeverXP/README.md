@@ -6,7 +6,7 @@ A standalone, classic-inspired low-profile XP and watched Reputation bar for WoW
 
 ## New in 2.8.0 — Instance XP Tracking
 
-- Tracks actual XP earned inside a dungeon or raid, the time spent inside, XP/hour, and equivalent progress bars.
+- Tracks actual non-quest XP earned inside a dungeon or raid, the time spent inside, XP/hour, and equivalent progress bars. Quest turn-in rewards are excluded from the instance total and shown separately in the tooltip; ordinary XP progression is unchanged.
 - Adds a contextual **Instance Session** section to the existing XP and Reputation hover tooltip. Once you leave, a **Last Instance** summary remains available until the next dungeon.
 - Preserves run totals through reload/relog; brief exits and returns to the same instance are treated as one run, excluding outside XP and time.
 - Enable or disable tracking through **Track dungeon XP** under `/bfxp`. Enabled by default.

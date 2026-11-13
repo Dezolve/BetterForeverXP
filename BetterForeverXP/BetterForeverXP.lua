@@ -1221,7 +1221,11 @@ local function ShowInstanceDetails()
     GameTooltip:AddLine(run.name or "Instance", 0.88, 0.92, 1)
     local xp = math.max(0, tonumber(run.xp) or 0)
     local elapsed = math.max(0, tonumber(run.elapsed) or 0)
-    GameTooltip:AddDoubleLine("XP earned", Commas(xp), 0.72, 0.77, 0.86, 1, 1, 1)
+    GameTooltip:AddDoubleLine("Dungeon XP", Commas(xp), 0.72, 0.77, 0.86, 1, 1, 1)
+    if (tonumber(run.questXP) or 0) > 0 then
+        GameTooltip:AddDoubleLine("Quest XP excluded", Commas(run.questXP),
+            0.72, 0.77, 0.86, 0.65, 0.70, 0.79)
+    end
     GameTooltip:AddDoubleLine("Time inside", elapsed > 0 and FormatTime(elapsed) or "0s",
         0.72, 0.77, 0.86, 1, 1, 1)
     local hourly = elapsed >= 10 and Commas(xp / elapsed * 3600) or "Waiting for data"
@@ -1685,6 +1689,7 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
         eventFrame:RegisterEvent("PLAYER_LEVEL_UP"); eventFrame:RegisterEvent("UPDATE_EXHAUSTION"); eventFrame:RegisterEvent("QUEST_LOG_UPDATE")
         eventFrame:RegisterEvent("UPDATE_FACTION")
         eventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+        eventFrame:RegisterEvent("QUEST_TURNED_IN")
         -- An available watched faction is a login baseline, not a new click.
         -- If unavailable yet, defer baselining until its first valid update.
         watchedSelection:Prime(WatchedFactionKey())
@@ -1704,6 +1709,12 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
         UpdateBar()
     elseif event == "ZONE_CHANGED_NEW_AREA" then
         SyncInstance()
+        UpdateBar()
+    elseif event == "QUEST_TURNED_IN" then
+        if instanceTracker and db.trackInstanceXP then
+            SyncInstance()
+            instanceTracker:QuestReward(arg2)
+        end
         UpdateBar()
     elseif event == "PLAYER_LEVEL_UP" then
         AccumulateLevelTime()

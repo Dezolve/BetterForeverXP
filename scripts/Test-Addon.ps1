@@ -104,6 +104,10 @@ if ($failures.Count -eq 0) {
     Assert-Condition ($lua -match '(?s)C_Timer[.]After[(]0[.]2, function[(][)]\s+if instanceTracker and db[.]trackInstanceXP then\s+SyncInstance[(][)]\s+instanceTracker:XP[(]') 'Level-up XP must recheck dungeon boundaries before crediting gains.'
 
     Assert-Condition ($lua -match 'ShowInstanceDetails\(\)') 'Existing tooltip must show instance statistics.'
+    Assert-Condition ($lua -match 'eventFrame:RegisterEvent\("QUEST_TURNED_IN"\)') 'Quest reward event must be registered.'
+    Assert-Condition ($lua -match 'instanceTracker:QuestReward\(arg2\)') 'Exclude actual quest reward rather than estimating from quests.'
+    Assert-Condition ($lua -match 'GameTooltip:AddDoubleLine\("Quest XP excluded"') 'Tooltip must explain the excluded quest XP.'
+
     Assert-Condition (Test-Path -LiteralPath (Join-Path $repositoryRoot 'scripts/Test-InstanceTracker.lua') -PathType Leaf) 'Executable Lua instance regression cases must exist.'
 
 

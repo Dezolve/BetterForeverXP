@@ -4,7 +4,8 @@
 
 ## What's new
 
-- **Current Instance** in the existing XP/Reputation hover tooltip shows the dungeon or raid name, XP earned in that run, actual time inside, run XP/hour, and equivalent 20-segment bars gained.
+- **Current Instance** in the existing XP/Reputation hover tooltip shows the dungeon or raid name, **non-quest XP** earned in that run, actual time inside, run XP/hour, and equivalent 20-segment bars gained.
+- **Quest rewards excluded:** Turning in a quest inside the dungeon does not inflate the instance XP total. The tooltip shows the actual quest XP excluded so players can verify the distinction. The normal XP bar still counts quest XP as usual.
 - **Last Instance** retains the finished run's summary after leaving, until the next instance begins.
 - **Safe persistence:** run totals survive `/reload` and relogging. A brief exit and return to the *same* instance within two minutes continues the existing run; time and XP earned outside don't count.
 - **Correct level-ups:** the tracker combines XP remaining before a level-up with XP earned on the next level. It also avoids counting a temporary XP reset as a new gain.

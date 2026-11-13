@@ -15,12 +15,31 @@ function addon.NewInstanceTracker(saved)
     saved = type(saved) == "table" and saved or {}
     if type(saved.active) ~= "table" then saved.active = nil end
     if type(saved.last) ~= "table" then saved.last = nil end
+    if saved.active then
+        -- Upgrade an active test-build run without losing its counters.
+        saved.active.grossXP = saved.active.grossXP or CleanNumber(saved.active.xp)
+        saved.active.grossBars = saved.active.grossBars or CleanNumber(saved.active.bars)
+        saved.active.questXP = saved.active.questXP or 0
+    end
 
     local tracker = { saved = saved, inside = false, lastTick = nil }
     local GRACE_SECONDS = 120
 
     local function SameInstance(run, info)
         return run and info and run.key == info.key
+    end
+
+    -- Quest turn-ins and PLAYER_XP_UPDATE can arrive in either order.
+    -- Keep raw earned XP and authoritative quest rewards in separate ledgers;
+    -- reconciliation never assumes which event was delivered first. Bars are
+    -- adjusted by the non-quest proportion of earned XP for cross-level runs.
+    local function Reconcile(run)
+        local grossXP = CleanNumber(run.grossXP or run.xp)
+        local questXP = CleanNumber(run.questXP)
+        local grossBars = CleanNumber(run.grossBars or run.bars)
+        run.grossXP, run.grossBars, run.questXP = grossXP, grossBars, questXP
+        run.xp = math.max(0, grossXP - questXP)
+        run.bars = grossXP > 0 and grossBars * (run.xp / grossXP) or 0
     end
 
     local function Finish(run)
@@ -36,7 +55,8 @@ function addon.NewInstanceTracker(saved)
     local function NewRun(info, sample)
         saved.active = {
             key = info.key, name = info.name,
-            xp = 0, bars = 0, elapsed = 0, leftAt = nil,
+            xp = 0, bars = 0, grossXP = 0, grossBars = 0,
+            questXP = 0, elapsed = 0, leftAt = nil,
             sample = Snapshot(sample.level, sample.xp, sample.xpMax),
         }
         -- New run replaces the old completed summary; keep only one run.
@@ -109,8 +129,19 @@ function addon.NewInstanceTracker(saved)
             end
         end
         run.sample = current
-        run.xp = CleanNumber(run.xp) + earned
-        run.bars = CleanNumber(run.bars) + gainedBars
+        run.grossXP = CleanNumber(run.grossXP or run.xp) + earned
+        run.grossBars = CleanNumber(run.grossBars or run.bars) + gainedBars
+        Reconcile(run)
+    end
+
+    function tracker:QuestReward(xpReward)
+        local run = saved.active
+        local reward = CleanNumber(xpReward)
+        if not tracker.inside or not run or reward <= 0 then return end
+        -- QUEST_TURNED_IN supplies the actual reward. It can fire before or
+        -- after XP_UPDATE and must not change the ordinary player XP display.
+        run.questXP = CleanNumber(run.questXP) + reward
+        Reconcile(run)
     end
 
     -- Called at 1Hz; GetTime() is monotonic in a client session. On reload,
