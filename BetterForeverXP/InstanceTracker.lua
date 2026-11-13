@@ -47,7 +47,7 @@ function addon.NewInstanceTracker(saved)
         saved.last = {
             key = run.key, name = run.name, xp = CleanNumber(run.xp),
             elapsed = CleanNumber(run.elapsed), bars = CleanNumber(run.bars),
-            completedAt = run.leftAt,
+            questXP = CleanNumber(run.questXP), completedAt = run.leftAt,
         }
         saved.active = nil
     end

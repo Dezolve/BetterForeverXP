@@ -135,6 +135,7 @@ questReload:QuestReward(99)
 eq(select(1,questReload:View()).xp, 100, "quest turnin outside instance ignored")
 questReload:Zone(nil, sample(29,250,1200),6130)
 eq(questReload.saved.last.xp, 100, "completed run reports net XP")
+eq(questReload.saved.last.questXP, 250, "last-instance summary preserves excluded quest XP")
 eq(questReload.saved.last.bars > 0, true, "completed run retains net bars")
 
 -- Existing test builds with no raw ledgers retain their progress on upgrade.
