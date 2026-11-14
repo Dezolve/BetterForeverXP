@@ -5,7 +5,7 @@ local defaults = {
     point = "BOTTOM", relativePoint = "BOTTOM", x = 0, y = 155,
     width = 1100, height = 16, scale = 1,
     numberFormat = "short", hideBlizzard = true, showMidpointMarker = true,
-    showQuestPreview = true, enableReputation = true,
+    showQuestPreview = true, enableReputation = true, trackInstanceXP = true,
     textMode = "hover", -- "tooltip", "hover", or "always"
     version = 8,
 }
@@ -25,6 +25,7 @@ local eventFrame = CreateFrame("Frame")
 local UpdateBar -- Forward declaration used by click handling.
 local displayedMode = "xp"
 local watchedSelection
+local instanceTracker
 local sessionStart, sessionXP = GetTime(), 0
 local lastXP, lastXPMax
 local tooltipVisible = false
@@ -136,6 +137,35 @@ local function RefreshWatchedFactionSelection()
     if changed and currentKey and db and db.enableReputation and charDB then
         charDB.progressMode = "reputation"
     end
+end
+
+-- Only PvE dungeon/raid instances; battlegrounds, arenas and the
+-- overworld do not contribute to the instance run tracker.
+local function CurrentInstanceInfo()
+    if not IsInInstance or not GetInstanceInfo then return nil end
+    local inside, kind = IsInInstance()
+    if not inside or (kind ~= "party" and kind ~= "raid") then return nil end
+    local name, actualKind, _, _, _, _, _, instanceID = GetInstanceInfo()
+    kind = actualKind or kind
+    if type(name) ~= "string" or name == "" then return nil end
+    return {
+        name = name,
+        key = tostring(kind) .. ":" .. tostring(instanceID or 0) .. ":" .. name,
+    }
+end
+
+local function CurrentXPSample()
+    return {
+        level = UnitLevel("player") or 0,
+        xp = UnitXP("player") or 0,
+        xpMax = UnitXPMax("player") or 0,
+    }
+end
+
+local function SyncInstance()
+    if not instanceTracker then return end
+    local info = db and db.trackInstanceXP and CurrentInstanceInfo() or nil
+    instanceTracker:Zone(info, CurrentXPSample(), time())
 end
 
 local function MakeTexture(parent, layer, r, g, b, a)
@@ -1182,6 +1212,28 @@ local function SessionRate()
     return sessionXP / elapsed * 3600
 end
 
+local function ShowInstanceDetails()
+    if not db.trackInstanceXP or not instanceTracker then return end
+    local run, inside = instanceTracker:View()
+    if not run then return end
+    GameTooltip:AddLine(" ")
+    GameTooltip:AddLine(inside and "INSTANCE SESSION" or "LAST INSTANCE", 0.45, 0.84, 1)
+    GameTooltip:AddLine(run.name or "Instance", 0.88, 0.92, 1)
+    local xp = math.max(0, tonumber(run.xp) or 0)
+    local elapsed = math.max(0, tonumber(run.elapsed) or 0)
+    GameTooltip:AddDoubleLine("Dungeon XP", Commas(xp), 0.72, 0.77, 0.86, 1, 1, 1)
+    if (tonumber(run.questXP) or 0) > 0 then
+        GameTooltip:AddDoubleLine("Quest XP excluded", Commas(run.questXP),
+            0.72, 0.77, 0.86, 0.65, 0.70, 0.79)
+    end
+    GameTooltip:AddDoubleLine("Time inside", elapsed > 0 and FormatTime(elapsed) or "0s",
+        0.72, 0.77, 0.86, 1, 1, 1)
+    local hourly = elapsed >= 10 and Commas(xp / elapsed * 3600) or "Waiting for data"
+    GameTooltip:AddDoubleLine("Instance XP/hour", hourly, 0.72, 0.77, 0.86, 0.55, 1, 0.64)
+    GameTooltip:AddDoubleLine("Bars gained", string.format("%.1f", math.max(0, tonumber(run.bars) or 0)),
+        0.72, 0.77, 0.86, 1, 1, 1)
+end
+
 local function ShowDetails()
     if not db or not bar or not bar:IsShown() then return end
     if displayedMode == "reputation" then
@@ -1199,6 +1251,7 @@ local function ShowDetails()
             GameTooltip:AddDoubleLine("To next standing", Commas(rep.remaining), 0.72, 0.77, 0.86, 1, 0.82, 0.42)
         end
         GameTooltip:AddDoubleLine("Bars", addon.BarsProgressText(rep.fraction), 0.72, 0.77, 0.86, 1, 1, 1)
+        ShowInstanceDetails()
         GameTooltip:AddLine(" ")
         GameTooltip:AddLine(XPAvailable()
             and "Left-click for XP • Right-click for options"
@@ -1244,6 +1297,7 @@ local function ShowDetails()
     GameTooltip:AddDoubleLine("Complete", xpMax > 0 and FormatProgressPercent(xp / xpMax * 100) or "—", 0.72, 0.77, 0.86, 1, 1, 1)
     GameTooltip:AddDoubleLine("Remaining", Commas(remaining), 0.72, 0.77, 0.86, 1, 0.82, 0.42)
     GameTooltip:AddDoubleLine("Bars", addon.BarsProgressText(xpMax > 0 and xp / xpMax or 0), 0.72, 0.77, 0.86, 1, 0.82, 0.42)
+    ShowInstanceDetails()
 
     AddSection("Bonuses & Ready Quests", 1, 0.76, 0.30)
     GameTooltip:AddDoubleLine("Rested XP", Commas(rested) .. string.format("  (%.1f%%)", restedPercent), 0.72, 0.77, 0.86, 0.42, 0.78, 1)
@@ -1492,12 +1546,13 @@ local function SetSetting(key, value)
         if type(value) ~= "number" or value < 0.5 or value > 3 then return false end
         db.scale = math.floor(value * 100 + 0.5) / 100
         ApplyLayout()
-    elseif key == "locked" or key == "enabled" or key == "hideBlizzard" or key == "showMidpointMarker" or key == "showQuestPreview" or key == "enableReputation" then
+    elseif key == "locked" or key == "enabled" or key == "hideBlizzard" or key == "showMidpointMarker" or key == "showQuestPreview" or key == "enableReputation" or key == "trackInstanceXP" then
         if type(value) ~= "boolean" then return false end
         db[key] = value
         if key == "locked" then UpdateResizeHandles()
         elseif key == "enabled" then UpdateBar()
         elseif key == "showMidpointMarker" then midpointMarker:SetShown(value)
+        elseif key == "trackInstanceXP" then SyncInstance(); UpdateBar()
         elseif key == "showQuestPreview" or key == "enableReputation" then UpdateBar()
         else ApplyDefaultBarVisibility() end
     elseif key == "textMode" then
@@ -1526,6 +1581,7 @@ addon.ResetAll = function()
     db.showMidpointMarker = defaults.showMidpointMarker
     db.showQuestPreview = defaults.showQuestPreview
     db.enableReputation = defaults.enableReputation
+    db.trackInstanceXP = defaults.trackInstanceXP
     if charDB then charDB.progressMode = "xp" end
     db.textMode = defaults.textMode
     UpdateTextVisibility()
@@ -1594,6 +1650,8 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
         end
         BetterForeverXPCharDB = BetterForeverXPCharDB or {}
         charDB = BetterForeverXPCharDB
+        charDB.instanceTracker = charDB.instanceTracker or {}
+        instanceTracker = addon.NewInstanceTracker(charDB.instanceTracker)
         local hadSavedProgressMode = charDB.progressMode == "xp" or charDB.progressMode == "reputation"
         watchedSelection = addon.NewWatchedSelection(hadSavedProgressMode)
         if charDB.progressMode ~= "xp" and charDB.progressMode ~= "reputation" then
@@ -1630,15 +1688,33 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
         eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD"); eventFrame:RegisterEvent("PLAYER_XP_UPDATE")
         eventFrame:RegisterEvent("PLAYER_LEVEL_UP"); eventFrame:RegisterEvent("UPDATE_EXHAUSTION"); eventFrame:RegisterEvent("QUEST_LOG_UPDATE")
         eventFrame:RegisterEvent("UPDATE_FACTION")
+        eventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+        eventFrame:RegisterEvent("QUEST_TURNED_IN")
         -- An available watched faction is a login baseline, not a new click.
         -- If unavailable yet, defer baselining until its first valid update.
         watchedSelection:Prime(WatchedFactionKey())
         UpdateBar()
     elseif event == "PLAYER_REGEN_ENABLED" then
         ApplyDefaultBarVisibility()
-    elseif event == "PLAYER_XP_UPDATE" then RecordXP(); UpdateBar()
+    elseif event == "PLAYER_XP_UPDATE" then
+        if instanceTracker and db.trackInstanceXP then
+            -- Detect boundary transitions before attributing XP. The 1Hz
+            -- ticker alone can lag an immediate post-zone XP event.
+            SyncInstance()
+            instanceTracker:XP(UnitLevel("player"), UnitXP("player"), UnitXPMax("player"))
+        end
+        RecordXP(); UpdateBar()
     elseif event == "UPDATE_FACTION" then
         RefreshWatchedFactionSelection()
+        UpdateBar()
+    elseif event == "ZONE_CHANGED_NEW_AREA" then
+        SyncInstance()
+        UpdateBar()
+    elseif event == "QUEST_TURNED_IN" then
+        if instanceTracker and db.trackInstanceXP then
+            SyncInstance()
+            instanceTracker:QuestReward(arg2)
+        end
         UpdateBar()
     elseif event == "PLAYER_LEVEL_UP" then
         AccumulateLevelTime()
@@ -1647,7 +1723,14 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
             charDB.levelSeconds = 0
         end
         lastXP, lastXPMax = nil, nil
-        C_Timer.After(0.2, function() lastXP, lastXPMax = UnitXP("player"), UnitXPMax("player"); UpdateBar() end)
+        C_Timer.After(0.2, function()
+            if instanceTracker and db.trackInstanceXP then
+                SyncInstance()
+                instanceTracker:XP(UnitLevel("player"), UnitXP("player"), UnitXPMax("player"))
+            end
+            lastXP, lastXPMax = UnitXP("player"), UnitXPMax("player")
+            UpdateBar()
+        end)
     elseif event == "PLAYER_ENTERING_WORLD" then
         -- PLAYER_ENTERING_WORLD's first flag is true for a real login and
         -- false for /reload. Only a real login starts a new rate session.
@@ -1660,11 +1743,15 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
         -- On world entry the watched faction can still be nil during loading;
         -- never discard the existing identity or reset an XP preference.
         watchedSelection:Prime(WatchedFactionKey())
-        ApplyDefaultBarVisibility(); C_Timer.After(0.5, UpdateBar)
+        ApplyDefaultBarVisibility()
+        C_Timer.After(0.5, function() SyncInstance(); UpdateBar() end)
     else UpdateBar() end
 end)
 
 C_Timer.NewTicker(1, function()
+    -- Watch for late zone data, relogs and exits without any chat parsing.
+    SyncInstance()
+    if instanceTracker and db and db.trackInstanceXP then instanceTracker:Tick(GetTime()) end
     AccumulateLevelTime()
     if charDB then
         charDB.sessionStartClock = sessionStart
