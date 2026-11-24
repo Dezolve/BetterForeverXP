@@ -6,6 +6,7 @@ local defaults = {
     width = 1100, height = 16, scale = 1,
     numberFormat = "short", hideBlizzard = true, showMidpointMarker = true,
     showQuestPreview = true, enableReputation = true, trackInstanceXP = true,
+    showBarCounts = true,
     textMode = "hover", -- "tooltip", "hover", or "always"
     version = 8,
 }
@@ -1356,7 +1357,21 @@ local function RenderReputation(rep)
     if leftText:IsShown() then SetFittingLabel(leftText, {rep.name, "Rep"}) end
     local pct = FormatProgressPercent(rep.fraction * 100)
     local compactBars = addon.CompactBarsProgressText(rep.fraction)
-    if db.width < 530 then
+    if not db.showBarCounts then
+        if db.width < 530 then
+            SetFittingLabel(centerText, {rep.standing .. "  •  " .. pct, pct})
+        elseif db.width < 830 then
+            SetFittingLabel(centerText, {rep.standing .. "  •  " .. pct, pct})
+        else
+            SetFittingLabel(centerText, {
+                rep.standing .. "  •  " .. (rep.isMax and "MAX" or (Commas(rep.current) .. " / " .. Commas(rep.total) .. "  •  " .. pct)),
+                rep.standing .. "  •  " .. pct, pct,
+            })
+            SetFittingLabel(rightText, rep.isMax and {"MAX"} or {
+                Short(rep.remaining) .. " rep left", Short(rep.remaining) .. " left",
+            })
+        end
+    elseif db.width < 530 then
         SetFittingLabel(centerText, {compactBars, rep.standing .. "  •  " .. pct, pct})
     elseif db.width < 830 then
         SetFittingLabel(centerText, {
@@ -1470,7 +1485,26 @@ UpdateBar = function()
     end
     local pct = FormatProgressPercent(percent)
     local compactBars = addon.CompactBarsProgressText(xp / xpMax)
-    if db.width < 530 then
+    if not db.showBarCounts then
+        local display = FormatNumber
+        if db.width < 530 then
+            SetFittingLabel(centerText, {pct .. "  •  " .. Short(remaining) .. " left", pct})
+        elseif db.width < 830 then
+            SetFittingLabel(centerText, {
+                display(xp) .. " / " .. display(xpMax) .. "  •  " .. pct,
+                Short(xp) .. " / " .. Short(xpMax) .. "  •  " .. pct, pct,
+            })
+        else
+            SetFittingLabel(centerText, {
+                display(xp) .. " / " .. display(xpMax) .. "  •  " .. pct,
+                display(xp) .. " / " .. display(xpMax),
+                Short(xp) .. " / " .. Short(xpMax) .. "  •  " .. pct, pct,
+            })
+            SetFittingLabel(rightText, {
+                display(remaining) .. " XP left", Short(remaining) .. " XP left", Short(remaining) .. " left",
+            })
+        end
+    elseif db.width < 530 then
         SetFittingLabel(centerText, {
             compactBars,
             pct .. "  •  " .. Short(remaining) .. " left",
@@ -1555,6 +1589,10 @@ local function SetSetting(key, value)
         elseif key == "trackInstanceXP" then SyncInstance(); UpdateBar()
         elseif key == "showQuestPreview" or key == "enableReputation" then UpdateBar()
         else ApplyDefaultBarVisibility() end
+    elseif key == "showBarCounts" then
+        if type(value) ~= "boolean" then return false end
+        db.showBarCounts = value
+        UpdateBar()
     elseif key == "textMode" then
         if value ~= "tooltip" and value ~= "hover" and value ~= "always" then return false end
         db.textMode = value
@@ -1584,6 +1622,7 @@ addon.ResetAll = function()
     db.trackInstanceXP = defaults.trackInstanceXP
     if charDB then charDB.progressMode = "xp" end
     db.textMode = defaults.textMode
+    db.showBarCounts = defaults.showBarCounts
     UpdateTextVisibility()
     ResetPosition()
     UpdateResizeHandles(); ApplyDefaultBarVisibility(); UpdateBar()
