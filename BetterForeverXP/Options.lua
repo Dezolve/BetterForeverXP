@@ -115,9 +115,10 @@ local function AddSlider(key, text, y, low, high, step, suffix, host)
 end
 
 -- Restrained blue highlight for the selected value; no disabled gray buttons.
-local function ChoiceButton(parent, title, x, y, description, action)
+local function ChoiceButton(parent, title, x, y, description, action, width, height)
+    width = width or BUTTON_WIDTH
     local button = CreateFrame("Button", nil, parent)
-    button:SetSize(BUTTON_WIDTH, 29)
+    button:SetSize(width, height or 29)
     button:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
 
     local base = Paint(button, "BACKGROUND", 0.09, 0.12, 0.17, 0.92)
@@ -138,7 +139,7 @@ local function ChoiceButton(parent, title, x, y, description, action)
 
     local caption = button:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     caption:SetPoint("CENTER", button, "CENTER", 0, 0)
-    caption:SetWidth(BUTTON_WIDTH - 12)
+    caption:SetWidth(width - 12)
     caption:SetJustifyH("CENTER")
     caption:SetText(title)
 
@@ -184,7 +185,7 @@ function addon.InitializeOptions()
     scroll:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -33, 8)
 
     content = CreateFrame("Frame", nil, scroll)
-    content:SetSize(572, 960)
+    content:SetSize(572, 1180)
     scroll:SetScrollChild(content)
 
     Label(content, "Better Forever XP", 20, -17, "GameFontNormalLarge")
@@ -220,7 +221,7 @@ function addon.InitializeOptions()
         "Automatically record XP gained, XP/hour, time inside, and equivalent bars for dungeons and raids. Last run remains in the hover tooltip until the next run.", 18, behavior)
 
     local textCard = AddSection("TEXT & NUMBERS",
-        "Pick how much detail appears directly on the bar.", 344, 176)
+        "Choose when labels appear and how numbers are formatted.", 344, 184)
     Label(textCard, "Bar text", 22, -63, "GameFontNormalSmall")
     AddTextModeButton("tooltip", "Tooltip only", 20,
         "Clean bar. Hover to see detailed progress in the tooltip.", textCard)
@@ -233,15 +234,34 @@ function addon.InitializeOptions()
     AddFormatButton("commas", "With commas", 20 + BUTTON_WIDTH + BUTTON_GAP, textCard)
     AddFormatButton("exact", "Exact", 20 + (BUTTON_WIDTH + BUTTON_GAP) * 2, textCard)
 
+    local infoCard = AddSection("VISIBLE INFORMATION",
+        "Choose which labels appear on your XP or Reputation bar.", 545, 195)
+    ChoiceButton(infoCard, "Check all", 326, -10,
+        "Show all five inline fields without changing other settings.",
+        function() addon.SetAllInlineFields(true) end, 92, 24)
+    ChoiceButton(infoCard, "Uncheck all", 424, -10,
+        "Hide all five inline fields without changing other settings.",
+        function() addon.SetAllInlineFields(false) end, 98, 24)
+    AddCheckbox("showBarIdentity", "Level / faction", -67,
+        "Show character level or watched faction and standing.", 18, infoCard)
+    AddCheckbox("showBarProgress", "Current / total progress", -67,
+        "Show current and total XP or reputation.", 280, infoCard)
+    AddCheckbox("showBarPercent", "Progress percentage", -108,
+        "Show the percentage completed.", 18, infoCard)
+    AddCheckbox("showBarRemaining", "Remaining XP / reputation", -108,
+        "Show the remaining XP or reputation needed.", 280, infoCard)
+    AddCheckbox("showBarCounts", "Show bar counts", -149,
+        "Show earned and remaining 5% divisions in the bar text. Does not change the segments or detailed hover tooltip.", 18, infoCard)
+
     local dimensions = AddSection("BAR DIMENSIONS",
-        "Adjust the bar's size, height, and visual scale.", 537, 275)
+        "Adjust the bar's size, height, and visual scale.", 757, 275)
     AddSlider("width", "Width", -68, 300, 1600, 10, " px", dimensions)
     AddSlider("height", "Height", -141, 10, 120, 1, " px", dimensions)
     AddSlider("scale", "Overall UI scale (including text)", -214, 0.5, 3, 0.05, "x", dimensions)
 
     local reset = CreateFrame("Button", nil, content, "UIPanelButtonTemplate")
     reset:SetSize(186, 28)
-    reset:SetPoint("TOPLEFT", content, "TOPLEFT", 34, -841)
+    reset:SetPoint("TOPLEFT", content, "TOPLEFT", 34, -1061)
     reset:SetText("Reset position & size")
     reset:SetScript("OnClick", function() addon.ResetPosition(); addon.RefreshOptions() end)
 
@@ -253,7 +273,7 @@ function addon.InitializeOptions()
 
     local footnote = Label(content,
         "Changes apply immediately. Right-click the bar to return to these settings.",
-        34, -889, "GameFontHighlightSmall")
+        34, -1109, "GameFontHighlightSmall")
     footnote:SetTextColor(0.69, 0.77, 0.86, 1)
 
     -- Attribution stays unobtrusive; version is read from the installed TOC,
@@ -265,7 +285,7 @@ function addon.InitializeOptions()
         version = GetAddOnMetadata(ADDON_NAME, "Version")
     end
     local credit = Label(content, "© 2026 Dezolve Labs  |cff748ba7•|r  Better Forever XP"
-        .. (version and ("  v" .. tostring(version)) or ""), 34, -917, "GameFontHighlightSmall")
+        .. (version and ("  v" .. tostring(version)) or ""), 34, -1137, "GameFontHighlightSmall")
     credit:SetTextColor(0.59, 0.69, 0.79, 1)
 
     panel.OnRefresh = function()

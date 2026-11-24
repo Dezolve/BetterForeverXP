@@ -6,6 +6,8 @@ local defaults = {
     width = 1100, height = 16, scale = 1,
     numberFormat = "short", hideBlizzard = true, showMidpointMarker = true,
     showQuestPreview = true, enableReputation = true, trackInstanceXP = true,
+    showBarIdentity = true, showBarProgress = true, showBarPercent = true,
+    showBarRemaining = true, showBarCounts = true,
     textMode = "hover", -- "tooltip", "hover", or "always"
     version = 8,
 }
@@ -998,28 +1000,22 @@ local function CreateBar()
     end)
 end
 
-local function ApplyLayout()
-    CreateBar(); bar:SetScale(db.scale); bar:SetSize(db.width, db.height)
-    midpointMarker:SetShown(db.showMidpointMarker)
-    UpdateTextVisibility()
-    bar:ClearAllPoints(); bar:SetPoint(db.point, UIParent, db.relativePoint, db.x, db.y)
-    -- Never allow the three text regions to overlap. Compact layouts
-    -- progressively remove secondary detail as available width shrinks.
-    -- Keep the established text sizes for 10-40 px bars, but let larger
-    -- bars grow their labels rather than leaving 18 px text in a 120 px bar.
-    local fontSize = math.max(8, math.min(18, db.height - 4))
-    if db.height > 40 then
-        fontSize = math.min(32, math.floor(18 + (db.height - 40) * 0.175 + 0.5))
+local customTextLayout
+
+local function SetLabelAlignment(label, alignment)
+    label:SetJustifyH(alignment)
+    local scrim = textScrims[label]
+    if scrim then
+        scrim:ClearAllPoints()
+        scrim:SetPoint(alignment, label, alignment)
     end
-    for _, label in ipairs({ leftText, centerText, rightText }) do
-        local fontPath = label:GetFont()
-        -- Thick black outlines at larger sizes keep white XP labels legible
-        -- even when a bright 5% glint happens to cross a glyph.
-        if fontPath then
-            label:SetFont(fontPath, fontSize,
-                fontSize >= 14 and "THICKOUTLINE" or "OUTLINE")
-        end
+end
+
+local function LayoutDefaultText()
+    customTextLayout = nil
+    for _, label in ipairs({leftText, centerText, rightText}) do
         label:ClearAllPoints()
+        SetLabelAlignment(label, label == leftText and "LEFT" or (label == rightText and "RIGHT" or "CENTER"))
     end
     -- Disjoint layout regions: never center a wide label over the right
     -- label's region. Every region gets its own padding and hard width.
@@ -1046,6 +1042,66 @@ local function ApplyLayout()
         rightText:SetPoint("RIGHT", textLayer, "RIGHT", -inset, 0)
         rightText:SetSize(db.width - leftZone - centerZone - inset * 2, db.height)
     end
+end
+
+-- Reuse the three existing font strings. Empty groups release their space;
+-- a single group takes the full bar, with no stale labels or scrims.
+local function RenderCustomText(fields)
+    local groups = addon.BuildInlineGroups(db, db.width, fields)
+    local key = db.width .. ":" .. db.height .. ":" .. #groups
+    for _, group in ipairs(groups) do key = key .. ":" .. #group end
+    local labels = #groups == 1 and {centerText}
+        or (#groups == 2 and {leftText, rightText} or {leftText, centerText, rightText})
+    if customTextLayout ~= key then
+        customTextLayout = key
+        for _, label in ipairs({leftText, centerText, rightText}) do
+            label:ClearAllPoints(); label:Hide(); label:SetText("")
+        end
+        local inset = math.max(6, math.floor(db.width * 0.009 + 0.5))
+        local total = 0
+        for _, group in ipairs(groups) do total = total + #group end
+        local offset = 0
+        for i, group in ipairs(groups) do
+            local label = labels[i]
+            local zone = db.width * #group / total
+            -- Center within every allocated region, including the outer labels.
+            -- A single group is centered at exactly 50% of the entire bar.
+            SetLabelAlignment(label, "CENTER")
+            label:SetPoint("CENTER", textLayer, "LEFT", offset + zone * 0.5, 0)
+            label:SetSize(math.max(1, zone - inset * 2), db.height)
+            label:Show()
+            offset = offset + zone
+        end
+    end
+    for i, group in ipairs(groups) do
+        SetFittingLabel(labels[i], addon.InlineLabelCandidates(group))
+    end
+end
+
+local function ApplyLayout()
+    CreateBar(); bar:SetScale(db.scale); bar:SetSize(db.width, db.height)
+    midpointMarker:SetShown(db.showMidpointMarker)
+    UpdateTextVisibility()
+    bar:ClearAllPoints(); bar:SetPoint(db.point, UIParent, db.relativePoint, db.x, db.y)
+    -- Never allow the three text regions to overlap. Compact layouts
+    -- progressively remove secondary detail as available width shrinks.
+    -- Keep the established text sizes for 10-40 px bars, but let larger
+    -- bars grow their labels rather than leaving 18 px text in a 120 px bar.
+    local fontSize = math.max(8, math.min(18, db.height - 4))
+    if db.height > 40 then
+        fontSize = math.min(32, math.floor(18 + (db.height - 40) * 0.175 + 0.5))
+    end
+    for _, label in ipairs({ leftText, centerText, rightText }) do
+        local fontPath = label:GetFont()
+        -- Thick black outlines at larger sizes keep white XP labels legible
+        -- even when a bright 5% glint happens to cross a glyph.
+        if fontPath then
+            label:SetFont(fontPath, fontSize,
+                fontSize >= 14 and "THICKOUTLINE" or "OUTLINE")
+        end
+        label:ClearAllPoints()
+    end
+    LayoutDefaultText()
     resizeHandles.width:SetHeight(math.max(28, db.height + 12))
     -- Height handle stays centered at a fixed, compact width on every resize.
     -- Keep the original external corner-grab position and L shape, but
@@ -1353,28 +1409,40 @@ local function RenderReputation(rep)
     end
     spark:ClearAllPoints(); spark:SetPoint("CENTER", fill, "LEFT", earnedWidth, 0)
     spark:SetShown(rep.fraction > 0 and rep.fraction < 1)
-    if leftText:IsShown() then SetFittingLabel(leftText, {rep.name, "Rep"}) end
     local pct = FormatProgressPercent(rep.fraction * 100)
     local compactBars = addon.CompactBarsProgressText(rep.fraction)
-    if db.width < 530 then
-        SetFittingLabel(centerText, {compactBars, rep.standing .. "  •  " .. pct, pct})
-    elseif db.width < 830 then
-        SetFittingLabel(centerText, {
-            rep.standing .. "  •  " .. pct .. "  •  " .. compactBars,
-            rep.standing .. "  •  " .. compactBars,
-            compactBars, rep.standing .. "  •  " .. pct, pct,
+    if not addon.AllInlineFieldsEnabled(db) then
+        RenderCustomText({
+            identity = {rep.name .. " • " .. rep.standing, rep.standing, 2},
+            progress = {rep.isMax and "MAX" or (Commas(rep.current) .. " / " .. Commas(rep.total)),
+                rep.isMax and "MAX" or (Short(rep.current) .. " / " .. Short(rep.total)), 3},
+            percent = {pct, pct, 5},
+            remaining = {Short(rep.remaining) .. " rep left", Short(rep.remaining) .. " left", 4},
+            counts = {compactBars, compactBars, 1},
         })
     else
-        SetFittingLabel(centerText, {
-            rep.standing .. "  •  " .. (rep.isMax and "MAX" or (Commas(rep.current) .. " / " .. Commas(rep.total) .. "  •  " .. pct)),
-            rep.standing .. "  •  " .. pct, pct,
-        })
-        SetFittingLabel(rightText, rep.isMax and {compactBars, "MAX"} or {
-            Short(rep.remaining) .. " rep left  •  " .. compactBars,
-            compactBars,
-            Short(rep.remaining) .. " rep remaining",
-            Short(rep.remaining) .. " left",
-        })
+        if customTextLayout then LayoutDefaultText() end
+        if leftText:IsShown() then SetFittingLabel(leftText, {rep.name, "Rep"}) end
+        if db.width < 530 then
+            SetFittingLabel(centerText, {compactBars, rep.standing .. "  •  " .. pct, pct})
+        elseif db.width < 830 then
+            SetFittingLabel(centerText, {
+                rep.standing .. "  •  " .. pct .. "  •  " .. compactBars,
+                rep.standing .. "  •  " .. compactBars,
+                compactBars, rep.standing .. "  •  " .. pct, pct,
+            })
+        else
+            SetFittingLabel(centerText, {
+                rep.standing .. "  •  " .. (rep.isMax and "MAX" or (Commas(rep.current) .. " / " .. Commas(rep.total) .. "  •  " .. pct)),
+                rep.standing .. "  •  " .. pct, pct,
+            })
+            SetFittingLabel(rightText, rep.isMax and {compactBars, "MAX"} or {
+                Short(rep.remaining) .. " rep left  •  " .. compactBars,
+                compactBars,
+                Short(rep.remaining) .. " rep remaining",
+                Short(rep.remaining) .. " left",
+            })
+        end
     end
     UpdateTextScrims()
     bar:Show()
@@ -1465,46 +1533,58 @@ UpdateBar = function()
     spark:ClearAllPoints(); spark:SetPoint("CENTER", fill, "LEFT", earnedWidth, 0)
     spark:SetShown(xp > 0 and xp < xpMax)
     local level = UnitLevel("player") or 0
-    if leftText:IsShown() then
-        SetFittingLabel(leftText, {"Level " .. level, "Lv " .. level, tostring(level)})
-    end
     local pct = FormatProgressPercent(percent)
     local compactBars = addon.CompactBarsProgressText(xp / xpMax)
-    if db.width < 530 then
-        SetFittingLabel(centerText, {
-            compactBars,
-            pct .. "  •  " .. Short(remaining) .. " left",
-            pct .. "  •  " .. Short(remaining),
-            pct,
-        })
-    elseif db.width < 830 then
-        SetFittingLabel(centerText, {
-            Short(xp) .. " / " .. Short(xpMax) .. "  •  " .. compactBars,
-            pct .. "  •  " .. compactBars,
-            compactBars,
-            Short(xp) .. " / " .. Short(xpMax) .. "  •  " .. pct,
-            Short(xp) .. "/" .. Short(xpMax) .. " " .. pct,
-            pct,
+    if not addon.AllInlineFieldsEnabled(db) then
+        RenderCustomText({
+            identity = {"Level " .. level, "Lv " .. level, 2},
+            progress = {FormatNumber(xp) .. " / " .. FormatNumber(xpMax),
+                Short(xp) .. " / " .. Short(xpMax), 3},
+            percent = {pct, pct, 5},
+            remaining = {FormatNumber(remaining) .. " XP left", Short(remaining) .. " left", 4},
+            counts = {compactBars, compactBars, 1},
         })
     else
-        -- Honor the selected format on wide bars too. Compact is short-only
-        -- (26.7K / 111.8K), not the old 26,713 (26.7K) hybrid display.
-        local display = FormatNumber
-        SetFittingLabel(centerText, {
-            display(xp) .. " / " .. display(xpMax) .. "  •  " .. pct,
-            display(xp) .. " / " .. display(xpMax),
-            Short(xp) .. " / " .. Short(xpMax) .. "  •  " .. pct,
-            Short(xp) .. "/" .. Short(xpMax),
-            pct,
-        })
-        SetFittingLabel(rightText, {
-            display(remaining) .. " XP left  •  " .. compactBars,
-            Short(remaining) .. " left  •  " .. compactBars,
-            compactBars,
-            Short(remaining) .. " XP left",
-            Short(remaining) .. " left",
-            FormatBars(barsLeft) .. " bars left",
-        })
+        if customTextLayout then LayoutDefaultText() end
+        if leftText:IsShown() then
+            SetFittingLabel(leftText, {"Level " .. level, "Lv " .. level, tostring(level)})
+        end
+        if db.width < 530 then
+            SetFittingLabel(centerText, {
+                compactBars,
+                pct .. "  •  " .. Short(remaining) .. " left",
+                pct .. "  •  " .. Short(remaining),
+                pct,
+            })
+        elseif db.width < 830 then
+            SetFittingLabel(centerText, {
+                Short(xp) .. " / " .. Short(xpMax) .. "  •  " .. compactBars,
+                pct .. "  •  " .. compactBars,
+                compactBars,
+                Short(xp) .. " / " .. Short(xpMax) .. "  •  " .. pct,
+                Short(xp) .. "/" .. Short(xpMax) .. " " .. pct,
+                pct,
+            })
+        else
+            -- Honor the selected format on wide bars too. Compact is short-only
+            -- (26.7K / 111.8K), not the old 26,713 (26.7K) hybrid display.
+            local display = FormatNumber
+            SetFittingLabel(centerText, {
+                display(xp) .. " / " .. display(xpMax) .. "  •  " .. pct,
+                display(xp) .. " / " .. display(xpMax),
+                Short(xp) .. " / " .. Short(xpMax) .. "  •  " .. pct,
+                Short(xp) .. "/" .. Short(xpMax),
+                pct,
+            })
+            SetFittingLabel(rightText, {
+                display(remaining) .. " XP left  •  " .. compactBars,
+                Short(remaining) .. " left  •  " .. compactBars,
+                compactBars,
+                Short(remaining) .. " XP left",
+                Short(remaining) .. " left",
+                FormatBars(barsLeft) .. " bars left",
+            })
+        end
     end
     UpdateTextScrims()
     bar:Show()
@@ -1545,7 +1625,7 @@ local function SetSetting(key, value)
     elseif key == "scale" then
         if type(value) ~= "number" or value < 0.5 or value > 3 then return false end
         db.scale = math.floor(value * 100 + 0.5) / 100
-        ApplyLayout()
+        ApplyLayout(); UpdateBar()
     elseif key == "locked" or key == "enabled" or key == "hideBlizzard" or key == "showMidpointMarker" or key == "showQuestPreview" or key == "enableReputation" or key == "trackInstanceXP" then
         if type(value) ~= "boolean" then return false end
         db[key] = value
@@ -1555,6 +1635,10 @@ local function SetSetting(key, value)
         elseif key == "trackInstanceXP" then SyncInstance(); UpdateBar()
         elseif key == "showQuestPreview" or key == "enableReputation" then UpdateBar()
         else ApplyDefaultBarVisibility() end
+    elseif addon.IsInlineFieldSetting(key) then
+        if type(value) ~= "boolean" then return false end
+        db[key] = value
+        UpdateBar()
     elseif key == "textMode" then
         if value ~= "tooltip" and value ~= "hover" and value ~= "always" then return false end
         db.textMode = value
@@ -1573,6 +1657,12 @@ end
 
 addon.GetSettings = function() return db end
 addon.SetSetting = SetSetting
+addon.SetAllInlineFields = function(value)
+    if not db or not addon.ApplyInlineFieldSelection(db, value) then return false end
+    UpdateBar()
+    if addon.RefreshOptions then addon.RefreshOptions() end
+    return true
+end
 addon.ResetPosition = ResetPosition
 addon.ResetAll = function()
     if not db then return end
@@ -1584,6 +1674,7 @@ addon.ResetAll = function()
     db.trackInstanceXP = defaults.trackInstanceXP
     if charDB then charDB.progressMode = "xp" end
     db.textMode = defaults.textMode
+    for _, key in ipairs(addon.InlineFieldSettings) do db[key] = defaults[key] end
     UpdateTextVisibility()
     ResetPosition()
     UpdateResizeHandles(); ApplyDefaultBarVisibility(); UpdateBar()
@@ -1645,6 +1736,9 @@ eventFrame:SetScript("OnEvent", function(_, event, arg1)
         BetterForeverXPDB.showBarText = nil
         BetterForeverXPDB.hoverTextOnly = nil
         MergeDefaults(BetterForeverXPDB, defaults); db = BetterForeverXPDB
+        for _, key in ipairs(addon.InlineFieldSettings) do
+            if type(db[key]) ~= "boolean" then db[key] = defaults[key] end
+        end
         if db.textMode ~= "tooltip" and db.textMode ~= "hover" and db.textMode ~= "always" then
             db.textMode = defaults.textMode
         end

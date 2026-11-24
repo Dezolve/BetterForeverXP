@@ -91,6 +91,24 @@ if ($failures.Count -eq 0) {
     Assert-Condition ($lua -match 'if rep and \(not XPAvailable\(\)') 'Watched Reputation should remain visible at level cap.'
     Assert-Condition ($options -match 'AddCheckbox\("enableReputation"') 'Settings must offer XP / Reputation switching.'
 
+    # 2.8.1: independently configurable inline information.
+    foreach ($key in 'showBarIdentity', 'showBarProgress', 'showBarPercent', 'showBarRemaining', 'showBarCounts') {
+        Assert-Condition ($lua -match "$key = true") "Default must preserve $key."
+        Assert-Condition ($options -match ('AddCheckbox\("' + $key + '"')) "Missing inline checkbox $key."
+    }
+    Assert-Condition ([regex]::Matches($lua, 'if not addon[.]AllInlineFieldsEnabled\(db\) then').Count -eq 2) 'Both XP and Reputation must support custom labels.'
+    Assert-Condition ($lua -match 'elseif addon[.]IsInlineFieldSetting\(key\) then\s+if type\(value\) ~= "boolean" then return false end\s+db\[key\] = value\s+UpdateBar\(\)') 'Inline preferences must redraw immediately.'
+    Assert-Condition ($lua -match 'for _, key in ipairs\(addon[.]InlineFieldSettings\) do db\[key\] = defaults\[key\] end') 'Reset must restore every inline preference.'
+    Assert-Condition ($lua -match 'addon[.]BuildInlineGroups\(db, db[.]width, fields\)') 'Custom groups must reclaim unused regions.'
+    Assert-Condition ($lua -match 'addon[.]InlineLabelCandidates\(group\)') 'Fitting must use enabled fields only.'
+
+    Assert-Condition ($lua -match 'SetLabelAlignment\(label, "CENTER"\)') 'Customized text should center in each region.'
+    Assert-Condition ($lua -match 'label:SetPoint\("CENTER", textLayer, "LEFT", offset \+ zone \* 0[.]5, 0\)') 'Custom regions should use their exact midpoints.'
+    Assert-Condition ($lua -match 'scrim:SetPoint\(alignment, label, alignment\)') 'Text scrims must follow the active alignment.'
+    Assert-Condition ($options -match 'addon[.]SetAllInlineFields\(true\)') 'Check all must update the five inline preferences.'
+    Assert-Condition ($options -match 'addon[.]SetAllInlineFields\(false\)') 'Uncheck all must update the five inline preferences.'
+    Assert-Condition ($lua -match 'addon[.]ApplyInlineFieldSelection\(db, value\) then return false end\s+UpdateBar\(\)\s+if addon[.]RefreshOptions then addon[.]RefreshOptions\(\) end') 'Bulk changes must redraw and refresh once.'
+
     # 2.8.0: dungeon tracker is optional, separate, persisted per character.
     Assert-Condition ($toc -match '(?m)^InstanceTracker[.]lua$') 'Dungeon tracker module must load before the UI.'
     Assert-Condition ($options -match 'AddCheckbox\("trackInstanceXP", "Track dungeon XP"') 'Options must expose instance tracking as an opt-out.'
@@ -424,16 +442,23 @@ if ($failures.Count -eq 0) {
     Assert-Condition ($lua -match 'addon.SetSetting = SetSetting') 'Settings panel and commands must share an update path.'
     Assert-Condition ($lua -match 'addon.InitializeOptions') 'Addon does not initialize the options panel.'
 
+    Assert-Condition ($options -match 'local textCard = AddSection\("TEXT & NUMBERS",\s+"Choose when labels appear and how numbers are formatted[.]", 344, 184\)') 'Text mode and number format need their own card.'
+    Assert-Condition ($options -match 'local infoCard = AddSection\("VISIBLE INFORMATION",\s+"Choose which labels appear on your XP or Reputation bar[.]", 545, 195\)') 'Inline checkboxes require a separate card with a 17px gap.'
+    Assert-Condition ($options -match 'ChoiceButton\(infoCard, "Check all", 326, -10,') 'Bulk controls must align with the new card header.'
+    Assert-Condition ($options -match 'ChoiceButton\(infoCard, "Uncheck all", 424, -10,') 'Bulk controls must stay clear of number format buttons.'
+    Assert-Condition ([regex]::Matches($options, ', (18|280), infoCard\)').Count -eq 5) 'All five fields belong in Visible Information.'
+    Assert-Condition ($options -match 'AddCheckbox\("showBarCounts", "Show bar counts", -149,') 'Final checkbox needs its own row and bottom padding.'
+
     # Settings visual regression: fixed-section boundaries and scroll containment
     # prevent the reputation checkbox from overlapping width controls.
     Assert-Condition ($options -match 'CreateFrame\("ScrollFrame", "BetterForeverXPOptionsScrollFrame"') 'Settings must use a real scroll viewport.'
     Assert-Condition ($options -match 'scroll:SetScrollChild\(content\)') 'All options must remain clipped inside scroll content.'
-    Assert-Condition ($options -match 'content:SetSize\(572, 960\)') 'Scrollable canvas must include space for the attribution footer.'
+    Assert-Condition ($options -match 'content:SetSize\(572, 1180\)') 'Scrollable canvas must include space for the attribution footer.'
     Assert-Condition ($options -match 'local behavior = AddSection\("DISPLAY & INTERACTION",') 'General, quest, and reputation controls belong in one section.'
     Assert-Condition ($options -match 'local textCard = AddSection\("TEXT & NUMBERS",') 'Text and number choices must be grouped.'
     Assert-Condition ($options -match 'local dimensions = AddSection\("BAR DIMENSIONS",') 'Sliders need a separate section.'
     Assert-Condition ($options -match 'AddCheckbox\("enableReputation", "Enable XP / Reputation", -149,') 'Reputation checkbox must have a dedicated row rather than overlapping width.'
-    Assert-Condition ($options -match 'local dimensions = AddSection\("BAR DIMENSIONS",\s+"Adjust the bar''s size, height, and visual scale[.]", 537, 275\)') 'Dimensions start below text controls and have space for all three sliders.'
+    Assert-Condition ($options -match 'local dimensions = AddSection\("BAR DIMENSIONS",\s+"Adjust the bar''s size, height, and visual scale[.]", 757, 275\)') 'Dimensions start below text controls and have space for all three sliders.'
     Assert-Condition ($options -match 'local selected = db[.]textMode == mode\s+RefreshChoice\(data, selected\)') 'The chosen text mode must be visibly selected.'
     Assert-Condition ($options -match 'local selected = db[.]numberFormat == key\s+RefreshChoice\(data, selected\)') 'Number format selection must be visibly selected.'
     Assert-Condition ($options -notmatch 'data[.]control:SetEnabled\(not selected\)') 'Selected choices must not look disabled.'
