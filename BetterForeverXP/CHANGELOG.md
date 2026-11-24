@@ -2,7 +2,7 @@
 
 By Dezolve Labs
 
-- Add five independent inline visibility preferences under **Text & Numbers**: level/faction, current/total progress, percentage, remaining XP/reputation, and bar counts. All enabled by default.
+- Add five independent inline visibility preferences under **Visible Information**: level/faction, current/total progress, percentage, remaining XP/reputation, and bar counts. All enabled by default.
 - Adapt text regions to enabled fields, with width-aware fallback candidates that never reintroduce disabled information. Preserve the existing layout when all five are enabled.
 - Center sparse selections (one or two fields) together across the bar, and center other customized text within its allocated regions. Add **Check all / Uncheck all** for the five fields only.
 - Keep all 20 segments, detailed hover tooltips, number-format choices and three existing text modes. Settings apply immediately, persist, and reset to enabled.
