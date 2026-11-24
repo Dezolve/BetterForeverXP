@@ -102,6 +102,13 @@ if ($failures.Count -eq 0) {
     Assert-Condition ($lua -match 'addon[.]BuildInlineGroups\(db, db[.]width, fields\)') 'Custom groups must reclaim unused regions.'
     Assert-Condition ($lua -match 'addon[.]InlineLabelCandidates\(group\)') 'Fitting must use enabled fields only.'
 
+    Assert-Condition ($lua -match 'SetLabelAlignment\(label, "CENTER"\)') 'Customized text should center in each region.'
+    Assert-Condition ($lua -match 'label:SetPoint\("CENTER", textLayer, "LEFT", offset \+ zone \* 0[.]5, 0\)') 'Custom regions should use their exact midpoints.'
+    Assert-Condition ($lua -match 'scrim:SetPoint\(alignment, label, alignment\)') 'Text scrims must follow the active alignment.'
+    Assert-Condition ($options -match 'addon[.]SetAllInlineFields\(true\)') 'Check all must update the five inline preferences.'
+    Assert-Condition ($options -match 'addon[.]SetAllInlineFields\(false\)') 'Uncheck all must update the five inline preferences.'
+    Assert-Condition ($lua -match 'addon[.]ApplyInlineFieldSelection\(db, value\) then return false end\s+UpdateBar\(\)\s+if addon[.]RefreshOptions then addon[.]RefreshOptions\(\) end') 'Bulk changes must redraw and refresh once.'
+
     # 2.8.0: dungeon tracker is optional, separate, persisted per character.
     Assert-Condition ($toc -match '(?m)^InstanceTracker[.]lua$') 'Dungeon tracker module must load before the UI.'
     Assert-Condition ($options -match 'AddCheckbox\("trackInstanceXP", "Track dungeon XP"') 'Options must expose instance tracking as an opt-out.'
