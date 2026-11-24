@@ -1,3 +1,9 @@
+# Better Forever XP 2.8.1
+
+By Dezolve Labs
+
+- Add **Show bar counts** under Text & Numbers. Disable it to hide inline earned/remaining division counts on XP and Reputation bars while preserving other progress labels, all 20 segments, and detailed tooltips. Enabled by default; applies immediately and persists across reloads.
+
 # Better Forever XP 2.8.0
 
 By Dezolve Labs
