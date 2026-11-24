@@ -93,7 +93,16 @@ for mask = 0, 31 do
             Equal(full:find("<" .. name .. ">", 1, true) ~= nil,
                 settings[addon.InlineFieldSettings[i]], "enabled fields appear in full candidates")
         end
-        if mask == 0 then Equal(#groups, 0, "all off is clean") end
+        local enabled = 0
+        for _, key in ipairs(addon.InlineFieldSettings) do
+            if settings[key] then enabled = enabled + 1 end
+        end
+        if enabled == 0 then
+            Equal(#groups, 0, "all off is clean")
+        elseif enabled <= 2 then
+            Equal(#groups, 1, "minimal fields share one centered region")
+            Equal(#groups[1], enabled, "centered region keeps every enabled field")
+        end
     end
 end
 Equal(addon.IsInlineFieldSetting("textMode"), false, "text mode separate")
@@ -101,5 +110,17 @@ local fallback = addon.InlineLabelCandidates({{"LONG", "S", 1}, {"95%", "95%", 5
 Equal(fallback[1], "LONG  •  95%", "full candidate")
 Equal(fallback[2], "S  •  95%", "short candidate")
 Equal(fallback[3], "95%", "priority fallback")
+
+local bulk = {textMode = "hover", numberFormat = "exact", width = 1100, enabled = true}
+Equal(addon.ApplyInlineFieldSelection(bulk, false), true, "uncheck all")
+for _, key in ipairs(addon.InlineFieldSettings) do Equal(bulk[key], false, "bulk off") end
+Equal(addon.ApplyInlineFieldSelection(bulk, "invalid"), false, "reject invalid bulk value")
+for _, key in ipairs(addon.InlineFieldSettings) do Equal(bulk[key], false, "invalid leaves fields alone") end
+Equal(addon.ApplyInlineFieldSelection(bulk, true), true, "check all")
+for _, key in ipairs(addon.InlineFieldSettings) do Equal(bulk[key], true, "bulk on") end
+Equal(bulk.textMode, "hover", "keep text mode")
+Equal(bulk.numberFormat, "exact", "keep number format")
+Equal(bulk.width, 1100, "keep size")
+Equal(bulk.enabled, true, "keep bar enabled")
 
 print("ProgressLogic regression PASS: " .. cases .. " behavioral assertions")
