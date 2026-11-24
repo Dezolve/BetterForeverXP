@@ -115,9 +115,10 @@ local function AddSlider(key, text, y, low, high, step, suffix, host)
 end
 
 -- Restrained blue highlight for the selected value; no disabled gray buttons.
-local function ChoiceButton(parent, title, x, y, description, action)
+local function ChoiceButton(parent, title, x, y, description, action, width, height)
+    width = width or BUTTON_WIDTH
     local button = CreateFrame("Button", nil, parent)
-    button:SetSize(BUTTON_WIDTH, 29)
+    button:SetSize(width, height or 29)
     button:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
 
     local base = Paint(button, "BACKGROUND", 0.09, 0.12, 0.17, 0.92)
@@ -138,7 +139,7 @@ local function ChoiceButton(parent, title, x, y, description, action)
 
     local caption = button:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     caption:SetPoint("CENTER", button, "CENTER", 0, 0)
-    caption:SetWidth(BUTTON_WIDTH - 12)
+    caption:SetWidth(width - 12)
     caption:SetJustifyH("CENTER")
     caption:SetText(title)
 
@@ -234,6 +235,12 @@ function addon.InitializeOptions()
     AddFormatButton("exact", "Exact", 20 + (BUTTON_WIDTH + BUTTON_GAP) * 2, textCard)
 
     Label(textCard, "Visible information", 22, -178, "GameFontNormalSmall")
+    ChoiceButton(textCard, "Check all", 326, -172,
+        "Show all five inline fields without changing other settings.",
+        function() addon.SetAllInlineFields(true) end, 92, 20)
+    ChoiceButton(textCard, "Uncheck all", 424, -172,
+        "Hide all five inline fields without changing other settings.",
+        function() addon.SetAllInlineFields(false) end, 98, 20)
     AddCheckbox("showBarIdentity", "Level / faction", -196,
         "Show character level or watched faction and standing.", 18, textCard)
     AddCheckbox("showBarProgress", "Current / total progress", -196,
