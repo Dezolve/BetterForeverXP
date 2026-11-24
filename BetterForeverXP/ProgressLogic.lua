@@ -41,6 +41,13 @@ function addon.IsInlineFieldSetting(key)
     return false
 end
 
+-- Bulk changes affect only these five preferences, not modes or formatting.
+function addon.ApplyInlineFieldSelection(settings, value)
+    if type(value) ~= "boolean" then return false end
+    for _, key in ipairs(addon.InlineFieldSettings) do settings[key] = value end
+    return true
+end
+
 function addon.AllInlineFieldsEnabled(settings)
     for _, key in ipairs(addon.InlineFieldSettings) do
         if not settings[key] then return false end
@@ -64,7 +71,12 @@ function addon.BuildInlineGroups(settings, width, fields)
         end
         if #group > 0 then groups[#groups + 1] = group end
     end
-    if width < 530 then
+    local enabled = 0
+    for index, key in ipairs(addon.InlineFieldSettings) do
+        if settings[key] and fields[names[index]] then enabled = enabled + 1 end
+    end
+    -- Minimal layouts read best as a single centered line at any width.
+    if width < 530 or enabled <= 2 then
         AddGroup(1, 2, 3, 4, 5)
     elseif width < 830 then
         AddGroup(1)
