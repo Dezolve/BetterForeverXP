@@ -1002,9 +1002,21 @@ end
 
 local customTextLayout
 
+local function SetLabelAlignment(label, alignment)
+    label:SetJustifyH(alignment)
+    local scrim = textScrims[label]
+    if scrim then
+        scrim:ClearAllPoints()
+        scrim:SetPoint(alignment, label, alignment)
+    end
+end
+
 local function LayoutDefaultText()
     customTextLayout = nil
-    for _, label in ipairs({leftText, centerText, rightText}) do label:ClearAllPoints() end
+    for _, label in ipairs({leftText, centerText, rightText}) do
+        label:ClearAllPoints()
+        SetLabelAlignment(label, label == leftText and "LEFT" or (label == rightText and "RIGHT" or "CENTER"))
+    end
     -- Disjoint layout regions: never center a wide label over the right
     -- label's region. Every region gets its own padding and hard width.
     local inset = math.max(6, math.floor(db.width * 0.009 + 0.5))
@@ -1052,13 +1064,10 @@ local function RenderCustomText(fields)
         for i, group in ipairs(groups) do
             local label = labels[i]
             local zone = db.width * #group / total
-            if #groups == 1 then
-                label:SetPoint("CENTER", textLayer, "CENTER")
-            elseif i == #groups then
-                label:SetPoint("RIGHT", textLayer, "RIGHT", -inset, 0)
-            else
-                label:SetPoint("LEFT", textLayer, "LEFT", offset + inset, 0)
-            end
+            -- Center within every allocated region, including the outer labels.
+            -- A single group is centered at exactly 50% of the entire bar.
+            SetLabelAlignment(label, "CENTER")
+            label:SetPoint("CENTER", textLayer, "LEFT", offset + zone * 0.5, 0)
             label:SetSize(math.max(1, zone - inset * 2), db.height)
             label:Show()
             offset = offset + zone
@@ -1648,6 +1657,12 @@ end
 
 addon.GetSettings = function() return db end
 addon.SetSetting = SetSetting
+addon.SetAllInlineFields = function(value)
+    if not db or not addon.ApplyInlineFieldSelection(db, value) then return false end
+    UpdateBar()
+    if addon.RefreshOptions then addon.RefreshOptions() end
+    return true
+end
 addon.ResetPosition = ResetPosition
 addon.ResetAll = function()
     if not db then return end
