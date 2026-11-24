@@ -91,12 +91,16 @@ if ($failures.Count -eq 0) {
     Assert-Condition ($lua -match 'if rep and \(not XPAvailable\(\)') 'Watched Reputation should remain visible at level cap.'
     Assert-Condition ($options -match 'AddCheckbox\("enableReputation"') 'Settings must offer XP / Reputation switching.'
 
-    # 2.8.1: optional inline bar counts.
-    Assert-Condition ($lua -match 'showBarCounts = true') 'Existing users must retain inline bar counts by default.'
-    Assert-Condition ([regex]::Matches($lua, 'if not db[.]showBarCounts then').Count -eq 2) 'Both XP and Reputation need count-free layouts.'
-    Assert-Condition ($lua -match 'db[.]showBarCounts = value\s+UpdateBar\(\)') 'Changing bar counts must update immediately.'
-    Assert-Condition ($lua -match 'db[.]showBarCounts = defaults[.]showBarCounts') 'Reset must restore bar counts.'
-    Assert-Condition ($options -match 'AddCheckbox\("showBarCounts", "Show bar counts"') 'Expose count visibility in settings.'
+    # 2.8.1: independently configurable inline information.
+    foreach ($key in 'showBarIdentity', 'showBarProgress', 'showBarPercent', 'showBarRemaining', 'showBarCounts') {
+        Assert-Condition ($lua -match "$key = true") "Default must preserve $key."
+        Assert-Condition ($options -match ('AddCheckbox\("' + $key + '"')) "Missing inline checkbox $key."
+    }
+    Assert-Condition ([regex]::Matches($lua, 'if not addon[.]AllInlineFieldsEnabled\(db\) then').Count -eq 2) 'Both XP and Reputation must support custom labels.'
+    Assert-Condition ($lua -match 'elseif addon[.]IsInlineFieldSetting\(key\) then\s+if type\(value\) ~= "boolean" then return false end\s+db\[key\] = value\s+UpdateBar\(\)') 'Inline preferences must redraw immediately.'
+    Assert-Condition ($lua -match 'for _, key in ipairs\(addon[.]InlineFieldSettings\) do db\[key\] = defaults\[key\] end') 'Reset must restore every inline preference.'
+    Assert-Condition ($lua -match 'addon[.]BuildInlineGroups\(db, db[.]width, fields\)') 'Custom groups must reclaim unused regions.'
+    Assert-Condition ($lua -match 'addon[.]InlineLabelCandidates\(group\)') 'Fitting must use enabled fields only.'
 
     # 2.8.0: dungeon tracker is optional, separate, persisted per character.
     Assert-Condition ($toc -match '(?m)^InstanceTracker[.]lua$') 'Dungeon tracker module must load before the UI.'
@@ -435,12 +439,12 @@ if ($failures.Count -eq 0) {
     # prevent the reputation checkbox from overlapping width controls.
     Assert-Condition ($options -match 'CreateFrame\("ScrollFrame", "BetterForeverXPOptionsScrollFrame"') 'Settings must use a real scroll viewport.'
     Assert-Condition ($options -match 'scroll:SetScrollChild\(content\)') 'All options must remain clipped inside scroll content.'
-    Assert-Condition ($options -match 'content:SetSize\(572, 1000\)') 'Scrollable canvas must include space for the attribution footer.'
+    Assert-Condition ($options -match 'content:SetSize\(572, 1090\)') 'Scrollable canvas must include space for the attribution footer.'
     Assert-Condition ($options -match 'local behavior = AddSection\("DISPLAY & INTERACTION",') 'General, quest, and reputation controls belong in one section.'
     Assert-Condition ($options -match 'local textCard = AddSection\("TEXT & NUMBERS",') 'Text and number choices must be grouped.'
     Assert-Condition ($options -match 'local dimensions = AddSection\("BAR DIMENSIONS",') 'Sliders need a separate section.'
     Assert-Condition ($options -match 'AddCheckbox\("enableReputation", "Enable XP / Reputation", -149,') 'Reputation checkbox must have a dedicated row rather than overlapping width.'
-    Assert-Condition ($options -match 'local dimensions = AddSection\("BAR DIMENSIONS",\s+"Adjust the bar''s size, height, and visual scale[.]", 577, 275\)') 'Dimensions start below text controls and have space for all three sliders.'
+    Assert-Condition ($options -match 'local dimensions = AddSection\("BAR DIMENSIONS",\s+"Adjust the bar''s size, height, and visual scale[.]", 667, 275\)') 'Dimensions start below text controls and have space for all three sliders.'
     Assert-Condition ($options -match 'local selected = db[.]textMode == mode\s+RefreshChoice\(data, selected\)') 'The chosen text mode must be visibly selected.'
     Assert-Condition ($options -match 'local selected = db[.]numberFormat == key\s+RefreshChoice\(data, selected\)') 'Number format selection must be visibly selected.'
     Assert-Condition ($options -notmatch 'data[.]control:SetEnabled\(not selected\)') 'Selected choices must not look disabled.'
