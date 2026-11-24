@@ -61,4 +61,45 @@ fresh:Prime(nil)
 Equal(fresh:Observe(72), true, "new install selects tracked Reputation")
 Equal(fresh:Observe(72), false, "new install duplicate unchanged")
 
+-- Exhaust all five toggle combinations at each layout breakpoint.
+local names = {"identity", "progress", "percent", "remaining", "counts"}
+local fields = {}
+for i, name in ipairs(names) do fields[name] = {"<" .. name .. ">", "<" .. name .. ">", i} end
+for mask = 0, 31 do
+    local settings = {}
+    for i, key in ipairs(addon.InlineFieldSettings) do
+        settings[key] = math.floor(mask / 2^(i - 1)) % 2 == 1
+        Equal(addon.IsInlineFieldSetting(key), true, "known inline setting")
+    end
+    Equal(addon.AllInlineFieldsEnabled(settings), mask == 31, "default layout detection")
+    for _, width in ipairs({300, 529, 530, 829, 830, 1600}) do
+        local groups = addon.BuildInlineGroups(settings, width, fields)
+        local all = {}
+        for _, group in ipairs(groups) do
+            assert(#group > 0, "empty group must collapse")
+            local candidates = addon.InlineLabelCandidates(group)
+            all[#all + 1] = candidates[1]
+            for _, candidate in ipairs(candidates) do
+                for i, name in ipairs(names) do
+                    if not settings[addon.InlineFieldSettings[i]] then
+                        Equal(candidate:find("<" .. name .. ">", 1, true), nil, "disabled field never leaks")
+                    end
+                end
+                assert(not candidate:match("^%s*•") and not candidate:match("•%s*$"), "orphan separator")
+            end
+        end
+        local full = table.concat(all, " ")
+        for i, name in ipairs(names) do
+            Equal(full:find("<" .. name .. ">", 1, true) ~= nil,
+                settings[addon.InlineFieldSettings[i]], "enabled fields appear in full candidates")
+        end
+        if mask == 0 then Equal(#groups, 0, "all off is clean") end
+    end
+end
+Equal(addon.IsInlineFieldSetting("textMode"), false, "text mode separate")
+local fallback = addon.InlineLabelCandidates({{"LONG", "S", 1}, {"95%", "95%", 5}})
+Equal(fallback[1], "LONG  •  95%", "full candidate")
+Equal(fallback[2], "S  •  95%", "short candidate")
+Equal(fallback[3], "95%", "priority fallback")
+
 print("ProgressLogic regression PASS: " .. cases .. " behavioral assertions")
