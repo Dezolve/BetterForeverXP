@@ -39,7 +39,7 @@ jobs:
           fi
 
       - name: Check out the exact tagged source
-        uses: actions/checkout@v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6, Node 24
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -145,9 +145,6 @@ jobs:
           $version = [regex]::Match($toc, '(?m)^## Version:\s*(\S+)\s*$').Groups[1].Value
           "version=$version" >> $env:GITHUB_OUTPUT
           "zip_path=dist/BetterForeverXP-$version.zip" >> $env:GITHUB_OUTPUT
-          "changelog<<END_CHANGELOG" >> $env:GITHUB_OUTPUT
-          Get-Content -LiteralPath 'CURSEFORGE_RELEASE_NOTES.md' -Encoding UTF8 >> $env:GITHUB_OUTPUT
-          "END_CHANGELOG" >> $env:GITHUB_OUTPUT
 
       - name: Require existing CurseForge API secret
         shell: bash
@@ -171,6 +168,10 @@ jobs:
           lua5.4 scripts/Test-ProgressLogic.lua
           lua5.4 scripts/Test-InstanceTracker.lua
 
+      - name: Test CurseForge publisher offline
+        shell: bash
+        run: python3 scripts/test_publish_curseforge.py -v
+
       - name: Test and package addon
         shell: pwsh
         run: ./scripts/Package-Addon.ps1
@@ -186,11 +187,19 @@ jobs:
           Write-Host "Ready to upload $($env:ZIP_PATH) for WoW Forever 1.60.1."
 
       - name: Archive reviewed release ZIP for audit
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6, Node 24
         with:
           name: BetterForeverXP-${{ steps.release_info.outputs.version }}
           path: ${{ steps.release_info.outputs.zip_path }}
           if-no-files-found: error
+
+      - name: Resolve exact CurseForge game version (read-only)
+        id: curseforge_preflight
+        shell: bash
+        env:
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_API_TOKEN }}
+          RELEASE_VERSION: ${{ steps.release_info.outputs.version }}
+        run: python3 scripts/publish_curseforge.py preflight --version "$RELEASE_VERSION"
 
       - name: Create protected annotated tag for approved main release
         if: github.ref == 'refs/heads/main'
@@ -225,14 +234,10 @@ jobs:
           # publish below in this same validated, serialized run.
 
       - name: Upload to CurseForge
-        uses: itsmeow/curseforge-upload@v3.1.2
-        with:
-          token: ${{ secrets.CURSEFORGE_API_TOKEN }}
-          project_id: "1731462"
-          game_endpoint: wow
-          game_versions: "1.60.1"
-          file_path: ${{ steps.release_info.outputs.zip_path }}
-          release_type: release
-          display_name: Better Forever XP ${{ steps.release_info.outputs.version }}
-          changelog: ${{ steps.release_info.outputs.changelog }}
-          changelog_type: markdown
+        id: curseforge_upload
+        shell: bash
+        env:
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_API_TOKEN }}
+          RELEASE_VERSION: ${{ steps.release_info.outputs.version }}
+          GAME_VERSION_ID: ${{ steps.curseforge_preflight.outputs.game_version_id }}
+        run: python3 scripts/publish_curseforge.py publish --version "$RELEASE_VERSION" --game-version-id "$GAME_VERSION_ID"

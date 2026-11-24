@@ -18,7 +18,7 @@ The publishing job **fails closed** until this configuration exists.
 6. Optionally also enable **Restrict creations** if you configure an explicit admin bypass that still allows the owner to create new release tags. Do not lock out the release operator.
 7. Save the ruleset. Double-check that a normal collaborator cannot move or delete a version tag. Keep bypass access minimal.
 
-The workflow checks for an active repository tag ruleset called `BFXP Release Tags` with update and deletion restrictions. A matching name alone is insufficient. The Ruleset lives in GitHub repository settings, not source control. **As of 2026-11-04, repository rulesets were empty; this step had not been completed through our connected GitHub tools.**
+The workflow checks for an active repository tag ruleset called `BFXP Release Tags` with update and deletion restrictions. A matching name alone is insufficient. The Ruleset lives in GitHub repository settings, not source control. **Verified active during the 2.8.1 release on 2026-11-23.**
 
 The existing repository secret `CURSEFORGE_API_TOKEN` should remain stored in **Settings → Secrets and variables → Actions**. Do not copy the key into files, chat, or logs.
 
@@ -83,7 +83,7 @@ temporary bypass of protected tags.
    Replace `2.7.0` with the **exact version in the TOC and release notes**. Do not tag an unmerged feature-branch commit. Before pushing, check that the version tag does not already exist: `git ls-remote --tags origin v2.7.0` should show no match.
 
 6. The tag push automatically starts [Publish Better Forever XP to CurseForge](https://github.com/Dezolve/BetterForeverXP/actions/workflows/publish-curseforge.yml).
-7. Verify that **Validate tagged release and publish** succeeds, including the **Upload to CurseForge** step. A passing GitHub upload step confirms the API action succeeded, but CurseForge may take additional time to list/review the file.
+7. Verify that **Validate tagged release and publish** succeeds, including the **Upload to CurseForge** step. The direct API uploader requires a positive numeric file ID and prints the ID and file URL in the workflow summary. CurseForge may take additional time to list/review the file.
 8. Verify the version under [CurseForge Files](https://www.curseforge.com/wow/addons/better-forever-xp/files). The release ZIP is also attached as an artifact to the GitHub Actions run for audit. Update the public CurseForge description separately if needed.
 
 ### Checks automatically enforced on every tag publish
@@ -97,6 +97,14 @@ temporary bypass of protected tags.
 - The release type is fixed as `release`; the CurseForge project ID and target game version are fixed.
 - `CURSEFORGE_API_TOKEN` remains a GitHub Actions secret. Normal pushes, PRs, and CI runs cannot upload.
 - Publishing runs are serialized. **Rerunning the same workflow is rejected** to reduce the risk of duplicate uploads.
+
+## Publisher architecture
+
+- Checkout and artifact upload use pinned Node.js 24-compatible v6 actions.
+- The direct standard-library Python client `scripts/publish_curseforge.py` uses the official CurseForge Author API over HTTPS; no external upload action or Node package is needed.
+- Before tag creation, a read-only authenticated game-version lookup requires exactly one numeric ID matching WoW Forever 1.60.1. The publisher verifies the exact release ZIP/TOC and notes, then performs one multipart upload using that ID. The project ID and release type are fixed.
+- No redirects, automatic POST retries, raw response logging, or token in the URL. A successful response must contain a numeric file ID; the job summary links to the CurseForge file. An uncertain response requires manual reconciliation, never another automatic upload.
+- Ordinary CI runs `python3 scripts/test_publish_curseforge.py -v` using mocked requests, never the real secret or API. CI also verifies the actual generated archive and multipart form offline. Maintenance changes alone do not trigger publishing.
 
 ## Troubleshooting and recovery
 
