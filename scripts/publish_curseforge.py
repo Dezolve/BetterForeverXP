@@ -144,11 +144,18 @@ def publish(version, game_id, archive, notes, token, request=request_json):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("mode", choices=("preflight", "publish"))
+    parser.add_argument("mode", choices=("verify", "preflight", "publish"))
     parser.add_argument("--version", required=True)
     parser.add_argument("--game-version-id", type=int)
     args = parser.parse_args()
     try:
+        if args.mode == "verify":
+            if args.game_version_id is not None:
+                raise ReleaseError("Offline verification does not take a game version ID.")
+            archive, notes = load_release(args.version)
+            build_upload(args.version, 1, archive, notes)
+            print("Packaged upload form PASS (offline; no API access).")
+            return 0
         require_publish_context(args.version, os.environ)
         archive, notes = load_release(args.version)
         token = os.environ.get("CURSEFORGE_TOKEN", "")
