@@ -2,7 +2,9 @@
 
 By Dezolve Labs
 
-- Add **Show bar counts** under Text & Numbers. Disable it to hide inline earned/remaining division counts on XP and Reputation bars while preserving other progress labels, all 20 segments, and detailed tooltips. Enabled by default; applies immediately and persists across reloads.
+- Add five independent inline visibility preferences under **Text & Numbers**: level/faction, current/total progress, percentage, remaining XP/reputation, and bar counts. All enabled by default.
+- Adapt text regions to enabled fields, with width-aware fallback candidates that never reintroduce disabled information. Preserve the existing layout when all five are enabled.
+- Keep all 20 segments, detailed hover tooltips, number-format choices and three existing text modes. Settings apply immediately, persist, and reset to enabled.
 
 # Better Forever XP 2.8.0
 
