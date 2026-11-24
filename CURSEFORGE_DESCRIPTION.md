@@ -26,7 +26,7 @@ No extra bars, independent faction picker, or clutter.
 - **Completed quest XP preview:** a warm gold extension shows the XP waiting in ready-to-turn-in quests. It's a preview, not XP you've already earned.
 - **Readable numbers:** current and remaining XP, percentage and bars left, with compact, comma-separated, or exact formatting.
 - **Three text modes:** Tooltip only, Text on hover (the default), or Always visible.
-- **Custom inline labels:** independently show or hide level/faction, current/total progress, percentage, remaining XP/reputation, and bar counts.
+- **Custom inline labels:** in the Visible Information settings, independently show or hide level/faction, current/total progress, percentage, remaining XP/reputation, and bar counts.
 
 ## More information when you need it
 
