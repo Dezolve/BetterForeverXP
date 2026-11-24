@@ -104,7 +104,7 @@ temporary bypass of protected tags.
 - The direct standard-library Python client `scripts/publish_curseforge.py` uses the official CurseForge Author API over HTTPS; no external upload action or Node package is needed.
 - Before tag creation, a read-only authenticated game-version lookup requires exactly one numeric ID matching WoW Forever 1.60.1. The publisher verifies the exact release ZIP/TOC and notes, then performs one multipart upload using that ID. The project ID and release type are fixed.
 - No redirects, automatic POST retries, raw response logging, or token in the URL. A successful response must contain a numeric file ID; the job summary links to the CurseForge file. An uncertain response requires manual reconciliation, never another automatic upload.
-- Ordinary CI runs `python3 scripts/test_publish_curseforge.py -v` using mocked requests, never the real secret or API. Maintenance changes alone do not trigger publishing.
+- Ordinary CI runs `python3 scripts/test_publish_curseforge.py -v` using mocked requests, never the real secret or API. CI also verifies the actual generated archive and multipart form offline. Maintenance changes alone do not trigger publishing.
 
 ## Troubleshooting and recovery
 
