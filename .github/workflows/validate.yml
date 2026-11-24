@@ -80,6 +80,13 @@ jobs:
         shell: pwsh
         run: ./scripts/Package-Addon.ps1
 
+      - name: Verify packaged CurseForge upload form offline
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION=$(sed -n 's/^## Version:[[:space:]]*//p' BetterForeverXP/BetterForeverXP.toc | tr -d '\r')
+          python3 scripts/publish_curseforge.py verify --version "$VERSION"
+
       - name: Upload release archive
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6, Node 24
         with:
